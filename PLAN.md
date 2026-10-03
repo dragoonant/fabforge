@@ -7,21 +7,22 @@ Status every session.
 
 ## Status — 2026-10-03
 
-**22 decks are registered and live**: the three LSS precons and **19 event decks**, each a
+**25 decks are registered and live**: the three LSS precons and **22 event decks**, each a
 different hero's best finish (D11): Kano 1st, Briar 2nd, Ira and Dash 3rd, Iyslander, Oldhim and
 Florian 5th at Pro Tour: Yokohama; Valda, Dorinthea 2nd, Olympia, Kayo, Bravo 3rd, Rhinar, Terra
 5th at Callings; Chane 1st at Battle Hardened: Hong Kong; Oscilio, Blaze, Fai 1st and Benji 2nd at
-Sunday Showdowns. Enigma, Prism and Nuu are still being implemented.
+Sunday Showdowns; Enigma 2nd at Calling: Bangkok, Prism 1st at a World Championship Qualifier and
+Nuu 5th at Calling: San Diego.
 
-- Gates: 389/389 card tests, check-pages clean, 44 AI games and 60 random games with 0 violations,
-  replay selftest passing. In the browser every registered deck was driven for 120 actions on the
-  real page (board, log and prompts rendering each step) with no error.
+- Gates: 467/467 card tests, check-pages clean, 50 AI games and 50 random games with 0 violations,
+  replay selftest passing. In the browser every registered deck was driven for 100 actions on the
+  real page, rendered from both seats (board, log and prompts each step), with no error.
 - 448 illustrations cover every card in all 22 fetched event pools.
 - Work was done by Sonnet agents in worktrees, one per hero class, then merged one group at a time;
   duplicated implementations of the same printed sentence were reduced to one after each merge.
 
 **Left out of otherwise-playable decks** (in the sideboard, shown on the menu): Lay Low, Frost
-Spike, Flourish and Blinding of the Old Ones are not implemented; Promising Terrain depends on
+Spike, Flourish, Blinding of the Old Ones, Skycrest Keikoi and Uphold Tradition are not implemented; Promising Terrain depends on
 ordering simultaneous triggers (DEVIATIONS D-1). Fai's starting Phoenix Flame is fixed on rather
 than asked.
 

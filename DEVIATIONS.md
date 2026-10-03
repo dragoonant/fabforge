@@ -11,10 +11,10 @@ When several triggered effects trigger together they reach the stack in board or
 hero, weapons, equipment, permanents, then the other seat). The controller should choose. It
 matters only when two of them interact.
 
-## D-2 — Arcane damage does not exist · CR 8.5.3b, 8.3.8
-`FAB.dealDamage` knows physical and generic damage. No card that deals arcane damage compiles, so
-Arcane Barrier is accepted as a keyword that can never be used. Admitting an arcane source means
-implementing the Arcane Barrier payment in the damage door first.
+## D-2 — Prevention effects are applied in a fixed order · CR 6.4, 6.5
+Arcane Barrier, Spellvoid, Ward and "prevent the next N" effects are each asked or applied in a
+fixed order (prevention effects, then per-permanent questions in arena order). The damaged player
+should choose the order when it matters.
 
 ## D-3 — Starting equipment and the 40-card deck are not chosen by the player · CR 4.1.4, 4.1.6
 Each deck starts with the loadout and the 40 cards recorded in `tools/deck-picks.json`
@@ -30,6 +30,20 @@ this cannot be observed.
 
 ## D-6 — Stalemate and deadlock draws are not detected · CR 4.5.4d-e
 `tools/sim.mjs` caps turns instead.
+
+## D-7 — Fai's starting Phoenix Flame is not asked · CR 4.1.6b
+Fai "may" start the game with a Phoenix Flame in the graveyard. The deck always does; the player
+is not asked.
+
+## D-8 — A card played from the other hero's banished zone changes owner · CR 1.3.1
+Nuu may play cards from the opposing hero's banished zone. The engine has one owner per card, so a
+permanent played this way becomes the player's own and goes to their graveyard afterwards.
+
+## D-9 — Opt does not offer an order · CR 8.5.22
+Each card looked at is put on the top or the bottom; cards kept on top stay in their original order.
+
+## D-10 — Phantasm and Mirage are checked at two moments, not continuously · CR 8.3.13a
+They are checked when a card defends and again when the chain link resolves.
 
 ---
 
