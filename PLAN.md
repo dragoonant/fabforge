@@ -98,3 +98,14 @@ The repo is this OneDrive folder. `scratch/` and `art/masters/` are gitignored.
 ### D10 — Deployment · 2026-10-02 · owner
 Public repository `dragoonant/fabforge`, GitHub Pages from `main` at the root, the same way as GRAND
 LINE. Pushing to `main` redeploys. `docs/takedown.md` Level 1 is how it comes down.
+
+### D11 — Twenty competition decks · 2026-10-03 · owner
+Twenty decks with different heroes, taken from lists that placed high at premier events. Source:
+LSS's public decklist index (302 Silver Age lists on 2026-10-03). **Silver Age**, because it is
+the format the engine already plays and LSS runs it at the Pro Tour, Callings and Battle Hardened.
+`tools/fetch-decklists.mjs` picks each hero's best finish, weighting the event (Pro Tour, then
+Calling, then Battle Hardened, then Sunday Showdown) and then the placing; the choice is recorded
+in gitignored `scratch/decks/picks.json` and each deck shows its player, event, rank and date on
+the menu. Twenty-two lists were fetched so that two can fall short without missing the twenty.
+Work is split by hero class across Sonnet agents, each in its own git worktree with its own
+extension files (`docs/AGENT-BRIEF.md`); illustration likewise (`docs/ART-BRIEF.md`).

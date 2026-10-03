@@ -4,7 +4,8 @@
   const FAB = window.FAB;
   FAB.validate();                                     // refuse to run rather than play a card wrongly
   const app = () => document.getElementById('app');
-  const reg = () => Object.values(FAB.decks).filter(d => d.registered);
+  const TIER = e => !e ? 9 : /Pro Tour|World Champ/.test(e) ? 0 : /^Calling/.test(e) ? 1 : /Battle Hardened/.test(e) ? 2 : 3;
+  const reg = () => Object.values(FAB.decks).filter(d => d.registered).sort((a, b) => TIER(a.event) - TIER(b.event) || parseInt(a.rank || '99', 10) - parseInt(b.rank || '99', 10) || a.name.localeCompare(b.name));
   const pick = { me: null, opp: null };
   let overlay = null;
 
@@ -27,12 +28,13 @@
     const sel = pick[side] === d.id;
     return `<div class="deckcard ${sel ? 'sel' : ''}" data-pick="${side}:${d.id}">
       <div class="dart" style="background-image:${FAB.art.css(d.hero)}"></div>
-      <div class="dname">${hero.name}</div><div class="dtype">${hero.typeText}</div></div>`;
+      <div class="dname">${hero.name}</div><div class="dtype">${hero.typeText.replace(" Hero - Young", "")}</div><div class="devent">${d.event ? "<b>" + d.rank + "</b> · " + d.event : "LSS precon deck"}</div></div>`;
   }
   function deckDetail(id) {
     const d = FAB.decks[id];
     const row = e => `<div class="drow" data-cid="${e.id}"><span>${e.n}×</span> ${FAB.text.cname(e.id)}</div>`;
     return `<div class="ddetail"><h3>${d.name} — ${d.format}</h3>
+      ${d.event ? `<p><b>${d.rank}</b> at <b>${d.event}</b> (${d.date}), played by ${d.player}.</p>` : ''}
       <p>List published by Legend Story Studios: <a href="${d.source}" target="_blank" rel="noopener">${d.source}</a> (fetched ${d.fetched}).</p>
       <p class="rule">${d.rule}</p>
       <div class="dcols"><div><h4>Starts equipped</h4>${d.loadout.map(i => row({ id: i, n: 1 })).join('')}<h4>Sideboard (not in this deck)</h4>${d.side.map(row).join('')}</div>

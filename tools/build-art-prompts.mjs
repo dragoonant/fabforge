@@ -12,7 +12,19 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ROOT } from './load.mjs';
-import { WHO, CARDS } from './art-identity.mjs';
+import { WHO as WHO0, CARDS as CARDS0 } from './art-identity.mjs';
+import { readdirSync, existsSync } from 'node:fs';
+// tools/art/<name>.mjs files add WHO and CARDS entries, one file per illustrator, so several can
+// work at once. The first file to describe a card keeps it.
+const WHO = { ...WHO0 }, CARDS = { ...CARDS0 };
+{
+  const dir = new URL('./art/', import.meta.url);
+  if (existsSync(dir)) for (const f of readdirSync(dir).filter(f => f.endsWith('.mjs')).sort()) {
+    const m = await import(new URL(f, dir).href);
+    for (const k in m.WHO || {}) { if (WHO[k]) throw new Error('duplicate WHO entry ' + k + ' in tools/art/' + f); WHO[k] = m.WHO[k]; }
+    for (const k in m.CARDS || {}) if (!CARDS[k]) CARDS[k] = m.CARDS[k];
+  }
+}
 
 // One STYLE constant, byte-identical on every prompt. Changing it means re-paying for every render.
 export const STYLE =
@@ -75,9 +87,12 @@ const { decks } = await load('data/decks.js');
 const extra = (args.find((a) => a.startsWith('--deck=')) || '').slice(7) || (args[args.indexOf('--deck') + 1] || '');
 const extraDecks = args.includes('--deck') || extra ? extra.split(',').filter(Boolean) : [];
 const ids = new Set(['agility', 'might', 'vigor', 'seismic-surge']);
+// --keys k1,k2: extra art keys (tokens a deck creates). --only-decks: just the --deck decks, not every registered one.
+if (args.includes('--keys')) args[args.indexOf('--keys') + 1].split(',').filter(Boolean).forEach((k) => ids.add(k));
+const onlyDecks = args.includes('--only-decks');
 for (const d of Object.values(decks)) {
-  if (!d.registered && !extraDecks.includes(d.id)) continue;
-  if (!d.deck && !d.loadout) (d.pool || []).forEach((e) => ids.add(e.id));
+  if (onlyDecks ? !extraDecks.includes(d.id) : (!d.registered && !extraDecks.includes(d.id))) continue;
+  (d.pool || []).forEach((e) => ids.add(e.id));          // the whole pool: sideboard cards are shown on the menu too
   ids.add(d.hero);
   (d.loadout || []).forEach((i) => ids.add(i));
   (d.deck || []).forEach((e) => ids.add(e.id));
@@ -106,5 +121,6 @@ if (errs.length) {
   process.exit(1);
 }
 
-await writeFile(join(ROOT, 'tools', 'art-prompts.json'), JSON.stringify(prompts, null, 2) + '\n');
-console.log(`${prompts.length} prompts written to tools/art-prompts.json, lint clean.`);
+const outFile = args.includes('--out') ? args[args.indexOf('--out') + 1] : join(ROOT, 'tools', 'art-prompts.json');
+await writeFile(outFile, JSON.stringify(prompts, null, 2) + '\n');
+console.log(`${prompts.length} prompts written to ${outFile}, lint clean.`);

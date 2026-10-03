@@ -38,7 +38,7 @@ async function existing(key) {
   return null;
 }
 
-const plan = JSON.parse(await readFile(join(ROOT, 'tools', 'art-prompts.json'), 'utf8'));
+const plan = JSON.parse(await readFile(args.includes('--prompts') ? args[args.indexOf('--prompts') + 1] : join(ROOT, 'tools', 'art-prompts.json'), 'utf8'));
 let todo = plan;
 if (ONLY.length) todo = todo.filter((p) => ONLY.includes(p.key));
 if (FORCE_KEY) todo = plan.filter((p) => p.key === FORCE_KEY);
