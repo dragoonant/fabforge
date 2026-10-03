@@ -91,7 +91,7 @@
       ? (mine || s.cards[p.arsenal[0]].faceUp ? cardAt(p.arsenal[0], { why: mine && !am.m[p.arsenal[0]] && s.priority === seat && !s.pending ? FAB.whyNot(s, seat, p.arsenal[0]) : null }) : back())
       : '';
     const grave = p.grave.length ? face(s, s.cards[p.grave[p.grave.length - 1]].id, { cls: 'sm' }) : '';
-    const faceDownBanished = p.banish.filter(i => !s.cards[i].faceUp).length;
+    const faceDownBanished = p.banish.filter(i => !s.cards[i].faceUp).length;   // [ninjas] the banished zone below also shows a banished card the human may play (Crouching Tiger), so it can be clicked
     const pitch = p.pitch.map(i => cardAt(i, { cls: 'sm' })).join('');
     const active = s.tp === seat;
     return `<div class="side ${mine ? 'me' : 'opp'} ${active ? 'active' : ''}">
@@ -110,7 +110,7 @@
         <div class="zone"><div class="zl">Pitch</div><div class="row pitchrow">${pitch}</div></div>
         <div class="zone pile"><div class="zl">Deck</div>${p.deck.length ? back(p.deck.length) : '<div class="empty">0</div>'}</div>
         <div class="zone pile click" data-view="grave:${seat}"><div class="zl">Graveyard ${p.grave.length}</div>${grave}</div>
-        <div class="zone pile click" data-view="banish:${seat}"><div class="zl">Banished ${p.banish.length}</div>${faceDownBanished ? back(faceDownBanished, 'sm') : ''}</div>
+        <div class="zone pile click" data-view="banish:${seat}"><div class="zl">Banished ${p.banish.length}</div>${faceDownBanished ? back(faceDownBanished, 'sm') : ''}${p.banish.filter(i => am.m[i]).map(i => cardAt(i, { cls: 'sm' })).join('')}</div>
       </div>
     </div>`;
   }

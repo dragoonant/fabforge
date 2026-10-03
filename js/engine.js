@@ -89,6 +89,7 @@
     if (from) { const i = from.indexOf(iid); if (i >= 0) from.splice(i, 1); }
     const prev = c.zone;
     if (FAB.cards[c.id].kind === 'token' && zone !== 'arena') zone = 'gone';   // a token leaving the arena ceases to exist
+    if (zone === 'grave' && FAB.cards[c.id].kw.ephemeral) { zone = 'gone'; log(s, 'nj_ephemeral', { who: c.owner, c: c.id }); }   // [ninjas] CR 8.3.21 Ephemeral: instead of the graveyard, remove it from the game
     c.zone = zone;
     if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; } }
     c.faceUp = !o.faceDown;
@@ -168,9 +169,9 @@
     const gain = v => (nog && v > 0) ? 0 : v;
     let p = d.power + gain(c.counters.p || 0);
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
-    for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(ab.p);
+    for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(FAB.num(x, ab.p));   // [ninjas] ab.p may be a variable (Salt the Wound)
     const me = P(s, link.ctrl);                                                        // "Your first attack each turn gets +1{p}": a continuous effect of a permanent
-    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1)) p += gain(ab.p);
+    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1) && (!ab.nth || link.seq === ab.nth)) p += gain(ab.p);   // [ninjas] ab.nth: Ira's second attack
     let pierce = 0;
     for (const m of link.mods) { if (m.p) p += gain(m.p); if (m.piercing) pierce += m.piercing; }
     if (d.kw.piercing) pierce += d.kw.piercing;
@@ -200,14 +201,16 @@
     for (const e of s.effects) if (e.k === 'intellect' && e.who === who) n = e.n;
     return n;
   };
-  FAB.matchAttack = function (s, iid, weapon, f) {
+  FAB.matchAttack = function (s, iid, weapon, f, mods) {
     const d = D(s, iid);
     if (f.weapon && !weapon) return false;
     if (f.sub && !f.sub.some(t => d.types.includes(t))) return false;
-    if (f.klass && !f.klass.some(t => d.types.includes(t))) return false;
+    if (f.klass && !f.klass.some(t => d.types.includes(t) || (t === 'Draconic' && mods && mods.some(m => m.drac)))) return false;   // [ninjas] an attack made Draconic by an effect
     if (f.baseMax != null && !(d.power <= f.baseMax)) return false;
     if (f.aa && (weapon || !isAttackDef(d))) return false;
     if (f.costMin != null && !(d.cost != null && d.cost >= f.costMin)) return false;
+    if (f.costMax != null && !(d.cost != null && d.cost <= f.costMax)) return false;     // [ninjas] "with cost 1 or less"
+    if (f.name && d.name !== f.name) return false;                                       // [ninjas] "the next Crouching Tiger"
     return true;
   };
 
@@ -272,6 +275,8 @@
   function trigMatch(s, ab, iid, ev) {
     if (ab.on !== ev.t) return false;
     const c = I(s, iid), own = c.owner, p = P(s, own);
+    // [ninjas] ab.ncond: "When this attacks, if <cond>, ..." is checked as the trigger is generated (CR 6.6.5b). The cond sees the newest chain link.
+    if (ab.ncond && !FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, link: s.chain && s.chain.links.length ? s.chain.links[s.chain.links.length - 1] : null, flags: {} }, ab.ncond)) return false;
     switch (ev.t) {
       case 'attack': case 'played': case 'selfRandDisc': case 'clashWin': return ev.iid === iid;
       case 'defend': return ev.iids.includes(iid) && (!ab.cond || FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, flags: {} }, ab.cond));
@@ -412,6 +417,7 @@
         const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
         emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
         emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
+        if (!link.weapon && isAttackDef(D(s, link.iid))) { const hh = P(s, link.ctrl).h; hh.aaHits = (hh.aaHits || 0) + 1; emit(s, { t: 'nj_aaHit', ctrl: link.ctrl, iid: link.iid, n: dealt, first: hh.aaHits === 1 }); }   // [ninjas] Benji: the first time an attack action card you control hits each turn
         if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
         for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
         for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
@@ -424,6 +430,7 @@
     s.chain.step = 'resolution';
     if (FAB.attackHas(s, link, 'goAgain')) { P(s, link.ctrl).ap++; log(s, 'goAgain', { who: link.ctrl, c: I(s, link.iid).id }); }
     link.resolved = true;
+    emit(s, { t: 'nj_linkResolve', iid: link.iid, ctrl: link.ctrl });                      // [ninjas] CR 7.6: "When this chain link resolves"
     setPriority(s, s.tp);
   }
   function finishClose(s) {                                                                // CR 7.7.5-7.7.7
@@ -514,11 +521,15 @@
     if (fromHand && FAB.attackHas(s, link, 'dominate') && (already || link.defs.some(e => e.from === 'hand'))) return false;   // CR 8.3.4
     const r = d.ab.find(a => a.k === 'rule' && a.rule === 'defendBaseMax');
     if (r && !(D(s, link.iid).power <= r.n)) return false;
+    if (fromHand) {                                                                         // [ninjas] Benji: attack action cards you control with 2 or less {p} can't be defended by cards from hand
+      const nh = D(s, P(s, link.ctrl).hero).ab.find(a => a.k === 'heroStatic' && a.rule === 'nj_noHandDef');
+      if (nh && !link.weapon && isAttackDef(D(s, link.iid)) && FAB.attackPower(s, link) <= nh.n) return false;
+    }
     return true;
   }
   const canPlay = FAB.canPlay = function (s, who, iid) {
     const c = I(s, iid), d = FAB.cards[c.id];
-    if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal')) return false;
+    if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal' && !(c.zone === 'banish' && c.faceUp && c.playTurn === s.turn))) return false;   // [ninjas] a created card may be played from the banished zone during the turn the effect names
     const link = activeLink(s);
     switch (d.kind) {
       case 'action': if (!actionTiming(s, who, isAttackDef(d))) return false; break;
@@ -539,6 +550,8 @@
       if (ab.k === 'res' && ab.modes && !ab.modes.some(m => legalTarget(s, link, m.tgt))) return false;
     }
     const extra = d.ab.filter(a => a.k === 'addCost' && a.cost.discardRandom).length;
+    const nm = d.ab.find(a => a.k === 'nj_modes');                                                                      // [ninjas] CR 5.4.4b: an alternative cost may stand in for the {r} cost
+    if (nm && FAB.nj_altAvailable(s, who, iid, nm) && canPay(s, who, Math.max(0, FAB.costOf(s, iid) - (d.cost || 0)), iid, 0)) return true;
     return canPay(s, who, FAB.costOf(s, iid), iid, extra);
   };
   const canAct = FAB.canAct = function (s, who, iid, i) {
@@ -566,7 +579,7 @@
     }
     if (s.priority == null) throw new Error('nobody holds priority and nothing is pending');
     const who = s.priority, p = P(s, who), out = [];
-    for (const iid of p.hand.concat(p.arsenal)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });
+    for (const iid of p.hand.concat(p.arsenal, p.banish)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });   // [ninjas] banished zone too
     const srcs = [p.hero].concat(p.weapons, p.equip, p.arena, p.hand);
     if (s.chain) for (const l of s.chain.links) for (const e of l.defs) if (I(s, e.iid).owner === who && I(s, e.iid).zone === 'chain') srcs.push(e.iid);
     for (const iid of srcs) {
@@ -632,20 +645,24 @@
   };
 
   function applyNext(s, L, weapon) {       // CR 5.1.2a: "your next attack" effects attach as the attack is announced
-    const keep = [];
-    for (const e of s.effects) {
-      if (e.k === 'next' && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f)) {
-        L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src });
-        log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
-      } else keep.push(e);
+    let rest = s.effects;
+    for (const grants of [true, false]) {                        // [ninjas] effects that change the attack's type (Draconic) apply first, so a "next Draconic attack" effect sees it
+      const keep = [];
+      for (const e of rest) {
+        if (e.k === 'next' && !!(e.mod && e.mod.drac) === grants && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f, L.mods)) {
+          L.mods.push(Object.assign({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src }, e.mod || {}));   // [ninjas] e.mod: a name or Draconic given to the attack
+          log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
+        } else keep.push(e);
+      }
+      rest = keep;
     }
-    s.effects = keep;
+    s.effects = rest;
   }
   // Bravo: "it gets +2{p} and dominate this turn" belongs to that card, and applies when it is played as an attack.
   function applyCardBuffs(s, L, c) {
     const keep = [];
     for (const e of s.effects) {
-      if (e.k === 'cardBuff' && e.iid === L.iid && c.fromArsenal) {
+      if (e.k === 'cardBuff' && e.iid === L.iid && (c.fromArsenal || e.anyZone)) {   // [ninjas] e.anyZone: a created Crouching Tiger
         L.mods.push({ p: e.p || 0, grant: e.grant || null, src: e.src });
         log(s, 'buff', { who: L.ctrl, c: I(s, e.src).id, to: c.id, p: e.p || 0, grant: e.grant || null, piercing: 0 });
       } else keep.push(e);
@@ -656,7 +673,7 @@
 
   EXEC.play = function (x) {
     const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], p = P(s, who);
-    const fromArsenal = c.zone === 'arsenal';
+    const fromArsenal = c.zone === 'arsenal', fromZone = c.zone;
     const L = { lid: s.lid++, kind: 'card', ctrl: who, iid: iid, isAttack: isAttackDef(d), mods: [], tgt: null };
     move(s, iid, 'stack');                                                                  // CR 5.1.2 announce
     c.fromArsenal = fromArsenal;
@@ -680,8 +697,10 @@
       const link = activeLink(s);
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
+    const nmAb = d.ab.find(a => a.k === 'nj_modes');                                        // [ninjas] CR 1.7.5, 5.4.4b: modes are chosen as the card is played; the alternative cost replaces the {r} cost
+    const altPaid = nmAb ? FAB.nj_declareModes(x, iid, L, nmAb) : false;
     if (d.kind === 'action') p.ap -= 1;                                                     // CR 5.1.6b
-    payRes(x, who, FAB.costOf(s, iid) + extra, iid);                                        // CR 5.1.7
+    payRes(x, who, (altPaid ? Math.max(0, FAB.costOf(s, iid) - (d.cost || 0)) : FAB.costOf(s, iid)) + extra, iid);                                        // CR 5.1.7
     spendCostFx(s, who, d, null);
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.cost.discardRandom) {               // CR 5.1.9 effect-costs
       if (!p.hand.length) throw new Illegal('no card to discard');
@@ -690,7 +709,7 @@
     }
     s.stack.push(L);
     p.h.played++;
-    log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : 'hand' });
+    log(s, 'play', { who: who, c: d.id, from: fromZone === 'banish' ? 'banish' : fromArsenal ? 'arsenal' : 'hand' });   // [ninjas] from: banish
     if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
@@ -782,6 +801,10 @@
       if (chosen.includes(iid) || c.onLink != null) continue;
       if (canDefendWith(s, link, iid, false, false)) out.push({ id: iid, iid: iid });
     }
+    for (const iid of p.arsenal) {                                                          // [ninjas] CR 8.3.28 Ambush: while in your arsenal, you may defend with it
+      if (chosen.includes(iid) || !D(s, iid).kw.ambush) continue;
+      if (canDefendWith(s, link, iid, false, false)) out.push({ id: iid, iid: iid });
+    }
     return out;
   }
   EXEC.defend = function (x) {                                                              // CR 7.3
@@ -799,6 +822,7 @@
     for (const iid of chosen) {                                                             // CR 7.3.2d: one multi-event
       const c = I(s, iid);
       if (c.zone === 'hand') { move(s, iid, 'chain'); link.defs.push({ iid: iid, from: 'hand' }); anyHand = true; }
+      else if (c.zone === 'arsenal') { move(s, iid, 'chain'); link.defs.push({ iid: iid, from: 'arsenal' }); }   // [ninjas] Ambush
       else { c.onLink = link.n; link.defs.push({ iid: iid, from: 'equip' }); }
     }
     if (anyHand) link.handDef = true;

@@ -368,7 +368,129 @@ window.FAB.decks = {
   "rank": "3rd",
   "player": "Bartosz Dobrowolski",
   "date": "09 Apr 2026",
-  "poolCompiled": 8
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "aspect-of-tiger-body-red",
+    "n": 2
+   },
+   {
+    "id": "bittering-thorns-red",
+    "n": 2
+   },
+   {
+    "id": "blessing-of-qi-red",
+    "n": 2
+   },
+   {
+    "id": "bluster-buff-red",
+    "n": 2
+   },
+   {
+    "id": "cut-through-red",
+    "n": 1
+   },
+   {
+    "id": "flex-claws-red",
+    "n": 2
+   },
+   {
+    "id": "flying-kick-red",
+    "n": 2
+   },
+   {
+    "id": "growl-red",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-red",
+    "n": 2
+   },
+   {
+    "id": "razor-reflex-red",
+    "n": 1
+   },
+   {
+    "id": "reinforce-the-line-red",
+    "n": 2
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 1
+   },
+   {
+    "id": "torrent-of-tempo-red",
+    "n": 2
+   },
+   {
+    "id": "untamed-red",
+    "n": 2
+   },
+   {
+    "id": "up-sticks-and-run-red",
+    "n": 2
+   },
+   {
+    "id": "salt-the-wound-yel",
+    "n": 1
+   },
+   {
+    "id": "tiger-eye-reflex-yel",
+    "n": 2
+   },
+   {
+    "id": "aspect-of-tiger-mind-blu",
+    "n": 1
+   },
+   {
+    "id": "feign-vengeance-blu",
+    "n": 2
+   },
+   {
+    "id": "nip-at-the-heels-blu",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-blu",
+    "n": 2
+   },
+   {
+    "id": "rushing-river-blu",
+    "n": 1
+   },
+   {
+    "id": "soulbead-strike-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "seek-vengeance-blu",
+    "n": 2
+   },
+   {
+    "id": "legacy-of-ikaru-blu",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "life-of-the-party-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "harmonized-kodachi",
+   "harmonized-kodachi",
+   "mask-of-many-faces",
+   "blood-scent",
+   "tearing-shuko",
+   "pouncing-paws"
+  ],
+  "rule": "Bartosz Dobrowolski's list from the Pro Tour: Yokohama (3rd). The sideboard holds the two Seek Vengeance (they look for Edge of Autumn, which this list does not carry), the two Legacy of Ikaru (the same), the two Arcane Polarity and the Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew).",
+  "registered": true
  },
  "iyslander-pt-yokohama": {
   "id": "iyslander-pt-yokohama",
@@ -1933,7 +2055,7 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Fabian Rex",
   "date": "19 Jul 2026",
-  "poolCompiled": 8
+  "poolCompiled": 14
  },
  "oscilio-showdown-kansas-city": {
   "id": "oscilio-showdown-kansas-city",
@@ -3423,7 +3545,124 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Sabastian Chizhik",
   "date": "30 Aug 2026",
-  "poolCompiled": 13
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "bittering-thorns-red",
+    "n": 2
+   },
+   {
+    "id": "bluster-buff-red",
+    "n": 2
+   },
+   {
+    "id": "chest-puff-red",
+    "n": 2
+   },
+   {
+    "id": "flying-kick-red",
+    "n": 1
+   },
+   {
+    "id": "growl-red",
+    "n": 1
+   },
+   {
+    "id": "oasis-respite-red",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-red",
+    "n": 2
+   },
+   {
+    "id": "ravenous-rabble-red",
+    "n": 2
+   },
+   {
+    "id": "reinforce-the-line-red",
+    "n": 1
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "seek-vengeance-red",
+    "n": 2
+   },
+   {
+    "id": "smash-up-red",
+    "n": 1
+   },
+   {
+    "id": "soulbead-strike-red",
+    "n": 2
+   },
+   {
+    "id": "wax-on-red",
+    "n": 2
+   },
+   {
+    "id": "biting-breeze-yel",
+    "n": 2
+   },
+   {
+    "id": "growl-yel",
+    "n": 2
+   },
+   {
+    "id": "tiger-eye-reflex-yel",
+    "n": 2
+   },
+   {
+    "id": "flying-kick-blu",
+    "n": 2
+   },
+   {
+    "id": "legacy-of-ikaru-blu",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-blu",
+    "n": 2
+   },
+   {
+    "id": "seek-vengeance-blu",
+    "n": 2
+   },
+   {
+    "id": "soulbead-strike-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "life-of-the-party-red",
+    "n": 2
+   },
+   {
+    "id": "reinforce-the-line-red",
+    "n": 1
+   },
+   {
+    "id": "snatch-blu",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "edge-of-autumn",
+   "mask-of-many-faces",
+   "blood-scent",
+   "tearing-shuko",
+   "pouncing-paws"
+  ],
+  "rule": "Sabastian Chizhik's list from the Sunday Showdown: Kansas City (2nd), starting with Edge of Autumn (a two-handed weapon, so the Harmonized Kodachi and the Arcane Lantern stay out). The sideboard holds the two Arcane Polarity, the two Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew), one Reinforce the Line and one Snatch.",
+  "registered": true
  },
  "olympia-calling-london": {
   "id": "olympia-calling-london",
@@ -5311,7 +5550,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 3
+  "poolCompiled": 4
  },
  "azalea": {
   "id": "azalea",
@@ -6153,7 +6392,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 8
+  "poolCompiled": 14
  },
  "blaze-firemind": {
   "id": "blaze-firemind",

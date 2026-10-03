@@ -23,7 +23,7 @@
     turn: (s, e, v) => `<span class="turnline">Turn ${e.n} — ${T.who(s, e.who, v)}</span>`,
     draw: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'draw', 'draws')} ${plural(e.n, 'card')}.`,
     pitch: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'pitch', 'pitches')} ${tag(e.c)} for ${e.n}.`,
-    play: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'play', 'plays')} ${tag(e.c)}${e.from === 'arsenal' ? ' from arsenal' : ''}.`,
+    play: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'play', 'plays')} ${tag(e.c)}${e.from === 'arsenal' ? ' from arsenal' : e.from === 'banish' ? ' from the banished zone' : ''}.`,   // [ninjas] from: banish
     activate: (s, e, v) => e.attack ? `${T.who(s, e.who, v)} ${T.v(e.who, v, 'attack', 'attacks')} with ${tag(e.c)}.` : `${T.who(s, e.who, v)} ${T.v(e.who, v, 'activate', 'activates')} ${tag(e.c)}.`,
     resolve: (s, e) => `${tag(e.c)} resolves.`,
     trigger: (s, e) => `${tag(e.c)} triggers.`,
