@@ -496,6 +496,40 @@
     out.push({ type: 'pass' });
     return out;
   };
+  // What the defend prompt shows. The interface reports these numbers and derives none of its own.
+  FAB.blockPreview = function (s) {
+    const link = activeLink(s), q = s.pending && s.pending.q;
+    const power = FAB.attackPower(s, link);
+    let def = FAB.linkDefense(s, link);
+    if (q && q.kind === 'defend') for (const iid of q.chosen) def += FAB.defenseOf(s, iid, link);
+    return { power: power, def: def, dmg: Math.max(0, power - def), dominate: FAB.attackHas(s, link, 'dominate') };
+  };
+  // Why a card in hand or arsenal cannot be played right now, in words, or null if it can.
+  FAB.whyNot = function (s, who, iid) {
+    if (canPlay(s, who, iid)) return null;
+    const c = I(s, iid), d = FAB.cards[c.id], link = activeLink(s);
+    if (d.kind === 'block') return 'A block card cannot be played; it can only defend.';
+    if (s.priority !== who) return 'You do not have priority.';
+    if (d.kind === 'action') {
+      if (who !== s.tp) return 'Actions can only be played on your own turn.';
+      if (P(s, who).ap < 1) return 'You have no action point left.';
+      if (s.stack.length) return 'Actions need an empty stack.';
+      if (s.chain && !isAttackDef(d)) return 'Close the combat chain before playing a non-attack action.';
+      if (s.chain && s.chain.step !== 'resolution') return 'Wait for the current attack to finish.';
+    }
+    if (d.kind === 'ar' && !(link && s.chain.step === 'reaction' && link.ctrl === who)) return 'Attack reactions are played in the reaction step of your own attack.';
+    if (d.kind === 'dr') {
+      if (!(link && s.chain.step === 'reaction' && link.tgt === who)) return 'Defense reactions are played in the reaction step when you are attacked.';
+      if (D(s, link.iid).ab.some(a => a.k === 'rule' && a.rule === 'noDefReact')) return 'Defense reactions cannot be played this chain link.';
+      if (!canDefendWith(s, link, iid, c.zone === 'hand', false)) return 'This cannot defend that attack.';
+    }
+    const x = { s: s, ctrl: who, iid: iid, link: link, flags: {} };
+    for (const ab of d.ab) {
+      if (ab.k === 'playIf' && !FAB.cond(x, ab.cond)) return 'Its play condition is not met.';
+      if (ab.k === 'res' && ab.tgt && !(link && s.chain.step !== 'layer' && FAB.matchAttack(s, link.iid, link.weapon, ab.tgt))) return 'There is no legal target for it.';
+    }
+    return 'You cannot pay for it.';
+  };
   FAB.whoActs = s => s.winner != null ? null : (s.pending ? s.pending.q.who : s.priority);
   FAB.isTerminal = s => s.winner != null;
 
