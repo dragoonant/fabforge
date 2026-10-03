@@ -108,3 +108,129 @@ test('Clear Conscience: when it hits, each hero puts a card from hand on the bot
   eq(count(s, 0, 'arena', 'ponder'), 1); eq(count(s, 1, 'arena', 'ponder'), 1);
   eq(s.players[1].hand.length, 1); eq(s.cards[s.players[1].deck[s.players[1].deck.length - 1]].id, 'smash-instinct-blu', 'on the bottom');
 });
+
+// ---- Enigma's other cards ------------------------------------------------------------------
+test('Essence of Ancestry: Body: when it leaves the arena with no Illusionist auras, the next red source damage is prevented', () => {
+  let s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, []); put(s, 1, 'essence-of-ancestry-body-red', 'arena');
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => asked(x, 'my_ward')); s = answer(s, 'yes'); s = passUntil(s, closed);
+  eq(s.players[1].life, 18, 'ward 2 prevented 2 of 4');
+  const e = s.effects.find(x => x.k === 'my_prevent'); ok(e && e.all && e.color === 1, 'red sources, all of it');
+  const red = put(s, 0, 'scar-for-a-scar-red', 'grave'), blu = put(s, 0, 'smash-instinct-blu', 'grave');
+  const t = FAB.clone(s); eq(FAB.dealDamage(t, { to: 1, n: 5, src: blu, kind: 'p' }), 5, 'a blue source is not covered');
+  const u = FAB.clone(s); eq(FAB.dealDamage(u, { to: 1, n: 4, src: red, kind: 'p' }), 0, 'a red source: prevented');
+});
+test('Essence of Ancestry: Body: with another Illusionist aura in the arena nothing is prevented', () => {
+  let s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, []); put(s, 1, 'essence-of-ancestry-body-red', 'arena'); put(s, 1, 'passing-mirage-blu', 'arena');
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => asked(x, 'my_ward')); s = answer(s, 'yes'); s = passUntil(s, closed);
+  ok(!s.effects.some(x => x.k === 'my_prevent'));
+});
+test('Moon Chakra: prevents 3 of the next damage this turn, 5 if you have transcended', () => {
+  for (const [tr, left] of [[false, 19], [true, 20]]) {
+    let s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, ['moon-chakra-red']); if (tr) s.players[1].h.my_transcended = true;
+    s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+    s = passUntil(s, x => step(x, 'reaction') && x.priority === 1); s = play(s, 'moon-chakra-red');
+    s = passUntil(s, closed); eq(s.players[1].life, left);
+  }
+});
+test('Solitary Companion: creates a Spectral Shield on entering unless you control another Illusionist aura', () => {
+  let s = game(ENI, KAY); give(s, 0, ['solitary-companion-red']); give(s, 1, []);
+  s = play(s, 'solitary-companion-red'); s = passUntil(s, closed);
+  eq(count(s, 0, 'arena', 'spectral-shield'), 1); eq(count(s, 0, 'arena', 'solitary-companion-red'), 1);
+  s = game(ENI, KAY); give(s, 0, ['solitary-companion-red']); put(s, 0, 'passing-mirage-blu', 'arena');
+  s = play(s, 'solitary-companion-red'); s = passUntil(s, closed); eq(count(s, 0, 'arena', 'spectral-shield'), 0);
+});
+test('Spectral Manifestations: a Spectral Shield, with three +1 power counters only if you control no other Illusionist aura', () => {
+  let s = game(ENI, KAY); give(s, 0, ['spectral-manifestations-red', 'hit-and-run-blu']); give(s, 1, []);
+  s = play(s, 'spectral-manifestations-red'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, closed);
+  eq(s.cards[s.players[0].arena[0]].counters.p, 3);
+  s = game(ENI, KAY); give(s, 0, ['spectral-manifestations-red', 'hit-and-run-blu']); put(s, 0, 'passing-mirage-blu', 'arena');
+  s = play(s, 'spectral-manifestations-red'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, closed);
+  const sh = s.players[0].arena.find(i => s.cards[i].id === 'spectral-shield'); ok(sh != null); eq(s.cards[sh].counters.p || 0, 0);
+});
+test('Astral Etchings: three +1 power counters on an aura with ward; it needs one to be played', () => {
+  let s = game(ENI, KAY); give(s, 0, ['astral-etchings-red', 'hit-and-run-blu']); give(s, 1, []);
+  ok(!canPlay(s, 'astral-etchings-red'), 'no aura with ward');
+  const sh = shield(s, 0);
+  s = play(s, 'astral-etchings-red'); eq(s.pending.q.kind, 'my_playAs', 'with a Spectral Shield it may be played as an instant');
+  s = answer(s, 'action'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => asked(x, 'my_auraPick'));
+  s = answer(s, sh); s = passUntil(s, closed);
+  eq(s.cards[sh].counters.p, 3); eq(s.players[0].ap, 0, 'played as an action: it cost the action point');
+});
+test('Astral Etchings: played as an instant it costs no action point, and may be played in the other hero’s turn', () => {
+  let s = game(ENI, KAY); give(s, 0, ['astral-etchings-red', 'hit-and-run-blu']); give(s, 1, []); shield(s, 0);
+  s = play(s, 'astral-etchings-red'); s = answer(s, 'instant'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => asked(x, 'my_auraPick'));
+  s = answer(s, s.pending.q.opts[0].id); s = passUntil(s, closed); eq(s.players[0].ap, 1);
+  s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, ['astral-etchings-red', 'hit-and-run-blu']); shield(s, 1);
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => step(x, 'reaction') && x.priority === 1); ok(canPlay(s, 'astral-etchings-red'), 'playable on the other hero’s turn');
+});
+test('Waning Vengeance: when it leaves the arena, a Spectral Shield if you have pitched a blue card this turn', () => {
+  let s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, []); put(s, 1, 'waning-vengeance-red', 'arena'); put(s, 1, 'smash-instinct-blu', 'pitch');
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => asked(x, 'my_ward')); s = answer(s, 'yes'); s = passUntil(s, closed);
+  eq(count(s, 1, 'arena', 'spectral-shield'), 1);
+  s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, []); put(s, 1, 'waning-vengeance-red', 'arena');
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => asked(x, 'my_ward')); s = answer(s, 'yes'); s = passUntil(s, closed);
+  eq(count(s, 1, 'arena', 'spectral-shield'), 0);
+});
+test('Waxing Specter: enters the arena with a +1 power counter only if you have pitched a blue card this turn', () => {
+  let s = game(ENI, KAY); give(s, 0, ['waxing-specter-red', 'smash-instinct-blu', 'hit-and-run-blu']); give(s, 1, []);
+  s = play(s, 'waxing-specter-red'); s = answerCard(s, 'smash-instinct-blu'); s = passUntil(s, closed);
+  eq(s.cards[s.players[0].arena[0]].counters.p, 1);
+  s = game(ENI, KAY); give(s, 0, ['waxing-specter-red', 'scar-for-a-scar-red', 'scar-for-a-scar-red']);
+  s = play(s, 'waxing-specter-red'); s = answerCard(s, 'scar-for-a-scar-red'); s = answerCard(s, 'scar-for-a-scar-red'); s = passUntil(s, closed);
+  eq(s.cards[s.players[0].arena[0]].counters.p || 0, 0);
+});
+test('Big Blue Sky: +1 defense for each blue card pitched this turn', () => {
+  let s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, ['big-blue-sky-blu']); put(s, 1, 'smash-instinct-blu', 'pitch'); put(s, 1, 'bear-hug-blu', 'pitch'); put(s, 1, 'scar-for-a-scar-red', 'pitch');
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done'); s = passUntil(s, x => step(x, 'reaction') && x.priority === 1); s = play(s, 'big-blue-sky-blu'); s = passUntil(s, x => step(x, 'damage'));
+  const link = FAB.activeLink(s); eq(FAB.defenseOf(s, link.defs[0].iid, link), 2 + 2);
+});
+test('Fluid Motion and Manifest Muscle: go again / +1 power if you have created a card this turn', () => {
+  let s = game(ENI, KAY); give(s, 0, ['fluid-motion-blu', 'manifest-muscle-blu']); give(s, 1, []);
+  s = play(s, 'fluid-motion-blu'); s = passUntil(s, x => step(x, 'resolution')); eq(s.players[0].ap, 0, 'nothing created: no go again');
+  s = game(ENI, KAY); give(s, 0, ['fluid-motion-blu']); give(s, 1, []); shield(s, 0);
+  s = play(s, 'fluid-motion-blu'); s = passUntil(s, x => step(x, 'resolution')); eq(s.players[0].ap, 1, 'created: go again');
+  s = game(ENI, KAY); give(s, 0, ['manifest-muscle-blu', 'hit-and-run-blu', 'hit-and-run-blu', 'hit-and-run-blu']); give(s, 1, []); shield(s, 0);
+  s = play(s, 'manifest-muscle-blu'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => step(x, 'reaction'));
+  eq(FAB.attackPower(s, FAB.activeLink(s)), 6);
+});
+test('Homage to Ancestors: gain 1 life; with another blue card played this turn it transcends into Inner Chi in hand', () => {
+  let s = game(ENI, KAY); give(s, 0, ['homage-to-ancestors-blu']); give(s, 1, []);
+  s = play(s, 'homage-to-ancestors-blu'); s = passUntil(s, closed);
+  eq(s.players[0].life, 21); ok(has(s, 0, 'grave', 'homage-to-ancestors-blu'), 'no other blue card: no transcend'); ok(!s.players[0].h.my_transcended);
+  s = game(ENI, KAY); give(s, 0, ['homage-to-ancestors-blu', 'preserve-tradition-blu']); give(s, 1, []); put(s, 0, 'scar-for-a-scar-red', 'grave');
+  s = play(s, 'preserve-tradition-blu'); s = passUntil(s, x => asked(x, 'my_gravePick')); s = answerCard(s, 'scar-for-a-scar-red'); s = passUntil(s, closed);
+  ok(has(s, 0, 'grave', 'preserve-tradition-blu'));
+  s = play(s, 'homage-to-ancestors-blu'); s = passUntil(s, closed);
+  ok(has(s, 0, 'hand', 'inner-chi-blu'), 'the same object, back face active'); ok(s.players[0].h.my_transcended); eq(s.players[0].life, 21);
+});
+test('Pass Over: banish target card from an opposing graveyard; transcend if another blue card was played', () => {
+  let s = game(ENI, KAY); give(s, 0, ['pass-over-blu', 'preserve-tradition-blu']); give(s, 1, []);
+  ok(!canPlay(s, 'pass-over-blu'), 'no target');
+  put(s, 1, 'bear-hug-blu', 'grave'); put(s, 0, 'scar-for-a-scar-red', 'grave');
+  s = play(s, 'preserve-tradition-blu'); s = passUntil(s, x => asked(x, 'my_gravePick')); s = answerCard(s, 'scar-for-a-scar-red'); s = passUntil(s, closed);
+  s = play(s, 'pass-over-blu'); s = passUntil(s, x => asked(x, 'my_gravePick')); eq(s.pending.q.opts.length, 1); s = answerCard(s, 'bear-hug-blu'); s = passUntil(s, closed);
+  ok(has(s, 1, 'banish', 'bear-hug-blu')); ok(has(s, 0, 'hand', 'inner-chi-blu'));
+});
+test('Preserve Tradition: an action card from your graveyard goes on the bottom of your deck', () => {
+  let s = game(ENI, KAY); give(s, 0, ['preserve-tradition-blu']); give(s, 1, []); put(s, 0, 'scar-for-a-scar-red', 'grave');
+  s = play(s, 'preserve-tradition-blu'); s = passUntil(s, x => asked(x, 'my_gravePick')); s = answerCard(s, 'scar-for-a-scar-red'); s = passUntil(s, closed);
+  eq(s.cards[s.players[0].deck[s.players[0].deck.length - 1]].id, 'scar-for-a-scar-red');
+});
+test('Second Tenet of Chi: +2 power (Tide) or go again (Wind) if you have transcended this turn', () => {
+  let s = game(ENI, KAY); give(s, 0, ['second-tenet-of-chi-tide-blu', 'hit-and-run-blu', 'hit-and-run-blu']); give(s, 1, []); s.players[0].h.my_transcended = true;
+  s = play(s, 'second-tenet-of-chi-tide-blu'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => step(x, 'reaction')); eq(FAB.attackPower(s, FAB.activeLink(s)), 7);
+  s = game(ENI, KAY); give(s, 0, ['second-tenet-of-chi-wind-blu', 'hit-and-run-blu', 'hit-and-run-blu']); give(s, 1, []); s.players[0].h.my_transcended = true;
+  s = play(s, 'second-tenet-of-chi-wind-blu'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => step(x, 'resolution')); eq(s.players[0].ap, 1);
+});
+test('Test of Strength: the winner of the clash creates a Gold token', () => {
+  const g = FAB.cards.gold; ok(g && !g.un, 'Gold compiles');
+  let s = game(KAY, ENI); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, ['test-of-strength-red']);
+  topdeck(s, 0, ['hit-and-run-blu']); topdeck(s, 1, ['bear-hug-blu']);
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answerCard(s, 'test-of-strength-red'); s = answer(s, 'done'); s = passUntil(s, closed);
+  eq(count(s, 1, 'arena', 'gold'), 1, 'the defender revealed 5 power against none'); eq(count(s, 0, 'arena', 'gold'), 0);
+});
