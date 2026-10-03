@@ -953,7 +953,7 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Enki Dupaquier",
   "date": "04 Apr 2026",
-  "poolCompiled": 22
+  "poolCompiled": 23
  },
  "dash-pt-yokohama": {
   "id": "dash-pt-yokohama",
@@ -2668,7 +2668,120 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Matthew Clark",
   "date": "04 Apr 2026",
-  "poolCompiled": 20
+  "poolCompiled": 34,
+  "deck": [
+   {
+    "id": "boulder-drop-red",
+    "n": 2
+   },
+   {
+    "id": "concuss-red",
+    "n": 1
+   },
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 2
+   },
+   {
+    "id": "pummel-red",
+    "n": 2
+   },
+   {
+    "id": "rootbound-carapace-red",
+    "n": 2
+   },
+   {
+    "id": "staunch-response-red",
+    "n": 2
+   },
+   {
+    "id": "clash-of-arms-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-chests-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-heads-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-shields-yel",
+    "n": 2
+   },
+   {
+    "id": "autumns-touch-blu",
+    "n": 2
+   },
+   {
+    "id": "canopy-shelter-blu",
+    "n": 2
+   },
+   {
+    "id": "disable-blu",
+    "n": 2
+   },
+   {
+    "id": "evergreen-blu",
+    "n": 1
+   },
+   {
+    "id": "fruits-of-the-forest-blu",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-blu",
+    "n": 2
+   },
+   {
+    "id": "glacial-footsteps-blu",
+    "n": 2
+   },
+   {
+    "id": "macho-grande-blu",
+    "n": 2
+   },
+   {
+    "id": "thunder-quake-blu",
+    "n": 2
+   },
+   {
+    "id": "thunk-blu",
+    "n": 2
+   },
+   {
+    "id": "turn-timber-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "sit-red",
+    "n": 2
+   },
+   {
+    "id": "renounce-grandeur-red",
+    "n": 2
+   },
+   {
+    "id": "concuss-red",
+    "n": 1
+   },
+   {
+    "id": "battlefront-bastion-blu",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "sledge-of-anvilheim",
+   "civic-peak",
+   "civic-duty",
+   "blade-beckoner-gauntlets",
+   "civic-steps"
+  ],
+  "rule": "Terra's 5th-place list from Calling: Shanghai. This default leaves six cards in the sideboard: both Sit! (only good against Brute attacks), both Renounce Grandeur (aura-token hate), one Concuss and the Battlefront Bastion.",
+  "registered": true
  },
  "florian-pt-yokohama": {
   "id": "florian-pt-yokohama",
@@ -2853,7 +2966,7 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Michael Hamilton",
   "date": "09 Apr 2026",
-  "poolCompiled": 10
+  "poolCompiled": 13
  },
  "kayo-calling-london": {
   "id": "kayo-calling-london",
@@ -4013,7 +4126,120 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Tommaso Viscido",
   "date": "09 Apr 2026",
-  "poolCompiled": 27
+  "poolCompiled": 38,
+  "deck": [
+   {
+    "id": "blessing-of-patience-red",
+    "n": 2
+   },
+   {
+    "id": "boulder-drop-red",
+    "n": 1
+   },
+   {
+    "id": "brush-off-red",
+    "n": 2
+   },
+   {
+    "id": "staunch-response-red",
+    "n": 2
+   },
+   {
+    "id": "steadfast-red",
+    "n": 1
+   },
+   {
+    "id": "clash-of-arms-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-chests-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-heads-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-legs-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-shields-yel",
+    "n": 2
+   },
+   {
+    "id": "springboard-somersault-yel",
+    "n": 1
+   },
+   {
+    "id": "staunch-response-yel",
+    "n": 1
+   },
+   {
+    "id": "autumns-touch-blu",
+    "n": 2
+   },
+   {
+    "id": "canopy-shelter-blu",
+    "n": 1
+   },
+   {
+    "id": "chokeslam-blu",
+    "n": 2
+   },
+   {
+    "id": "debilitate-blu",
+    "n": 2
+   },
+   {
+    "id": "disable-blu",
+    "n": 2
+   },
+   {
+    "id": "fertile-ground-blu",
+    "n": 1
+   },
+   {
+    "id": "fruits-of-the-forest-blu",
+    "n": 2
+   },
+   {
+    "id": "glacial-footsteps-blu",
+    "n": 2
+   },
+   {
+    "id": "macho-grande-blu",
+    "n": 2
+   },
+   {
+    "id": "thunder-quake-blu",
+    "n": 2
+   },
+   {
+    "id": "winters-grasp-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "lay-low-yel",
+    "n": 1
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "sledge-of-anvilheim",
+   "blade-beckoner-helm",
+   "civic-duty",
+   "blade-beckoner-gauntlets",
+   "civic-steps"
+  ],
+  "rule": "Oldhim's 5th-place list from Pro Tour: Yokohama. This default leaves two cards in the sideboard: Lay Low (it needs the marked condition, which this game does not have yet) and Arcane Polarity (a narrow arcane-damage card).",
+  "registered": true
  },
  "briar-pt-yokohama": {
   "id": "briar-pt-yokohama",
@@ -6676,7 +6902,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 12
+  "poolCompiled": 13
  },
  "prism-advent-of-thrones": {
   "id": "prism-advent-of-thrones",
