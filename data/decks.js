@@ -758,7 +758,7 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Colin Li",
   "date": "08 Aug 2026",
-  "poolCompiled": 10
+  "poolCompiled": 11
  },
  "valda-brightaxe-calling-shanghai": {
   "id": "valda-brightaxe-calling-shanghai",
@@ -2303,7 +2303,120 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Kiran Lee",
   "date": "07 Feb 2026",
-  "poolCompiled": 24
+  "poolCompiled": 32,
+  "deck": [
+   {
+    "id": "chest-puff-red",
+    "n": 1
+   },
+   {
+    "id": "felling-swing-red",
+    "n": 2
+   },
+   {
+    "id": "look-tuff-red",
+    "n": 1
+   },
+   {
+    "id": "on-the-horizon-red",
+    "n": 2
+   },
+   {
+    "id": "overpower-red",
+    "n": 2
+   },
+   {
+    "id": "sharpen-steel-red",
+    "n": 2
+   },
+   {
+    "id": "sirens-of-safe-harbor-red",
+    "n": 2
+   },
+   {
+    "id": "steelblade-shunt-red",
+    "n": 2
+   },
+   {
+    "id": "felling-swing-yel",
+    "n": 2
+   },
+   {
+    "id": "steelblade-shunt-yel",
+    "n": 2
+   },
+   {
+    "id": "display-of-craftsmanship-blu",
+    "n": 2
+   },
+   {
+    "id": "felling-swing-blu",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-blu",
+    "n": 2
+   },
+   {
+    "id": "hit-and-run-blu",
+    "n": 2
+   },
+   {
+    "id": "ironsong-response-blu",
+    "n": 2
+   },
+   {
+    "id": "overpower-blu",
+    "n": 2
+   },
+   {
+    "id": "raging-onslaught-blu",
+    "n": 2
+   },
+   {
+    "id": "sharpen-steel-blu",
+    "n": 2
+   },
+   {
+    "id": "sift-blu",
+    "n": 2
+   },
+   {
+    "id": "sirens-of-safe-harbor-blu",
+    "n": 2
+   },
+   {
+    "id": "steelblade-shunt-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "lay-low-yel",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "chest-puff-red",
+    "n": 1
+   },
+   {
+    "id": "look-tuff-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "decimator-great-axe",
+   "helm-of-unity",
+   "plating-of-unity",
+   "gauntlets-of-unity",
+   "refraction-bolters"
+  ],
+  "rule": "Dorinthea's list from the 2nd Calling: London, 46 non-arena cards cut to the 40 a Silver Age deck needs (TRP 7.4). The sideboard holds Lay Low (it needs the marked condition, which is not implemented), both Arcane Polarity, and one Chest Puff and one Look Tuff.",
+  "registered": true
  },
  "bravo-flattering-showman-calling-bangkok": {
   "id": "bravo-flattering-showman-calling-bangkok",
@@ -3603,7 +3716,116 @@ window.FAB.decks = {
   "rank": "3rd",
   "player": "Stefan Karlsson",
   "date": "07 Feb 2026",
-  "poolCompiled": 21
+  "poolCompiled": 33,
+  "deck": [
+   {
+    "id": "display-of-craftsmanship-red",
+    "n": 2
+   },
+   {
+    "id": "felling-swing-red",
+    "n": 2
+   },
+   {
+    "id": "ironsong-response-red",
+    "n": 2
+   },
+   {
+    "id": "on-the-horizon-red",
+    "n": 2
+   },
+   {
+    "id": "overpower-red",
+    "n": 2
+   },
+   {
+    "id": "sharpen-steel-red",
+    "n": 2
+   },
+   {
+    "id": "steelblade-shunt-red",
+    "n": 2
+   },
+   {
+    "id": "test-of-strength-red",
+    "n": 2
+   },
+   {
+    "id": "felling-swing-yel",
+    "n": 2
+   },
+   {
+    "id": "springboard-somersault-yel",
+    "n": 2
+   },
+   {
+    "id": "cut-the-deck-blu",
+    "n": 2
+   },
+   {
+    "id": "display-of-craftsmanship-blu",
+    "n": 2
+   },
+   {
+    "id": "felling-swing-blu",
+    "n": 2
+   },
+   {
+    "id": "ironsong-response-blu",
+    "n": 2
+   },
+   {
+    "id": "out-for-blood-blu",
+    "n": 2
+   },
+   {
+    "id": "overpower-blu",
+    "n": 2
+   },
+   {
+    "id": "sharpen-steel-blu",
+    "n": 2
+   },
+   {
+    "id": "sirens-of-safe-harbor-blu",
+    "n": 2
+   },
+   {
+    "id": "steelblade-shunt-blu",
+    "n": 2
+   },
+   {
+    "id": "stroke-of-foresight-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 1
+   },
+   {
+    "id": "oasis-respite-red",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 2
+   },
+   {
+    "id": "sirens-of-safe-harbor-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "decimator-great-axe",
+   "prized-galea",
+   "plating-of-unity",
+   "gauntlets-of-unity",
+   "pillar-of-unity"
+  ],
+  "rule": "Olympia's list from the 3rd Calling: London, 47 non-arena cards cut to the 40 a Silver Age deck needs (TRP 7.4). The sideboard holds the lone Arcane Polarity, both Oasis Respite, and both red Fyendal's Fighting Spirit and red Sirens of Safe Harbor, the least synergistic cards.",
+  "registered": true
  },
  "nuu-calling-san-diego": {
   "id": "nuu-calling-san-diego",
@@ -5967,7 +6189,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 12
+  "poolCompiled": 13
  },
  "fai": {
   "id": "fai",
