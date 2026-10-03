@@ -8,5 +8,10 @@
     "rule": "Prism's list from the World Championship Qualifier in New Zealand (1st). Its pool is cut to 40 by leaving the two Arcane Polarity, the two Pummel and the two Unmovable in the sideboard. Iris of Reality makes Prism's Illusionist auras attack. Dream Weavers and Silent Stilettos stay in the sideboard.",
     "loadout": ["iris-of-reality", "silken-shroud", "nullrune-robe", "wave-of-reality", "silken-slippers"],
     "cut": [["arcane-polarity-red", 2], ["pummel-red", 2], ["unmovable-red", 2]]
+  },
+  "nuu-calling-san-diego": {
+    "rule": "Nuu's list from Calling: San Diego (5th). Its 55-card pool is cut to 40 by leaving the two Arcane Polarity and the two Oasis Respite in the sideboard. Nuu starts with two daggers, Beckoning Mistblade and Spider's Bite; Mark of the Huntsman, Arcane Lantern, Undertow Stilettos, Unflinching Foothold and Blade Beckoner Plating stay in the sideboard.",
+    "loadout": ["beckoning-mistblade", "spiders-bite", "prey-spotters", "nullrune-robe", "arousing-wave", "stalkers-steps"],
+    "cut": [["arcane-polarity-red", 2], ["oasis-respite-red", 2]]
   }
 }

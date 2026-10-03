@@ -435,6 +435,8 @@ const want = new Set(); for (const d of Object.values(decks)) for (const p of d.
 for (const [id, c] of byId) if (c.types.includes('Token') && !c.types.includes('Hero')) want.add(id);   // every token: an effect may create any of them
 // [mystics] CR 9.1.5: a transcend-card's back face (Inner Chi) must be in the pack for any list that can transcend.
 if ([...want].some(id => byId.has(id) && /transcend\b/.test(byId.get(id).functional_text_plain || '')) && byId.has('inner-chi-blu')) want.add('inner-chi-blu');
+// [mystics] Cards that other cards create in a hand: the pack needs them too.
+for (const name of ['Fang Strike', 'Slither']) if ([...want].some(id => byId.has(id) && (byId.get(id).functional_text_plain || '').includes(name)) && byId.has(slug(name))) want.add(slug(name));
 const cards = {};
 for (const id of [...want].sort()) if (byId.has(id)) cards[id] = toCard(byId.get(id));
 

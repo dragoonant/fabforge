@@ -4017,7 +4017,121 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Taotao Chu",
   "date": "14 Feb 2026",
-  "poolCompiled": 10
+  "poolCompiled": 37,
+  "deck": [
+   {
+    "id": "art-of-desire-body-red",
+    "n": 2
+   },
+   {
+    "id": "double-trouble-red",
+    "n": 2
+   },
+   {
+    "id": "excessive-bloodloss-red",
+    "n": 2
+   },
+   {
+    "id": "hiss-red",
+    "n": 2
+   },
+   {
+    "id": "inertia-trap-red",
+    "n": 2
+   },
+   {
+    "id": "intimate-inducement-red",
+    "n": 2
+   },
+   {
+    "id": "mark-of-the-black-widow-red",
+    "n": 1
+   },
+   {
+    "id": "on-the-horizon-red",
+    "n": 1
+   },
+   {
+    "id": "plunder-the-poor-red",
+    "n": 2
+   },
+   {
+    "id": "unmovable-red",
+    "n": 1
+   },
+   {
+    "id": "venomous-bite-red",
+    "n": 2
+   },
+   {
+    "id": "intimate-inducement-yel",
+    "n": 2
+   },
+   {
+    "id": "art-of-desire-mind-blu",
+    "n": 2
+   },
+   {
+    "id": "bonds-of-attraction-blu",
+    "n": 2
+   },
+   {
+    "id": "double-trouble-blu",
+    "n": 2
+   },
+   {
+    "id": "excessive-bloodloss-blu",
+    "n": 2
+   },
+   {
+    "id": "hiss-blu",
+    "n": 1
+   },
+   {
+    "id": "intimate-inducement-blu",
+    "n": 2
+   },
+   {
+    "id": "mark-of-the-black-widow-blu",
+    "n": 2
+   },
+   {
+    "id": "pass-over-blu",
+    "n": 1
+   },
+   {
+    "id": "path-well-traveled-blu",
+    "n": 1
+   },
+   {
+    "id": "pick-to-pieces-blu",
+    "n": 2
+   },
+   {
+    "id": "serpents-kiss-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "oasis-respite-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "beckoning-mistblade",
+   "spiders-bite",
+   "prey-spotters",
+   "nullrune-robe",
+   "arousing-wave",
+   "stalkers-steps"
+  ],
+  "rule": "Nuu's list from Calling: San Diego (5th). Its 55-card pool is cut to 40 by leaving the two Arcane Polarity and the two Oasis Respite in the sideboard. Nuu starts with two daggers, Beckoning Mistblade and Spider's Bite; Mark of the Huntsman, Arcane Lantern, Undertow Stilettos, Unflinching Foothold and Blade Beckoner Plating stay in the sideboard.",
+  "registered": true
  },
  "oldhim-pt-yokohama": {
   "id": "oldhim-pt-yokohama",
@@ -5525,7 +5639,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 3
+  "poolCompiled": 13
  },
  "azalea": {
   "id": "azalea",

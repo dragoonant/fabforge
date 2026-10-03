@@ -10,6 +10,7 @@ export const CONDS = [
   ["you've transcended this turn", () => ({ c: 'my_transcended' })],
   ["you've played another blue card this turn", () => ({ c: 'my_playedOtherBlue' })],
   ["it's a non-token Light card", () => ({ c: 'my_destroyedLight' })],
+  ['it hit a marked hero', () => ({ c: 'my_hitMarked' })],
 ];
 export const EFFECTS = [
   // ---- Spectral Shield (CR 8.6.8) and the auras around it ----
@@ -31,12 +32,39 @@ export const EFFECTS = [
   [/^The winner creates a Gold token$/, () => ({ o: 'CLASHWIN', name: 'Gold' })],
   // ---- Nuu's attack reactions: "Target attack gets go again" ----
   [/^Target attack gets go again$/, () => ({ o: 'buff', tgt: {}, grant: 'goAgain' })],
+  [/^Target (Assassin or Mystic) attack action card gets \+(\d+)\{p\}$/, m => ({ o: 'buff', tgt: { aa: true, klass: ['Assassin', 'Mystic'] }, p: +m[2] })],
+  [/^Target attack action card gets \+(\d+)\{p\}$/, m => ({ o: 'buff', tgt: { aa: true }, p: +m[1] })],            // Fang Strike
+  [/^Target attack action card gets go again$/, () => ({ o: 'buff', tgt: { aa: true }, grant: 'goAgain' })],        // Slither
+  [/^Target attack with stealth gets go again$/, () => ({ o: 'my_buffTarget', kw: 'stealth', grant: 'goAgain' })],
+  [/^your next blue attack this turn gets \+(\d+)\{p\} and go again$/, m => ({ o: 'next', f: { pitch: 3 }, p: +m[1], grant: 'goAgain' })],
+  // ---- Banishing (the contracts, Art of Desire, Bonds of Attraction ...) ----
+  [/^banish the top card of their deck$/, () => ({ o: 'my_banishTop', n: 1 })],
+  [/^banish the top (\d+) cards of their deck$/, m => ({ o: 'my_banishTop', n: +m[1] })],
+  [/^banish a card from their graveyard$/, () => ({ o: 'my_banishOppGrave' })],
+  [/^they banish a card from their hand$/, () => ({ o: 'my_handBanish' })],
+  [/^draw a card and gain (\d+)\{h\}$/, m => [{ o: 'draw', n: 1 }, { o: 'gainLife', n: +m[1] }]],
+  [/^look at the top (\d+) cards of their deck$/, m => ({ o: 'my_lookOpp', n: +m[1] })],
+  [/^Banish 1 of them$/, () => ({ o: 'my_banishLooked' })],
+  // ---- Marked (CR 8.5.50, 9.3) ----
+  [/^mark them$/, () => ({ o: 'my_mark', hit: true })],
+  [/^Mark target opposing hero$/, () => ({ o: 'my_mark' })],
+  [/^the next time they defend with 1 or more attack action cards this turn, those cards get -(\d+)\{d\} while defending$/, m => ({ o: 'my_nextDefMinus', n: +m[1] })],
+  // ---- Cards created in a hand, Ephemeral (CR 8.3.21) ----
+  [/^[Cc]reate an? (Fang Strike|Slither) in your hand$/, m => ({ o: 'my_createCard', name: m[1] })],
+  [/^create a Fang Strike or Slither in your hand$/, () => ({ o: 'my_createFS', mode: 'choice' })],
+  [/^instead create both$/, () => ({ o: 'INSTEAD', op: { o: 'my_createFS', mode: 'both' } })],
+  // ---- Inertia ----
+  [/^put all cards from your hand and arsenal on the bottom of your deck$/, () => ({ o: 'my_handArsenalBottom' })],
+  [/^[Cc]reate an (Inertia) token under the attacking hero's control$/, m => ({ o: 'token', name: m[1], who: 'opp' })],
 ];
 export const TRIGGERS = [
   [/^When this enters the arena, (.+)$/, () => ({ on: 'enterArena' })],
   [/^When this is destroyed, (.+)$/, () => ({ on: 'destroyed' })],
   [/^While this is attacking or defending, when this leaves the arena, (.+)$/, () => ({ on: 'leaveChain' })],
   [/^Whenever an aura or attack action card you control is destroyed, (.+)$/, () => ({ on: 'destroyed', mine: true })],
+  [/^Whenever this banishes a (red|yellow|blue) card, (.+)$/, m => ({ on: 'my_banished', src: true, color: { red: 1, yellow: 2, blue: 3 }[m[1]], body: m[2] })],
+  [/^When this hits a marked hero, (.+)$/, m => ({ on: 'hit', body: 'If it hit a marked hero, ' + m[1] })],
+  [/^When this defends an attack with \{p\} greater than its base, (.+)$/, () => ({ on: 'defend', cond: { c: 'my_pumped' } })],
 ];
 export const STATICS = [
   [/^Ward (\d+)$/, m => ({ k: 'kw', kw: 'ward', n: +m[1] })],                                                  // CR 8.3.20; the prevention is in js/ops-mystics.js (FAB.hooks.damage)
@@ -59,6 +87,10 @@ export const STATICS = [
   [/^If you've created a card this turn, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'my_created' }, p: +m[1] })],
   [/^If you've transcended this turn, this gets go again$/, () => ({ k: 'static', cond: { c: 'my_transcended' }, grant: 'goAgain' })],
   [/^If you've transcended this turn, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'my_transcended' }, p: +m[1] })],
+  [/^Stealth$/, () => ({ k: 'kw', kw: 'stealth', n: true })],                                                  // CR 8.3.24: means nothing by itself; other effects refer to it
+  [/^Ephemeral$/, () => ({ k: 'kw', kw: 'ephemeral', n: true })],                                              // CR 8.3.21; the replacement is in FAB.move
+  [/^Piercing (\d+)$/, m => ({ k: 'kw', kw: 'piercing', n: +m[1] })],                                          // CR 8.3.23
+  [/^If this is attacking a marked hero, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'my_targetMarked' }, p: +m[1] })],
 ];
 export const ACTCONDS = [];
 export const LABELS = [];
@@ -81,6 +113,66 @@ export const LINES = [
     const m = line.match(/^Whenever an attacking ally you control dies or an attack action card you control is destroyed by phantasm, you may pay ((?:\{r\})+)\. If you do, destroy this and gain 1 action point\.?$/);
     if (!m) return false;
     ctx.out.ab.push({ k: 'trig', on: 'my_phantasmDestroyed', ops: [{ o: 'my_mayPay', r: h.res(m[1]), then: [{ o: 'destroySelf' }, { o: 'gainAP', n: 1 }] }] });
+    return true;
+  },
+  // ---- Nuu and the Assassins ----
+  (line, ctx) => {                                                                                               // CR 8.4.7, 8.5.39: Contract
+    const m = line.match(/^Contract - You are contracted to banish opponents' (red cards|cards with cost 1 or less)\. Whenever you complete this contract, create a Silver token\.?$/);
+    if (!m) return false;
+    ctx.out.ab.push({ k: 'trig', on: 'my_banished', contract: m[1] === 'red cards' ? { color: 1 } : { costMax: 1 }, ops: [{ o: 'token', name: 'Silver' }] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Excessive Bloodloss
+    if (!/^When this hits a hero, banish the top card of their deck\. If it's red, repeat this process once\.?$/.test(line)) return false;
+    ctx.out.ab.push({ k: 'trig', on: 'hit', ops: [{ o: 'my_banishTop', n: 1, repeatRed: true }] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Mark of the Huntsman (the core hit pattern would swallow "you may choose to" and fail)
+    if (!/^When this hits a hero, you may choose to destroy this and mark them\.?$/.test(line)) return false;
+    ctx.out.ab.push({ k: 'trig', on: 'hit', may: 'destroySelf', ops: [{ o: 'my_mark', hit: true }] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Double Trouble
+    if (!/^If you've played or activated 2 or more attack reactions this chain link, this gets \+2\{p\} and "When this hits a hero, banish the top 2 cards of their deck\."$/.test(line)) return false;
+    ctx.out.ab.push({ k: 'static', cond: { c: 'my_ar2' }, p: 2 });
+    ctx.out.ab.push({ k: 'trig', on: 'hit', ops: [{ o: 'if', cond: { c: 'my_ar2' }, then: [{ o: 'my_banishTop', n: 2 }] }] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Pick to Pieces
+    if (!/^If you've played or activated an attack reaction this chain link, this gets \+1\{p\} and "Damage that would be dealt by this can't be prevented\."$/.test(line)) return false;
+    ctx.out.ab.push({ k: 'static', cond: { c: 'my_ar1' }, p: 1 });
+    ctx.out.ab.push({ k: 'static', cond: { c: 'my_ar1' }, grant: 'unpreventable' });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Bonds of Attraction
+    if (!/^Whenever this banishes a card and this has banished another card with the same color, gain 1\{h\}\.?$/.test(line)) return false;
+    ctx.out.ab.push({ k: 'trig', on: 'my_banished', src: true, sameColor: true, ops: [{ o: 'gainLife', n: 1 }] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Intimate Inducement
+    const m = line.match(/^Look at the top (\d+) cards of the defending hero's deck and choose a card\. If it's blue, it has 0 base \{d\}\. Add the chosen card onto the active chain link as a defending card and the rest on top in any order\.?$/);
+    if (!m) return false;
+    ctx.resOps.push({ o: 'my_inducement', n: +m[1] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Nuu: stealth attacks banish the action cards that defended them
+    if (!/^Your attacks with stealth get "When this chain link resolves, banish all action cards defending this\."$/.test(line)) return false;
+    ctx.out.ab.push({ k: 'trig', on: 'linkResolves', ops: [{ o: 'my_banishDefenders' }] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // Nuu: the chi ability
+    if (!/^Instant - \{c\}\{c\}\{c\}: Look at the top card of an opposing hero's deck\. If it's blue, you may banish it\. Until end of turn, you may play blue cards from that hero's banished zone without paying their \{r\} cost\.$/.test(line)) return false;
+    ctx.out.ab.push({ k: 'act', type: 'instant', cost: { c: 3 }, ops: [{ o: 'my_nuuLook' }] });
+    return true;
+  },
+  (line, ctx) => {                                                                                               // "Attack Reaction - COST: EFFECT" as an activated ability (CR 7.4.2a)
+    const m = line.match(/^Attack Reaction - (.+?): (.+)$/);
+    if (!m) return false;
+    const why = [], cost = h.parseCost(m[1], why), ops = cost && h.parseBody(m[2].replace(/\.$/, ''), why);
+    if (!cost || !ops) return false;
+    const ab = { k: 'act', type: 'ar', cost, ops };
+    if (ops.some(o => o.o === 'my_buffTarget')) ab.cond = { c: 'my_stealthLink' };                                 // it needs an attack with stealth to target
+    ctx.out.ab.push(ab);
     return true;
   },
   (line, ctx) => {
