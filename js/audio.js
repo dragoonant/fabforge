@@ -9,7 +9,7 @@
   if (typeof samples !== 'object' || samples === null) throw new Error('data/audio-manifest.js did not load');
 
   let ctx = null, master = null, sfx = null, muted = false, buffers = {}, lastAt = {};
-  try { muted = localStorage.getItem('goagain.muted') === '1'; } catch (e) { muted = false; }
+  try { muted = localStorage.getItem('fabforge.muted') === '1'; } catch (e) { muted = false; }
 
   function ensure() {
     if (ctx) return true;
@@ -110,7 +110,7 @@
     muted: () => muted,
     toggle: function () {
       muted = !muted;
-      try { localStorage.setItem('goagain.muted', muted ? '1' : '0'); } catch (e) { /* private window: the setting lasts for this page only */ }
+      try { localStorage.setItem('fabforge.muted', muted ? '1' : '0'); } catch (e) { /* private window: the setting lasts for this page only */ }
       if (ensure()) { master.gain.value = muted ? 0 : 0.9; if (ctx.state === 'suspended') ctx.resume(); }
       if (current) el(current).volume = muted ? 0 : MUSIC_VOL;
     },

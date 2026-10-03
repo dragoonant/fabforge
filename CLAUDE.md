@@ -1,4 +1,4 @@
-# GO AGAIN — Flesh and Blood TCG, played against an AI
+# FABFORGE — Flesh and Blood TCG, played against an AI
 
 A browser implementation of Legend Story Studios' **Flesh and Blood**, 1v1 against a computer
 opponent. Eighth in a series. **Read `HANDOFF.md` first**; it is the only document you have to

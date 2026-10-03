@@ -8,7 +8,7 @@
   const pick = { me: null, opp: null };
   let overlay = null;
 
-  const DISCLAIMER = 'GO AGAIN is in no way affiliated with Legend Story Studios. Legend Story Studios®, Flesh and Blood™, and set names are trademarks of Legend Story Studios. Flesh and Blood characters, cards, logos, and art are property of Legend Story Studios.';
+  const DISCLAIMER = 'FABFORGE is in no way affiliated with Legend Story Studios. Legend Story Studios®, Flesh and Blood™, and set names are trademarks of Legend Story Studios. Flesh and Blood characters, cards, logos, and art are property of Legend Story Studios.';
 
   const HOWTO = `
     <h2>How to play</h2>
@@ -46,7 +46,7 @@
     if (!pick.me) { pick.me = decks[0].id; pick.opp = decks[1 % decks.length].id; }
     const miss = FAB.art.missing();
     app().innerHTML = `<div class="menu">
-      <div class="mhead"><h1>GO AGAIN</h1><div class="sub">Flesh and Blood, against the machine · an unofficial fan project</div></div>
+      <div class="mhead"><h1>FABFORGE</h1><div class="sub">Flesh and Blood Forge · play against the machine · an unofficial fan project</div></div>
       <div class="mcols">
         <div class="mcol"><h2>Your hero</h2><div class="deckrow">${decks.map(d => deckCard(d, 'me')).join('')}</div>${deckDetail(pick.me)}</div>
         <div class="mcol"><h2>Opponent</h2><div class="deckrow">${decks.map(d => deckCard(d, 'opp')).join('')}</div>${deckDetail(pick.opp)}</div>

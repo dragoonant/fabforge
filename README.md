@@ -1,15 +1,15 @@
-# GO AGAIN
+# FABFORGE
 
 An unofficial, non-commercial implementation of Legend Story Studios' **Flesh and Blood** trading
 card game, played against a computer opponent in a browser. No build step, no dependencies.
 
-**Please read `NOTICE.md` first.** GO AGAIN is in no way affiliated with Legend Story Studios.
+**Please read `NOTICE.md` first.** FABFORGE is in no way affiliated with Legend Story Studios.
 Legend Story Studios®, Flesh and Blood™, and set names are trademarks of Legend Story Studios.
 Flesh and Blood characters, cards, logos, and art are property of Legend Story Studios.
 
 ## Play it
 
-**<https://dragoonant.github.io/goagain/>** (GitHub Pages, served from `main`). Or locally:
+**<https://dragoonant.github.io/fabforge/>** (GitHub Pages, served from `main`). Or locally:
 
 ```bash
 node tools/serve.mjs

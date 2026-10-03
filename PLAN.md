@@ -7,7 +7,7 @@ Status every session.
 
 ## Status — 2026-10-02 (first session)
 
-**It is playable and deployed**: <https://dragoonant.github.io/goagain/> (D10). Locally: `node tools/serve.mjs` then <http://localhost:8181>, or open `index.html`.
+**It is playable and deployed**: <https://dragoonant.github.io/fabforge/> (D10). Locally: `node tools/serve.mjs` then <http://localhost:8181>, or open `index.html`.
 
 **Done**
 - `.gitignore` committed alone; `tokens.txt` / `tokens.txt.txt` ignored from commit zero.
@@ -54,7 +54,7 @@ equipment loadout and sideboard are fixed per deck rather than chosen; no animat
 ## Decisions
 
 ### D1 — Regime, names and text · 2026-10-02 · owner (carried from GRAND LINE D1)
-Reproduction. Real names and LSS's printed text verbatim. The app is named GO AGAIN and uses no
+Reproduction. Real names and LSS's printed text verbatim. The app is named FABFORGE (owner, 2026-10-02: the series convention is <game>Forge) and uses no
 FAB logo (`docs/rights.md`).
 
 ### D2 — Format and first decks · 2026-10-02 · agent, from the handoff defaults
@@ -96,5 +96,5 @@ file list and does not commit.
 The repo is this OneDrive folder. `scratch/` and `art/masters/` are gitignored.
 
 ### D10 — Deployment · 2026-10-02 · owner
-Public repository `dragoonant/goagain`, GitHub Pages from `main` at the root, the same way as GRAND
+Public repository `dragoonant/fabforge`, GitHub Pages from `main` at the root, the same way as GRAND
 LINE. Pushing to `main` redeploys. `docs/takedown.md` Level 1 is how it comes down.

@@ -193,7 +193,7 @@
         ${handHTML(s, am)}
       </div>
       <div class="sidebar">
-        <div class="topbar"><span class="brand">GO AGAIN</span><button class="btn tiny" data-ui="sound">${FAB.audio.muted() ? 'Sound off' : 'Sound on'}</button><button class="btn tiny" data-ui="howto">Rules</button><button class="btn tiny" data-ui="menu">Menu</button></div>
+        <div class="topbar"><span class="brand">FABFORGE</span><button class="btn tiny" data-ui="sound">${FAB.audio.muted() ? 'Sound off' : 'Sound on'}</button><button class="btn tiny" data-ui="howto">Rules</button><button class="btn tiny" data-ui="menu">Menu</button></div>
         ${logHTML(s)}
       </div>
       ${ui.spot ? `<div class="spot">${face(s, ui.spot.id, { cls: 'big' })}<div class="spotlbl">${esc(ui.spot.label)}</div></div>` : ''}
