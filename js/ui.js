@@ -43,15 +43,23 @@
   // What the human may do right now, keyed by the card it is done with
   // ---------------------------------------------------------------------------------------------
   function actionMap(s) {
-    const m = {}, btns = [];
-    if (s.winner != null || FAB.whoActs(s) !== ui.human) return { m: m, btns: btns, prompt: null };
+    const m = {}, btns = [], tray = [];
+    if (s.winner != null || FAB.whoActs(s) !== ui.human) return { m: m, btns: btns, prompt: null, tray: tray };
     const add = (iid, a, label) => { (m[iid] = m[iid] || []).push({ a: a, label: label }); };
     let prompt = null;
     if (s.pending) {
       const q = s.pending.q; prompt = T.prompt(s, q);
       for (const o of q.opts) {
         const a = { type: 'answer', id: o.id };
-        if (o.iid != null) add(o.iid, a, o.act === 'reveal' ? 'Reveal this card' : o.act === 'discard' ? 'Discard this card' : q.kind === 'pitch' ? 'Pitch for ' + FAB.cards[s.cards[o.iid].id].pitch : q.kind === 'defend' ? 'Defend with this' : 'Choose');
+        if (o.iid != null) {
+          const label = prompt.labels[o.id] || (o.act === 'reveal' ? 'Reveal this card' : o.act === 'discard' ? 'Discard this card' : o.id === 'top' ? 'Put it on top' : o.id === 'bottom' ? 'Put it on the bottom' : o.label ? o.label : q.kind === 'pitch' ? 'Pitch for ' + FAB.cards[s.cards[o.iid].id].pitch : q.kind === 'defend' ? 'Defend with this' : 'Choose');
+          add(o.iid, a, label);
+          // A card the board does not show the player (deck, graveyard, banished, the other hand) is
+          // offered in a tray inside the prompt, so every option can always be clicked and read.
+          const c = s.cards[o.iid], z = c.zone, mine = c.owner === ui.human;
+          const onBoard = (z === 'hand' && mine) || z === 'equip' || z === 'weapon' || z === 'arena' || z === 'pitch' || z === 'chain' || z === 'stack' || z === 'hero' || (z === 'arsenal' && (mine || c.faceUp));
+          if (!onBoard && !tray.includes(o.iid)) tray.push(o.iid);
+        }
         else btns.push({ a: a, label: prompt.labels[o.id] || String(o.id), cls: o.id === 'done' || o.id === 'yes' ? 'primary' : '' });
       }
       if (q.cancel) btns.push({ a: { type: 'cancel' }, label: 'Cancel', cls: 'ghost' });
@@ -62,7 +70,7 @@
         else if (a.type === 'pass') btns.push({ a: a, label: T.passLabel(s), cls: 'primary' });
       }
     }
-    return { m: m, btns: btns, prompt: prompt };
+    return { m: m, btns: btns, prompt: prompt, tray: tray };
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -150,8 +158,9 @@
         ? (any ? 'Glowing cards can be played or used. Hover any card to read it.' : 'Nothing can be played right now.')
         : (any ? 'You may respond with a glowing card, or pass.' : 'Nothing to respond with.');
     }
+    const tray = am.tray.length ? `<div class="tray">${am.tray.map(i => face(s, s.cards[i].id, { iid: i, acts: am.m[i] })).join('')}</div>` : '';
     const btns = am.btns.map(b => `<button class="btn ${b.cls}" data-acts='${JSON.stringify([{ a: b.a, label: b.label }])}'>${esc(b.label)}</button>`).join('');
-    return `<div class="prompt mine"><div class="ptext"><div class="ptitle">${title}</div><div class="pbody">${body}</div></div><div class="pbtns">${btns}</div></div>`;
+    return `<div class="prompt mine"><div class="ptext"><div class="ptitle">${title}</div><div class="pbody">${body}</div></div>${tray}<div class="pbtns">${btns}</div></div>`;
   }
 
   function handHTML(s, am) {

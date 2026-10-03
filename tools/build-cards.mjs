@@ -9,10 +9,12 @@
 // a tail group that merely "contains" something silently swallows the next clause.
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const S = (...p) => path.join(ROOT, 'scratch', ...p);
+// scratch/ is gitignored, so a git worktree has none: FAB_SCRATCH points a worktree at the main checkout's.
+const SCRATCH = process.env.FAB_SCRATCH || path.join(ROOT, 'scratch');
+const S = (...p) => path.join(SCRATCH, ...p);
 const args = process.argv.slice(2);
 const explain = args.includes('--explain') ? args[args.indexOf('--explain') + 1] : null;
 
@@ -52,7 +54,24 @@ const CONDS = [
   ["this hasn't hit this turn", () => ({ c: 'notHit' })],
   ['you do', () => ({ c: 'did' })],
   ['it has crush', () => ({ c: 'flipCrush' })],                       // Bravo: the card just turned face-up
+  ["you've been dealt arcane damage this turn", () => ({ c: 'arcaneTaken' })],
 ];
+// Activation conditions: "... Activate this only <cond>". Each: [text, attrs merged into the ability]
+const ACTCONDS = [
+  [`if you control a card with ${SIX}`, () => ({ cond: { c: 'control6' } })],
+  ['while this card is defending', () => ({ cond: { c: 'selfDefending' }, zone: 'chain' })],
+  ["during an opponent's turn", () => ({ cond: { c: 'oppTurn' } })],
+];
+// Label keywords that prefix a line and carry no rules of their own ("Reprise - ...").
+const LABELS = ['Unity', 'Reprise', 'Crush'];
+// Whole-sentence rewrites applied before a body is split into sentences: [regex, replacement].
+const SPLIT = [
+  [/"When this hits, it gets go again\."/g, '<HITGA>.'],
+  [/"When this hits a hero, they discard a card\."/g, '<HITDISC>.'],
+  [/reveal the top card of your deck\. This gets -X\{p\}, where X is the pitch value of the card revealed this way\./g, '<REVTOPDEBUFF>.'],
+];
+const COSTS = [];        // extension cost parsers: (part, cost) => true when handled
+const LINES = [];        // extension whole-line handlers: (line, ctx) => true when consumed
 
 const nextFilter = w => {
   w = (w || '').trim();
@@ -119,10 +138,27 @@ const EFFECTS = [
   [/^[Tt]his gets \+(\d+)\{d\}(?: until end of turn)?$/, m => ({ o: 'defBuff', n: +m[1] })],
   [/^you may attack an additional time with that weapon this turn$/, () => ({ o: 'extraAttack' })],
   [/^Attack$/, () => ({ o: 'ATTACK' })],
+  // ---- shared by many classes ----
+  [/^[Gg]ain (\d+)\{h\}$/, m => ({ o: 'gainLife', n: +m[1] })],
+  [/^instead gain (\d+)\{h\}$/, m => ({ o: 'INSTEAD', op: { o: 'gainLife', n: +m[1] } })],
+  [/^[Dd]eal (\d+) arcane damage to (any target|target hero|target opposing hero)$/, m => ({ o: 'arcane', n: +m[1], tgt: m[2] === 'target opposing hero' ? 'opp' : 'hero' })],
+  [/^look at the top card of your deck$/, () => ({ o: 'lookTop' })],
+  [/^Opt (\d+)$/, m => ({ o: 'opt', n: +m[1] })],
+  [/^Target attack loses and can't gain dominate$/, () => ({ o: 'denyKw', kw: 'dominate' })],
+  [/^Put up to (\d+) cards from your hand on the bottom of your deck, then draw that many cards$/, m => ({ o: 'cycleHand', n: +m[1] })],
+  [/^it gets -(\d+)\{p\} unless you pay ((?:\{r\})+)$/, m => ({ o: 'payOrDebuff', p: +m[1], r: res(m[2]) })],
+  [/^<REVTOPDEBUFF>$/, () => ({ o: 'revealTopDebuff' })],
+  [/^destroy this and draw a card$/, () => [{ o: 'destroySelf' }, { o: 'draw', n: 1 }]],
+  [/^destroy this and the attack gets go again$/, () => [{ o: 'destroySelf' }, { o: 'selfBuff', grant: 'goAgain' }]],
+  [/^[Cc]reate an? ([A-Z][A-Za-z' ]+?) token under another hero's control$/, m => tokenOp(m[1], 'opp')],
+  [/^[Cc]reate an? ([A-Z][A-Za-z' ]+?) token$/, m => tokenOp(m[1], null)],
 ];
+// A token may only be created if its card is in the dataset; otherwise the sentence does not compile.
+function tokenOp(name, who) { return byId.has(slug(name)) && byId.get(slug(name)).types.includes('Token') ? { o: 'token', name, ...(who ? { who } : {}) } : null; }
 
 function splitSentences(t) {
-  t = t.replace(/"When this hits, it gets go again\."/g, '<HITGA>.').replace(/"When this hits a hero, they discard a card\."/g, '<HITDISC>.').trim();
+  for (const [re, to] of SPLIT) t = t.replace(re, to);
+  t = t.trim();
   return t.split(/(?<=\.)\s+/).map(x => x.replace(/\.$/, '').trim()).filter(Boolean);
 }
 
@@ -154,8 +190,9 @@ function parseBody(text, why, ops = []) {
     const r = parseSeq(sen, why); if (!r) return null;
     for (const op of r) {
       if (op.o === 'if' && op.then.length === 1 && op.then[0].o === 'INSTEAD') {
-        const prev = ops.pop(); if (!prev || prev.o !== 'buff') { why.push('instead with no buff before it'); return null; }
-        ops.push({ o: 'if', cond: op.cond, then: [{ ...prev, p: op.then[0].p }], else: [prev] });
+        const ins = op.then[0], want = ins.op ? ins.op.o : 'buff';
+        const prev = ops.pop(); if (!prev || prev.o !== want) { why.push('instead with no ' + want + ' before it'); return null; }
+        ops.push({ o: 'if', cond: op.cond, then: [ins.op ? ins.op : { ...prev, p: ins.p }], else: [prev] });
       } else if (op.o === 'CLASHWIN') {
         const prev = ops[ops.length - 1]; if (!prev || prev.o !== 'clash') { why.push('winner with no clash before it'); return null; }
         prev.win = [{ o: 'token', name: op.name, who: 'winner' }];
@@ -184,6 +221,10 @@ const TRIGGERS = [
   [/^When this deals (\d+) or more damage to a hero, (.+)$/, m => ({ on: 'crush', n: +m[1], body: m[2] })],
   [/^When this leaves the arena, (.+)$/, () => ({ on: 'leaveArena' })],
   [/^At the beginning of your action phase, (.+)$/, () => ({ on: 'beginAction' })],
+  [/^When this attacks or defends, (.+)$/, () => [{ on: 'attack' }, { on: 'defend' }]],
+  [/^Whenever this defends, (.+)$/, () => ({ on: 'defend' })],
+  [/^When this is put into your graveyard from anywhere, (.+)$/, () => ({ on: 'toGrave' })],
+  [/^When you play an attack action card or activate a weapon attack, (.+)$/, () => ({ on: 'playAttack' })],
   // Magmatic Carapace: the tap and the payment are costs of a "you may"; the effect follows only if both are paid.
   [/^Whenever you play an aura, you may \{t\} this and pay ((?:\{r\})+)\. If you do, (.+)$/, m => ({ on: 'playAura', may: { tap: true, r: res(m[1]) }, body: m[2] })],
 ];
@@ -214,6 +255,10 @@ const STATICS = [
   [/^If you control a Seismic Surge token, this gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'controlSurge' }, d: +m[1] })],
   [/^If there is a card with cost (\d+) or more in your pitch zone, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'pitchCost', n: +m[1] }, p: +m[2] })],
   [/^Your first attack each turn gets \+(\d+)\{p\}$/, m => ({ k: 'attackStatic', first: true, p: +m[1] })],
+  [/^Spellvoid (\d+)$/, m => ({ k: 'kw', kw: 'spellvoid', n: +m[1] })],                                   // CR 8.3.15
+  [/^Spellvoid X, where X is the number of chain links you control$/, () => ({ k: 'static', spellvoid: { v: 'chainLinks' } })],
+  [/^If you have no cards in your hand, this gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'emptyHand' }, d: +m[1] })],
+  [/^If you have less \{h\} than your opponent, this gets \+(\d+)\{d\} and Arcane Barrier (\d+)$/, m => ({ k: 'static', cond: { c: 'lessLifeOpp' }, d: +m[1], arcaneBarrier: +m[2] })],
 ];
 
 function parseCost(t, why) {
@@ -225,9 +270,23 @@ function parseCost(t, why) {
     else if (part === 'Discard this') cost.discardSelf = true;
     else if (part === 'Discard a card') cost.discard = 1;
     else if (part === '0') cost.r = 0;
+    else if (COSTS.some(f => f(part, cost))) continue;
     else { why.push('cost: ' + part); return null; }
   }
   return cost;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Extensions. tools/patterns/<group>.mjs may export KW_LINES, CONDS, EFFECTS, TRIGGERS, STATICS,
+// ACTCONDS, LABELS, SPLIT, COSTS, LINES and init(helpers). Core patterns are tried first.
+// ---------------------------------------------------------------------------------------------
+const helpers = { res, nextFilter, parseBody, parseSeq, parseEffect, parseCost, tokenOp, slug, byId, SIX };
+const patDir = path.join(ROOT, 'tools', 'patterns');
+if (fs.existsSync(patDir)) for (const f of fs.readdirSync(patDir).filter(f => f.endsWith('.mjs')).sort()) {
+  const m = await import(pathToFileURL(path.join(patDir, f)).href);
+  if (m.init) m.init(helpers);
+  if (m.KW_LINES) Object.assign(KW_LINES, m.KW_LINES);
+  for (const [name, arr] of [['CONDS', CONDS], ['EFFECTS', EFFECTS], ['TRIGGERS', TRIGGERS], ['STATICS', STATICS], ['ACTCONDS', ACTCONDS], ['LABELS', LABELS], ['SPLIT', SPLIT], ['COSTS', COSTS], ['LINES', LINES]]) if (m[name]) arr.push(...m[name]);
 }
 
 function compile(c) {
@@ -252,7 +311,8 @@ function compile(c) {
       continue;
     }
     if (KW_LINES[line]) { out.kw[KW_LINES[line][0]] = KW_LINES[line][1]; continue; }
-    line = line.replace(/^(Unity|Reprise|Crush) - /, '');
+    line = line.replace(new RegExp('^(' + LABELS.join('|') + ') - '), '');
+    if (LINES.some(f => f(line, { c, out, lines, li, why, resOps }))) continue;
     // activated
     let m = line.match(/^(Once per Turn )?(Action|Instant) - (.+?): (.+)$/);
     if (m) {
@@ -261,8 +321,7 @@ function compile(c) {
       if (m[1]) ab.opt = true;
       let mm;
       if ((mm = body.match(/^(.*?)\.? Go again$/))) { ab.goAgain = true; body = mm[1]; }
-      if ((mm = body.match(new RegExp(`^(.*?)\\. Activate this only if you control a card with ${SIX}$`)))) { ab.cond = { c: 'control6' }; body = mm[1]; }
-      if ((mm = body.match(/^(.*?)\. Activate this only while this card is defending$/))) { ab.cond = { c: 'selfDefending' }; ab.zone = 'chain'; body = mm[1]; }
+      for (const [txt, f] of ACTCONDS) if ((mm = body.match(new RegExp('^(.*?)\\. Activate this only ' + txt + '$')))) { Object.assign(ab, f(mm)); body = mm[1]; break; }
       if (cost && cost.discardSelf) ab.zone = 'hand';
       const ops = parseBody(body, why);
       if (cost && ops) {
@@ -275,9 +334,9 @@ function compile(c) {
     let done = false;
     for (const [re, f] of TRIGGERS) {
       m = line.match(re); if (!m) continue;
-      const { body, ...attrs } = f(m);
-      const ops = parseBody(body != null ? body : m[1], why);
-      if (ops) { out.ab.push({ k: 'trig', ...attrs, ops }); done = true; }
+      const got = [].concat(f(m)); let allOk = true; const made = [];
+      for (const g of got) { const { body, ...attrs } = g; const ops = parseBody(body != null ? body : m[1], why); if (!ops) { allOk = false; break; } made.push({ k: 'trig', ...attrs, ops }); }
+      if (allOk) { out.ab.push(...made); done = true; }
       break;
     }
     if (done) continue;
@@ -331,9 +390,16 @@ if (explain) {
 // and starting equipment, and the deck screen says so.
 // ---------------------------------------------------------------------------------------------
 const picks = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'deck-picks.json'), 'utf8'));
+const pickDir = path.join(ROOT, 'tools', 'picks');
+if (fs.existsSync(pickDir)) for (const f of fs.readdirSync(pickDir).filter(f => f.endsWith('.json')).sort()) Object.assign(picks, JSON.parse(fs.readFileSync(path.join(pickDir, f), 'utf8')));
 const decks = {}; const problems = [];
 const PCOL = { red: 'red', yel: 'yel', blu: 'blu' };
-for (const f of fs.readdirSync(S('decks')).filter(f => /^silver-age-.*\.html$/.test(f) && f !== 'silver-age-decks.html')) {
+// Event lists chosen in scratch/decks/picks.json (tools/fetch-decklists.mjs): the best finish per hero.
+const eventMeta = {};
+if (fs.existsSync(S('decks', 'picks.json'))) for (const p of JSON.parse(fs.readFileSync(S('decks', 'picks.json'), 'utf8'))) eventMeta['event-' + p.slug + '.html'] = p;
+const EV = { 'Sunday Showdown': 'showdown', 'Calling': 'calling', 'Battle Hardened': 'bh', 'Pro Tour': 'pt', 'World Championship Qualifier': 'wcq' };
+const eventTag = ev => { const k = Object.keys(EV).find(k => ev.startsWith(k)); return slug((k ? EV[k] + ' ' + ev.slice(k.length) : ev).replace(/ 20\d\d/g, '')); };
+for (const f of fs.readdirSync(S('decks')).filter(f => (/^silver-age-.*\.html$/.test(f) && f !== 'silver-age-decks.html') || eventMeta[f])) {
   let h = fs.readFileSync(S('decks', f), 'utf8');
   h = h.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, '\n')
     .replace(/&#x27;|&#39;|&#039;|&#8217;/g, "'").replace(/&amp;/g, '&');
@@ -350,7 +416,8 @@ for (const f of fs.readdirSync(S('decks')).filter(f => /^silver-age-.*\.html$/.t
     if (!byId.has(id)) { problems.push(`${f}: card not in dataset: ${name} ${col}`); }
     pool.push({ id, n, arena });
   }
-  const deckId = f.replace(/^silver-age-(chapter-\d-)?/, '').replace(/\.html$/, '');
+  const em = eventMeta[f];
+  const deckId = em ? slug(em.hero) + '-' + eventTag(em.ev) : f.replace(/^silver-age-(chapter-\d-)?/, '').replace(/\.html$/, '');
   const heroName = (byId.get(pool.find(p => byId.get(p.id) && byId.get(p.id).types.includes('Hero'))?.id) || {}).name;
   let hero = pool.find(p => byId.get(p.id) && byId.get(p.id).types.includes('Hero'));
   if (!hero) { // some lists omit the hero line
@@ -358,12 +425,13 @@ for (const f of fs.readdirSync(S('decks')).filter(f => /^silver-age-.*\.html$/.t
     if (guess) { hero = { id: cardId(guess), n: 1, arena: true }; pool.unshift(hero); }
   }
   decks[deckId] = { id: deckId, hero: hero ? hero.id : null, name: heroName || (hero && byId.get(hero.id).name) || deckId, format: 'Silver Age',
-    source: 'https://fabtcg.com/decklists/' + f.replace(/\.html$/, '') + '/', fetched: '2026-10-02', pool };
+    source: 'https://fabtcg.com/decklists/' + f.replace(/^event-/, '').replace(/\.html$/, '') + '/', fetched: em ? '2026-10-03' : '2026-10-02', pool };
+  if (em) Object.assign(decks[deckId], { event: em.ev, rank: em.rk, player: em.player, date: em.date });
 }
 
 // Which cards go in the pack: everything in any pool, plus tokens they can create.
 const want = new Set(); for (const d of Object.values(decks)) for (const p of d.pool) want.add(p.id);
-for (const t of ['agility', 'might', 'vigor', 'seismic-surge']) if (byId.has(t)) want.add(t);
+for (const [id, c] of byId) if (c.types.includes('Token') && !c.types.includes('Hero')) want.add(id);   // every token: an effect may create any of them
 const cards = {};
 for (const id of [...want].sort()) if (byId.has(id)) cards[id] = toCard(byId.get(id));
 
@@ -402,6 +470,13 @@ console.log(`cards in pack: ${all.length}   compiled: ${ok.length} (${(100 * ok.
 console.log(`registered decks: ${registered.join(', ') || 'none'}`);
 console.log('per deck pool (compiled/total): ' + Object.values(decks).map(d => `${d.id} ${d.poolCompiled}/${d.pool.length}`).join('  '));
 if (problems.length) console.log('\nPROBLEMS\n  ' + problems.join('\n  '));
+if (args.includes('--deck')) {
+  const d = decks[args[args.indexOf('--deck') + 1]];
+  if (!d) { console.log('no such deck; ids: ' + Object.keys(decks).join(', ')); process.exit(1); }
+  console.log('\n' + d.id + ' — ' + d.name + (d.event ? ' — ' + d.rank + ' ' + d.event : ''));
+  const SEP = '\n       UN: ';
+  for (const p of d.pool) { const c = cards[p.id]; console.log(`  ${p.n}x ${p.arena ? '[arena] ' : ''}${c ? c.name : p.id}${c && c.pitch ? ' (' + c.pitch + ')' : ''} | ${c ? c.typeText : '?'}${c && !c.un ? '' : SEP + (c ? c.un.join(SEP) : 'not in dataset')}`); }
+}
 if (args.includes('--queue')) {
   const shapes = new Map();
   for (const c of all) if (c.un) for (const u of c.un) {

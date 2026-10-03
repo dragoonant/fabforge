@@ -75,7 +75,7 @@
       case 'arsenalPick': return q.opts[0].id;
       case 'revealCrush': { const r = q.opts.find(o => o.id !== 'no'); return r.id; }                                                    // revealing is free; the token is the prize
       case 'revealOrDiscard': { const r = q.opts.find(o => o.act === 'reveal'); return r ? r.id : leastKept(s, q.opts.filter(o => o.act === 'discard')).id; }
-      default: return undefined;
+      default: { const f = FAB.aiPolicy[q.kind]; return f ? f(s, q, { leastKept: leastKept, keepValue: keepValue }) : undefined; }   // extension files register here
     }
   }
   // What a seat does when nobody is thinking for it: it declines everything.

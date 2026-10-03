@@ -76,7 +76,14 @@
     },
     win: (s, e, v) => e.who === 'draw' ? `The game is a draw.` : `<b>${T.who(s, e.who, v)} ${T.v(e.who, v, 'win', 'wins')} the game.</b>`,
   };
+  Object.assign(LINES, {
+    look: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'look', 'looks')} at the top card of the deck.`,
+    opt: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'opt', 'opts')} ${e.n}: ${e.top} on top, ${e.bottom} on the bottom.`,
+    deny: (s, e) => `${tag(e.to)} loses ${e.kw} and can’t gain it (${tag(e.c)}).`,
+    cycle: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'put', 'puts')} ${plural(e.n, 'card')} from hand on the bottom of the deck.`,
+  });
   T.lines = LINES;
+  T.tag = tag; T.plural = plural; T.cardOf = (s, iid) => tag(s.cards[iid].id);
   T.logLine = function (s, e, viewer) {
     const f = LINES[e.t];
     if (!f) throw new Error('log type with no player-facing line: ' + e.t);
@@ -119,6 +126,15 @@
     discardPick: (s, q) => ({ title: `${cardOf(s, q.src)} gave the attack “When this hits a hero, they discard a card.”`, body: 'Choose a card from your hand to discard.', labels: {} }),
     chooseSource: (s, q) => ({ title: `${cardOf(s, q.src)}: choose the source to prevent damage from`, body: FAB.cards[s.cards[q.src].id].text, labels: {} }),
   };
+  Object.assign(PROMPTS, {
+    arcaneTarget: (s, q) => ({ title: `${cardOf(s, q.src)}: choose who takes the arcane damage`, body: FAB.cards[s.cards[q.src].id].text, labels: { [q.who]: 'Me', [1 - q.who]: 'My opponent' } }),
+    look: (s, q) => ({ title: `${cardOf(s, q.src)}: the top card of your deck`, body: 'Only you see this card. Click it to continue.', labels: {} }),
+    optCard: (s, q) => ({ title: `${cardOf(s, q.src)}: opt`, body: 'You are looking at the top cards of your deck. For the card shown, choose the top or the bottom of your deck.', labels: {} }),
+    cycleHand: (s, q) => ({ title: `${cardOf(s, q.src)}`, body: `Put up to ${q.n} cards from your hand on the bottom of your deck, then draw that many. ${q.placed} chosen so far.`, labels: { done: 'Done' } }),
+    payOr: (s, q) => ({ title: `${cardOf(s, q.src)}`, body: `It gets −${q.p} power unless you pay ${q.r}.`, labels: { yes: `Pay ${q.r}`, no: `Take −${q.p} power` } }),
+    arcaneBarrier: (s, q) => ({ title: `Arcane Barrier: ${cardOf(s, q.src)}`, body: `${cardOf(s, q.by)} is about to deal you <b>${q.dmg}</b> arcane damage. You may pay <b>${q.n}</b> to prevent ${q.n} of it.`, labels: { yes: `Pay ${q.n}, prevent ${q.n}`, no: 'Take the damage' } }),
+    spellvoid: (s, q) => ({ title: `Spellvoid: ${cardOf(s, q.src)}`, body: `${cardOf(s, q.by)} is about to deal you <b>${q.dmg}</b> arcane damage. You may destroy ${cardOf(s, q.src)} to prevent ${q.n} of it.`, labels: { yes: `Destroy it, prevent ${q.n}`, no: 'Keep it' } }),
+  });
   T.prompts = PROMPTS;
   T.prompt = function (s, q) {
     const f = PROMPTS[q.kind];

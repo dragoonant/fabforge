@@ -94,7 +94,8 @@
     c.faceUp = !o.faceDown;
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
-    if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });   // "When this leaves the arena" (CR 6.6)
+    if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });
+    if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"   // "When this leaves the arena" (CR 6.6)
     return prev;
   };
   function draw(s, who, n) {
@@ -178,6 +179,7 @@
   };
   FAB.attackHas = function (s, link, kw) {
     const d = D(s, link.iid);
+    if (link.mods.some(m => m.deny === kw)) return false;                 // "loses and can't gain"
     if (d.kw[kw] && !link.weapon) return true;
     if (link.mods.some(m => m.grant === kw)) return true;
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
@@ -210,8 +212,40 @@
   };
 
   // The one damage door (CR 8.5.3). Prevention is applied here and nowhere else.
+  // Extension registries: js/ops-*.js add to these; the core never needs editing for a new trigger kind.
+  FAB.aiPolicy = {};                 // question kind -> (s, q, helpers) => option id; read by js/ai.js
+  FAB.trigMatchers = {
+    toGrave: (s, ab, iid, ev) => ev.iid === iid,
+    playAttack: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner,
+    damaged: (s, ab, iid, ev) => ev.who === I(s, iid).owner,
+  };
+  // CR 8.3.8 Arcane Barrier and CR 8.3.15 Spellvoid: asked inside the damage door, once per card per event.
+  function arcanePrevention(s, o, n) {
+    const x = o.x, p = P(s, o.to);
+    for (const iid of p.equip.concat(p.weapons, p.arena)) {
+      if (n <= 0) break;
+      const c = I(s, iid), d = FAB.cards[c.id];
+      const ctx = { s: s, ctrl: o.to, iid: iid, link: activeLink(s), flags: {} };
+      let sv = d.kw.spellvoid || 0, ab = d.kw.arcaneBarrier || 0;
+      for (const a of d.ab) if (a.k === 'static' && FAB.cond(ctx, a.cond)) { if (a.spellvoid) sv += FAB.num(ctx, a.spellvoid); if (a.arcaneBarrier) ab += a.arcaneBarrier; }
+      if (ab > 0 && canPay(s, o.to, ab, null, 0)) {
+        if (ask(x, { who: o.to, kind: 'arcaneBarrier', src: iid, by: o.src, n: ab, dmg: n, opts: [{ id: 'yes' }, { id: 'no' }] }) === 'yes') {
+          payRes(x, o.to, ab, iid, 'barrier', { cancel: false });
+          const k = Math.min(n, ab); n -= k; log(s, 'prevent', { who: o.to, n: k, c: c.id });
+        }
+      }
+      if (sv > 0 && n > 0) {
+        if (ask(x, { who: o.to, kind: 'spellvoid', src: iid, by: o.src, n: sv, dmg: n, opts: [{ id: 'yes' }, { id: 'no' }] }) === 'yes') {
+          destroy(s, iid);
+          const k = Math.min(n, sv); n -= k; log(s, 'prevent', { who: o.to, n: k, c: c.id });
+        }
+      }
+    }
+    return n;
+  }
   const dealDamage = FAB.dealDamage = function (s, o) {
     let n = o.n;
+    if (o.kind === 'arcane') { if (!o.x) throw new Error('arcane damage needs the invocation (o.x) so prevention can be asked'); n = arcanePrevention(s, o, n); }
     for (const e of s.effects) {
       if (e.k !== 'prevent' || e.who !== o.to || e.n <= 0 || n <= 0) continue;
       if (e.srcIid != null && e.srcIid !== o.src) continue;
@@ -222,6 +256,8 @@
     const p = P(s, o.to);
     p.life -= n;
     P(s, 1 - o.to).h.dmg += n;
+    if (o.kind === 'arcane') { p.h.arcaneTaken = (p.h.arcaneTaken || 0) + n; P(s, 1 - o.to).h.arcaneDealt = (P(s, 1 - o.to).h.arcaneDealt || 0) + n; }
+    emit(s, { t: 'damaged', who: o.to, n: n, kind: o.kind, iid: o.src });
     log(s, 'damage', { who: o.to, n: n, c: o.src != null ? I(s, o.src).id : null, kind: o.kind, life: p.life });
     if (p.life <= 0 && s.winner == null) {                                   // CR 4.5.3a
       s.winner = P(s, 1 - o.to).life <= 0 ? 'draw' : 1 - o.to;
@@ -248,7 +284,7 @@
       case 'beginAction': return ev.tp === own;
       case 'playAura': return ev.ctrl === own;
       case 'disc6': return ev.who === own && s.flow === 'action' && s.tp === own && (!ab.first || p.h.disc6Action === 1);
-      default: return false;
+      default: { const f = FAB.trigMatchers[ev.t]; return f ? f(s, ab, iid, ev) : false; }   // extension files register here
     }
   }
   const emit = FAB.emit = function (s, ev) {
@@ -655,7 +691,7 @@
     s.stack.push(L);
     p.h.played++;
     log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : 'hand' });
-    if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); }
+    if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
     setPriority(s, who);                                                                    // CR 5.1.10
@@ -681,7 +717,7 @@
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
     s.stack.push(L);
-    if (L.isAttack) { applyNext(s, L, true); openChain(s); }
+    if (L.isAttack) { applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }
     setPriority(s, who);
   };
 

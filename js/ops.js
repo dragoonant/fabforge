@@ -44,7 +44,18 @@
     if (!f) throw new Error('no condition handler: ' + c.c);
     return f(x, c);
   };
-  FAB.condNames = Object.keys(CONDS);
+  FAB.conds = CONDS;                 // extension files (js/ops-*.js) add their conditions here
+  Object.assign(CONDS, {
+    arcaneTaken: x => (P(x.s, x.ctrl).h.arcaneTaken || 0) > 0,
+    emptyHand: x => P(x.s, x.ctrl).hand.length === 0,
+    oppTurn: x => x.s.tp !== x.ctrl,
+    lessLifeOpp: x => P(x.s, x.ctrl).life < P(x.s, 1 - x.ctrl).life,
+  });
+  // Numbers that are read at the moment they are needed: a literal, or { v: name } from FAB.vars.
+  FAB.vars = {
+    chainLinks: x => x.s.chain ? x.s.chain.links.filter(l => l.ctrl === x.ctrl).length : 0,
+  };
+  FAB.num = function (x, v) { if (typeof v === 'number') return v; const f = FAB.vars[v.v]; if (!f) throw new Error('no variable: ' + v.v); return f(x, v); };
 
   const attackMods = (x) => {
     const s = x.s;
@@ -167,7 +178,7 @@
       FAB.log(x.s, 'next', { who: x.ctrl, c: I(x.s, x.iid).id, p: op.p || 0, grant: op.grant || null });
     },
     token(x, op) {
-      const who = op.who === 'winner' ? x.flags.winner : x.ctrl;
+      const who = op.who === 'winner' ? x.flags.winner : op.who === 'opp' ? 1 - x.ctrl : op.who === 'defender' ? (x.link ? x.link.tgt : 1 - x.ctrl) : x.ctrl;
       if (who == null) return;
       FAB.createToken(x.s, who, op.name);
     },
@@ -188,7 +199,7 @@
     gainAP(x, op) { P(x.s, x.ctrl).ap += op.n; FAB.log(x.s, 'gain', { who: x.ctrl, k: 'ap', n: op.n }); },
     selfBuff(x, op) {                   // "this gets +N{p} / go again / dominate"
       // On a hero or equipment trigger about a weapon hit, "the attack" is the attack in the event.
-      const iid = (x.ev && x.ev.t === 'weaponHit') ? x.ev.iid : x.iid;
+      const iid = (x.ev && (x.ev.t === 'weaponHit' || x.ev.t === 'playAttack')) ? x.ev.iid : x.iid;
       const mods = attackMods({ s: x.s, link: x.link, iid: iid });
       if (!mods) return;
       if (op.grant && mods.some(m => m.grant === op.grant)) return;                          // CR 8.3.5c
@@ -278,6 +289,73 @@
       FAB.log(x.s, 'extraAttack', { who: x.ctrl, c: c.id });
     },
   };
+  // ---- shared vocabulary used by many classes ------------------------------------------------
+  Object.assign(OPS, {
+    gainLife(x, op) { const p = P(x.s, x.ctrl); p.life += op.n; FAB.log(x.s, 'life', { who: x.ctrl, n: op.n, life: p.life }); },
+    // CR 8.5.3b: arcane damage. The target is asked for even when only one hero could be chosen.
+    arcane(x, op) {
+      const s = x.s;
+      const opts = op.tgt === 'opp' ? [{ id: 1 - x.ctrl }] : [{ id: 1 - x.ctrl }, { id: x.ctrl }];
+      const to = FAB.ask(x, { who: x.ctrl, kind: 'arcaneTarget', src: x.iid, n: op.n, opts: opts });
+      const dealt = FAB.dealDamage(s, { to: to, n: FAB.num(x, op.n), src: x.iid, kind: 'arcane', x: x });
+      x.flags.dealt = dealt; x.flags.hero = to;
+    },
+    lookTop(x) {                         // "look at the top card of your deck" (CR 8.5.11): only its owner sees it
+      const p = P(x.s, x.ctrl);
+      if (!p.deck.length) return;
+      FAB.ask(x, { who: x.ctrl, kind: 'look', src: x.iid, opts: [{ id: 'ok', iid: p.deck[0] }] });
+      FAB.log(x.s, 'look', { who: x.ctrl, n: 1 });
+    },
+    opt(x, op) {                         // CR 8.5.22: look at the top N, put each on the top or the bottom
+      const s = x.s, p = P(s, x.ctrl), n = Math.min(FAB.num(x, op.n), p.deck.length);
+      const seen = p.deck.slice(0, n), top = [], bottom = [];
+      for (const iid of seen) {
+        const a = FAB.ask(x, { who: x.ctrl, kind: 'optCard', src: x.iid, seen: seen, opts: [{ id: 'top', iid: iid }, { id: 'bottom', iid: iid }] });
+        (a === 'top' ? top : bottom).push(iid);
+      }
+      p.deck.splice(0, n);
+      p.deck.unshift.apply(p.deck, top); p.deck.push.apply(p.deck, bottom);
+      if (n) FAB.log(s, 'opt', { who: x.ctrl, n: n, top: top.length, bottom: bottom.length });
+    },
+    denyKw(x, op) {                      // "Target attack loses and can't gain dominate"
+      const link = FAB.activeLink(x.s);
+      if (!link) return;
+      FAB.ask(x, { who: x.ctrl, kind: 'target', src: x.iid, opts: [{ id: link.n, iid: link.iid }] });
+      link.mods.push({ deny: op.kw, src: x.iid });
+      FAB.log(x.s, 'deny', { who: x.ctrl, c: I(x.s, x.iid).id, to: I(x.s, link.iid).id, kw: op.kw });
+    },
+    cycleHand(x, op) {                   // "Put up to N cards from your hand on the bottom of your deck, then draw that many"
+      const s = x.s, p = P(s, x.ctrl); let k = 0;
+      while (k < op.n && p.hand.length) {
+        const opts = p.hand.map(i => ({ id: i, iid: i })); opts.push({ id: 'done' });
+        const a = FAB.ask(x, { who: x.ctrl, kind: 'cycleHand', src: x.iid, n: op.n, placed: k, opts: opts });
+        if (a === 'done') break;
+        FAB.move(s, a, 'deck'); k++;
+      }
+      if (k) { FAB.log(s, 'cycle', { who: x.ctrl, n: k }); OPS.draw(x, { n: k }); }
+    },
+    payOrDebuff(x, op) {                 // "it gets -N{p} unless you pay {r}"
+      const s = x.s;
+      if (FAB.canPay(s, x.ctrl, op.r, null, 0) && FAB.ask(x, { who: x.ctrl, kind: 'payOr', src: x.iid, r: op.r, p: op.p, opts: [{ id: 'yes' }, { id: 'no' }] }) === 'yes') { FAB.payRes(x, x.ctrl, op.r, x.iid, 'effect', { cancel: false }); return; }
+      OPS.selfBuff(x, { p: -op.p });
+    },
+    revealTopDebuff(x) {                 // "reveal the top card of your deck. This gets -X{p}, X = its pitch value"
+      const s = x.s, p = P(s, x.ctrl);
+      if (!p.deck.length) return;
+      const d = D(s, p.deck[0]);
+      FAB.log(s, 'reveal', { who: x.ctrl, c: d.id, zone: 'deck' });
+      if (d.pitch) OPS.selfBuff(x, { p: -d.pitch });
+    },
+  });
+  Object.assign(FAB.aiPolicy, {
+    arcaneTarget: (s, q) => q.opts[0].id,
+    look: () => 'ok',
+    optCard: () => 'top',
+    cycleHand: () => 'done',
+    payOr: () => 'no',
+    arcaneBarrier: (s, q) => (q.n <= q.dmg ? 'yes' : 'no'),
+    spellvoid: (s, q) => (q.dmg >= 2 ? 'yes' : 'no'),
+  });
   FAB.ops = OPS;
   FAB.runOps = function (x, ops) {
     for (const op of ops) {

@@ -20,14 +20,17 @@ for (const f of js) {
   });
 }
 
-const engine = read('js/engine.js') + read('js/ops.js');
-const text = read('js/text.js');
-const block = (name) => { const a = text.indexOf('const ' + name + ' = {'); const b = text.indexOf('\n  };', a); return text.slice(a, b); };
-const lines = block('LINES'), prompts = block('PROMPTS');
-const logTypes = new Set([...engine.matchAll(/\blog\(\s*(?:x\.)?s,\s*'([A-Za-z0-9]+)'/g)].map(m => m[1]));
-for (const t of logTypes) if (!new RegExp('\\n    ' + t + ':').test(lines)) bad.push('engine log type with no line in js/text.js LINES: ' + t);
-const kinds = new Set([...engine.matchAll(/kind:\s*'([A-Za-z0-9]+)'/g)].map(m => m[1]).filter(k => !['card', 'act', 'trig', 'p', 'gen', 'arcane'].includes(k)));
-for (const k of kinds) if (!new RegExp('\\n    ' + k + ':').test(prompts)) bad.push('question kind with no prompt in js/text.js PROMPTS: ' + k);
+// Engine half = engine.js and every ops*.js; text half = every text*.js. A key in any text file
+// counts: extension files add theirs with Object.assign(T.lines, {...}) / Object.assign(T.prompts, {...}).
+const engine = js.filter(f => f === 'engine.js' || /^ops/.test(f)).map(f => read('js/' + f)).join('\n');
+const text = js.filter(f => /^text/.test(f)).map(f => read('js/' + f)).join('\n');
+const hasKey = k => new RegExp('\\n\\s+' + k + ':').test(text);
+const logTypes = new Set([...engine.matchAll(/\blog\(\s*(?:x\.)?s,\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]));
+for (const t of logTypes) if (!hasKey(t)) bad.push('engine log type with no line in any js/text*.js: ' + t);
+const kinds = new Set([...engine.matchAll(/kind:\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]).filter(k => !['card', 'act', 'trig', 'p', 'gen', 'arcane'].includes(k)));
+for (const k of kinds) if (!hasKey(k)) bad.push('question kind with no prompt in any js/text*.js: ' + k);
+// Every script on disk under js/ must be named by the page, or it is dead code that nothing loads.
+for (const f of js) if (!list.includes('js/' + f)) bad.push('js/' + f + ' is not in index.html');
 
 const audio = read('js/audio.js');
 const voices = new Set([...audio.slice(audio.indexOf('const VOICES = {'), audio.indexOf('const MAP = {')).matchAll(/\n    ([a-z]+):/g)].map(m => m[1]));

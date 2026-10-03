@@ -142,3 +142,5 @@ a { color: var(--gold); }
 @keyframes hurt { 0% { color: #ff3b2f; transform: scale(1.5); } 100% { color: #fff; transform: scale(1); } }
 .dmgfly { position: absolute; left: 60px; top: -6px; font-size: 26px; color: #ff5a4e; animation: fly 1.1s ease-out forwards; text-shadow: 0 2px 4px #000; }
 @keyframes fly { from { opacity: 1; transform: translateY(8px); } to { opacity: 0; transform: translateY(-34px); } }
+
+.tray { display: flex; gap: 6px; flex-wrap: wrap; max-width: 520px; } .tray .card { --cw: 78px; }
