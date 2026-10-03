@@ -5,7 +5,7 @@ const ENI = 'enigma-calling-bangkok', PRI = 'prism-wcq-new-zealand', KAY = 'kayo
 // Put a printed card straight into a zone of a seat.
 function put(s, seat, id, zone) {
   const iid = s.nid++; s.cards[iid] = { iid, id, owner: seat, zone, counters: {}, mods: [], faceUp: true };
-  s.players[seat][{ arena: 'arena', equip: 'equip', soul: 'soul', grave: 'grave', pitch: 'pitch', weapon: 'weapons', hand: 'hand' }[zone]].push(iid);
+  s.players[seat][{ arena: 'arena', equip: 'equip', soul: 'soul', grave: 'grave', pitch: 'pitch', weapon: 'weapons', hand: 'hand', banish: 'banish' }[zone]].push(iid);
   return iid;
 }
 const shield = (s, seat, n = 0) => { const iid = FAB.createToken(s, seat, 'Spectral Shield'); if (n) s.cards[iid].counters.p = n; return iid; };
@@ -356,4 +356,209 @@ test('Shimmering Specter: when it leaves the arena while attacking, a Spectral S
   s = game(KAY, PRI); give(s, 0, ['rough-up-red', 'scar-for-a-scar-red', 'scar-for-a-scar-red']); give(s, 1, ['shimmering-specter-blu']);
   s = attackInto(s, 'rough-up-red', ['scar-for-a-scar-red', 'scar-for-a-scar-red']); s = answerCard(s, 'shimmering-specter-blu'); s = answer(s, 'done');
   s = passUntil(s, closed); ok(has(s, 1, 'grave', 'shimmering-specter-blu')); eq(count(s, 1, 'arena', 'spectral-shield'), 1);
+});
+
+// ---- Nuu -----------------------------------------------------------------------------------
+const NUU = 'nuu-calling-san-diego';
+// Nuu (seat 0) plays a card and passes to the damage step with the opponent not defending.
+function hitWith(s, id, pitchIds = []) { s = attackInto(s, id, pitchIds); s = answer(s, 'done'); return s; }
+test('Nuu: when a stealth attack’s chain link resolves, the action cards that defended it are banished', () => {
+  let s = game(NUU, KAY); give(s, 0, ['art-of-desire-body-red']); give(s, 1, ['bear-hug-blu', 'wild-ride-red']);
+  s = attackInto(s, 'art-of-desire-body-red', []); s = answerCard(s, 'bear-hug-blu'); s = answer(s, 'done'); s = passUntil(s, closed);
+  ok(has(s, 1, 'banish', 'bear-hug-blu')); ok(!has(s, 1, 'grave', 'bear-hug-blu')); eq(s.players[1].hand.length, 1);
+});
+test('Nuu: an attack without stealth does not banish its defenders', () => {
+  let s = game(NUU, KAY); give(s, 0, ['excessive-bloodloss-red', 'hit-and-run-blu']); give(s, 1, ['bear-hug-blu']);
+  s = attackInto(s, 'excessive-bloodloss-red', ['hit-and-run-blu']); s = answerCard(s, 'bear-hug-blu'); s = answer(s, 'done'); s = passUntil(s, closed);
+  ok(has(s, 1, 'grave', 'bear-hug-blu'));
+});
+test('Art of Desire: Body: when it hits it banishes the top card of their deck; a red card draws a card and gains 1 life', () => {
+  let s = game(NUU, KAY); give(s, 0, ['art-of-desire-body-red']); give(s, 1, []); topdeck(s, 1, ['bare-fangs-red']); const d0 = s.players[0].deck.length;
+  s = hitWith(s, 'art-of-desire-body-red'); s = passUntil(s, closed);
+  ok(has(s, 1, 'banish', 'bare-fangs-red')); eq(s.players[0].life, 21); eq(s.players[0].deck.length, d0 - 1, 'drew a card'); eq(s.players[1].life, 17);
+  s = game(NUU, KAY); give(s, 0, ['art-of-desire-body-red']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu']);
+  s = hitWith(s, 'art-of-desire-body-red'); s = passUntil(s, closed); ok(has(s, 1, 'banish', 'bear-hug-blu')); eq(s.players[0].life, 20, 'blue: nothing');
+});
+test('Art of Desire: Mind: a blue card banished draws a card and gains 1 life', () => {
+  let s = game(NUU, KAY); give(s, 0, ['art-of-desire-mind-blu']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu']);
+  s = hitWith(s, 'art-of-desire-mind-blu'); s = passUntil(s, closed); eq(s.players[0].life, 21); ok(has(s, 1, 'banish', 'bear-hug-blu'));
+});
+test('Bonds of Attraction: banishes the top card, then a card from their graveyard; the same color gains 1 life', () => {
+  let s = game(NUU, KAY); give(s, 0, ['bonds-of-attraction-blu']); give(s, 1, []); topdeck(s, 1, ['bare-fangs-red']); put(s, 1, 'wild-ride-red', 'grave'); put(s, 1, 'bear-hug-blu', 'grave');
+  s = hitWith(s, 'bonds-of-attraction-blu'); s = passUntil(s, x => asked(x, 'my_gravePick')); s = answerCard(s, 'wild-ride-red'); s = passUntil(s, closed);
+  ok(has(s, 1, 'banish', 'bare-fangs-red') && has(s, 1, 'banish', 'wild-ride-red')); eq(s.players[0].life, 21);
+  s = game(NUU, KAY); give(s, 0, ['bonds-of-attraction-blu']); give(s, 1, []); topdeck(s, 1, ['bare-fangs-red']); put(s, 1, 'wild-ride-red', 'grave'); put(s, 1, 'bear-hug-blu', 'grave');
+  s = hitWith(s, 'bonds-of-attraction-blu'); s = passUntil(s, x => asked(x, 'my_gravePick')); s = answerCard(s, 'bear-hug-blu'); s = passUntil(s, closed);
+  eq(s.players[0].life, 20, 'red and blue: no life');
+});
+test('Excessive Bloodloss: banish the top card; if red repeat once; each red card banished completes the contract and creates a Silver token', () => {
+  let s = game(NUU, KAY); give(s, 0, ['excessive-bloodloss-red', 'hit-and-run-blu']); give(s, 1, []); topdeck(s, 1, ['bare-fangs-red', 'wild-ride-red', 'wild-ride-red']);
+  s = hitWith(s, 'excessive-bloodloss-red', ['hit-and-run-blu']); s = passUntil(s, closed);
+  eq(s.players[1].banish.length, 2, 'repeat only once'); eq(count(s, 0, 'arena', 'silver'), 2);
+  s = game(NUU, KAY); give(s, 0, ['excessive-bloodloss-red', 'hit-and-run-blu']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu', 'wild-ride-red']);
+  s = hitWith(s, 'excessive-bloodloss-red', ['hit-and-run-blu']); s = passUntil(s, closed);
+  eq(s.players[1].banish.length, 1, 'blue: no repeat'); eq(count(s, 0, 'arena', 'silver'), 0);
+});
+test('Plunder the Poor: banishing a card with cost 1 or less completes the contract', () => {
+  let s = game(NUU, KAY); give(s, 0, ['plunder-the-poor-red']); give(s, 1, []); topdeck(s, 1, ['scar-for-a-scar-red']);
+  s = hitWith(s, 'plunder-the-poor-red'); s = passUntil(s, closed); eq(count(s, 0, 'arena', 'silver'), 1);
+  s = game(NUU, KAY); give(s, 0, ['plunder-the-poor-red']); give(s, 1, []); topdeck(s, 1, ['rough-up-red']);
+  s = hitWith(s, 'plunder-the-poor-red'); s = passUntil(s, closed); eq(count(s, 0, 'arena', 'silver'), 0, 'cost 2');
+});
+test('Silver and Gold tokens: pay, destroy, draw a card, go again', () => {
+  let s = game(NUU, KAY); give(s, 0, ['hit-and-run-blu']); give(s, 1, []); const d0 = s.players[0].deck.length; FAB.createToken(s, 0, 'Gold');
+  s = act(s, 'gold'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, closed);
+  eq(s.players[0].deck.length, d0 - 1); eq(s.players[0].ap, 1); ok(!has(s, 0, 'arena', 'gold'));
+});
+test('Prey Spotters and Mark of the Black Widow: mark the hero; the hit makes them banish a card from hand and removes the mark', () => {
+  let s = game(NUU, KAY); give(s, 0, ['mark-of-the-black-widow-red']); give(s, 1, ['bear-hug-blu', 'wild-ride-red']);
+  s = attackInto(s, 'mark-of-the-black-widow-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => step(x, 'reaction') && x.priority === 0); s = act(s, 'prey-spotters'); s = passUntil(s, x => asked(x, 'my_heroTarget')); s = answer(s, 1);
+  s = passUntil(s, x => asked(x, 'my_handBanishPick')); eq(s.pending.q.who, 1);
+  s = answerCard(s, 'wild-ride-red'); s = passUntil(s, closed);
+  ok(has(s, 1, 'banish', 'wild-ride-red')); ok(!s.players[1].my_marked, 'the hit removed it'); ok(has(s, 0, 'grave', 'prey-spotters'));
+});
+test('Mark of the Black Widow: nothing happens if the hero was not marked', () => {
+  let s = game(NUU, KAY); give(s, 0, ['mark-of-the-black-widow-red']); give(s, 1, ['wild-ride-red']);
+  s = hitWith(s, 'mark-of-the-black-widow-red'); s = passUntil(s, closed); eq(s.players[1].hand.length, 1); eq(s.players[1].life, 17);
+});
+test('Mark of the Huntsman: +1 power against a marked hero; when it hits you may destroy it to mark them', () => {
+  let s = game(NUU, KAY); give(s, 0, ['hit-and-run-blu']); give(s, 1, []); put(s, 0, 'mark-of-the-huntsman', 'weapon'); s.players[1].my_marked = true;
+  s = act(s, 'mark-of-the-huntsman'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => step(x, 'reaction')); eq(FAB.attackPower(s, FAB.activeLink(s)), 2);
+  s = game(NUU, KAY); give(s, 0, ['hit-and-run-blu']); give(s, 1, []); put(s, 0, 'mark-of-the-huntsman', 'weapon');
+  s = act(s, 'mark-of-the-huntsman'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => asked(x, 'may')); s = answer(s, 'yes'); s = passUntil(s, closed);
+  ok(s.players[1].my_marked); ok(has(s, 0, 'grave', 'mark-of-the-huntsman')); eq(s.players[1].life, 19);
+});
+// An attack reaction played in the reaction step by seat 0.
+function reactWith(s, id, pitchIds = []) {
+  s = passUntil(s, x => step(x, 'reaction') && x.priority === 0);
+  s = play(s, id); if (s.pending && s.pending.q.kind === 'target') s = answer(s, s.pending.q.opts[0].id);
+  for (const p of pitchIds) s = answerCard(s, p);
+  return s;
+}
+test('Hiss: +3 power for an Assassin or Mystic attack action card; a Slither in hand if you pitched a blue card this turn', () => {
+  let s = game(NUU, KAY); give(s, 0, ['double-trouble-red', 'hiss-red', 'hit-and-run-blu']); give(s, 1, []);
+  s = attackInto(s, 'double-trouble-red', []); s = answer(s, 'done'); s = reactWith(s, 'hiss-red', ['hit-and-run-blu']);
+  s = passUntil(s, x => step(x, 'damage')); eq(logged(s, 'clashOfArms')[0].power, 6); eq(count(s, 0, 'hand', 'slither'), 1);
+  s = game(NUU, KAY); give(s, 0, ['double-trouble-red', 'hiss-red', 'scar-for-a-scar-red']); give(s, 1, []);
+  s = attackInto(s, 'double-trouble-red', []); s = answer(s, 'done'); s = reactWith(s, 'hiss-red', ['scar-for-a-scar-red']);
+  s = passUntil(s, x => step(x, 'damage')); eq(count(s, 0, 'hand', 'slither'), 0, 'no blue card pitched');
+});
+test('Venomous Bite: +3 power; a Fang Strike in hand if you pitched a blue card this turn', () => {
+  let s = game(NUU, KAY); give(s, 0, ['double-trouble-red', 'venomous-bite-red', 'hit-and-run-blu']); give(s, 1, []);
+  s = attackInto(s, 'double-trouble-red', []); s = answer(s, 'done'); s = reactWith(s, 'venomous-bite-red', ['hit-and-run-blu']);
+  s = passUntil(s, x => step(x, 'damage')); eq(logged(s, 'clashOfArms')[0].power, 6); eq(count(s, 0, 'hand', 'fang-strike'), 1);
+});
+test('Fang Strike and Slither: +1 power / go again for an attack action card; removed from the game rather than going to the graveyard', () => {
+  let s = game(NUU, KAY); give(s, 0, ['double-trouble-red', 'hit-and-run-blu']); give(s, 1, []);
+  s = attackInto(s, 'double-trouble-red', []); s = answer(s, 'done');
+  const f = put(s, 0, 'fang-strike', 'hand'), sl = put(s, 0, 'slither', 'hand');
+  s = reactWith(s, 'fang-strike'); s = reactWith(s, 'slither');
+  s = passUntil(s, x => step(x, 'resolution')); eq(logged(s, 'clashOfArms')[0].power, 3 + 1 + 2, '+1 Fang Strike, and two reactions: Double Trouble +2'); eq(s.players[0].ap, 1, 'go again from Slither');
+  eq(s.cards[f].zone, 'gone'); eq(s.cards[sl].zone, 'gone'); eq(s.players[0].grave.length, 0);
+});
+test('Pick to Pieces: +1 power and unpreventable damage if you played an attack reaction this chain link', () => {
+  let s = game(NUU, KAY); give(s, 0, ['pick-to-pieces-blu', 'hiss-blu', 'hit-and-run-blu']); give(s, 1, []); shield(s, 1);
+  s = attackInto(s, 'pick-to-pieces-blu', []); s = answer(s, 'done'); s = reactWith(s, 'hiss-blu', ['hit-and-run-blu']);
+  s = passUntil(s, closed); ok(!asked(s, 'my_ward')); eq(s.players[1].life, 17, '1 + 1 + 1 power'); ok(has(s, 1, 'arena', 'spectral-shield'), 'the ward could not prevent it');
+  s = game(NUU, KAY); give(s, 0, ['pick-to-pieces-blu']); give(s, 1, []); shield(s, 1);
+  s = attackInto(s, 'pick-to-pieces-blu', []); s = answer(s, 'done'); s = passUntil(s, x => asked(x, 'my_ward'));
+  ok(true, 'without a reaction the damage can be prevented');
+});
+test('Double Trouble: with 2 or more attack reactions this chain link, +2 power and banish the top 2 cards of their deck on a hit', () => {
+  let s = game(NUU, KAY); give(s, 0, ['double-trouble-blu', 'hiss-red', 'hiss-red', 'hit-and-run-blu', 'hit-and-run-blu']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu', 'wild-ride-red', 'scar-for-a-scar-red']);
+  s = attackInto(s, 'double-trouble-blu', []); s = answer(s, 'done'); s = reactWith(s, 'hiss-red', ['hit-and-run-blu']); s = reactWith(s, 'hiss-red');
+  s = passUntil(s, closed); eq(s.players[1].banish.length, 2); eq(logged(s, 'clashOfArms')[0].power, 1 + 3 + 3 + 2);
+  s = game(NUU, KAY); give(s, 0, ['double-trouble-blu', 'hiss-red', 'hit-and-run-blu']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu', 'wild-ride-red']);
+  s = attackInto(s, 'double-trouble-blu', []); s = answer(s, 'done'); s = reactWith(s, 'hiss-red', ['hit-and-run-blu']); s = passUntil(s, closed);
+  eq(s.players[1].banish.length, 0, 'only one reaction');
+});
+test('Intimate Inducement: +1 power; add one of the top cards of their deck as a defender (a blue card has 0 base defense); the rest back on top', () => {
+  let s = game(NUU, KAY); give(s, 0, ['art-of-desire-body-red', 'intimate-inducement-blu']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu', 'wild-ride-red']);
+  s = attackInto(s, 'art-of-desire-body-red', []); s = answer(s, 'done');
+  s = reactWith(s, 'intimate-inducement-blu'); s = passUntil(s, x => asked(x, 'my_inducePick')); eq(s.pending.q.opts.length, 2);
+  s = answerCard(s, 'bear-hug-blu'); s = passUntil(s, x => step(x, 'damage'));
+  const link = FAB.activeLink(s); eq(link.defs.length, 1); eq(FAB.defenseOf(s, link.defs[0].iid, link), 0, 'blue: 0 base defense');
+  eq(s.cards[s.players[1].deck[0]].id, 'wild-ride-red', 'the rest on top'); eq(logged(s, 'clashOfArms')[0].power, 3 + 1);
+  s = passUntil(s, closed); ok(has(s, 1, 'banish', 'bear-hug-blu'), 'stealth: an action card defending is banished');
+});
+test('Serpent’s Kiss: on attack create a Fang Strike or a Slither (both if you have transcended); on a hit look at the top 2 cards and banish 1', () => {
+  let s = game(NUU, KAY); give(s, 0, ['serpents-kiss-blu']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu', 'wild-ride-red']);
+  s = play(s, 'serpents-kiss-blu'); s = passUntil(s, x => asked(x, 'my_createPick')); s = answer(s, 'Slither'); s = passUntil(s, x => step(x, 'attack'));
+  eq(count(s, 0, 'hand', 'slither'), 1); eq(count(s, 0, 'hand', 'fang-strike'), 0);
+  s = passUntil(s, x => asked(x, 'defend')); s = answer(s, 'done'); s = passUntil(s, x => asked(x, 'my_lookPick')); eq(s.pending.q.opts.length, 2);
+  s = answerCard(s, 'wild-ride-red'); s = passUntil(s, closed); ok(has(s, 1, 'banish', 'wild-ride-red')); eq(s.cards[s.players[1].deck[0]].id, 'bear-hug-blu');
+  s = game(NUU, KAY); give(s, 0, ['serpents-kiss-blu']); give(s, 1, []); s.players[0].h.my_transcended = true;
+  s = play(s, 'serpents-kiss-blu'); s = passUntil(s, x => count(x, 0, 'hand', 'slither') === 1); eq(count(s, 0, 'hand', 'slither'), 1); eq(count(s, 0, 'hand', 'fang-strike'), 1);
+});
+test('Inertia Trap: defending an attack with more power than its base creates an Inertia token for the attacker; it sends their hand and arsenal to the bottom', () => {
+  let s = game(KAY, NUU); give(s, 0, ['scar-for-a-scar-red', 'wild-ride-red', 'bear-hug-blu']); give(s, 1, ['inertia-trap-red']);
+  const src = put(s, 0, 'rough-up-red', 'grave'); s.effects.push({ k: 'next', ctrl: 0, f: {}, p: 2, grant: null, hitGoAgain: false, dur: 'turn', src });
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => step(x, 'reaction') && x.priority === 1); s = play(s, 'inertia-trap-red'); s = passUntil(s, x => step(x, 'damage'));
+  eq(count(s, 0, 'arena', 'inertia'), 1, 'the attacker has it');
+});
+test('Inertia: at the beginning of your end phase destroy it, then put all cards from your hand and arsenal on the bottom of your deck, in the order you choose', () => {
+  let s = game(KAY, NUU); give(s, 0, ['wild-ride-red', 'bear-hug-blu']); give(s, 1, []); FAB.createToken(s, 0, 'Inertia');
+  s = pass(s); s = passUntil(s, x => asked(x, 'my_bottomOrder')); eq(s.pending.q.who, 0); eq(s.pending.q.opts.length, 3, 'two cards and "the rest"');
+  s = answerCard(s, 'bear-hug-blu'); s = passUntil(s, x => x.turn > 1);
+  eq(s.cards[s.players[0].deck[s.players[0].deck.length - 1]].id, 'wild-ride-red', 'the last one chosen is at the very bottom, after the one first placed');
+  ok(!has(s, 0, 'arena', 'inertia')); ok(logged(s, 'my_toBottomAll').length === 1);
+});
+test('Inertia Trap: nothing if the attack does not have more power than its base', () => {
+  let s = game(KAY, NUU); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, ['inertia-trap-red']);
+  s = attackInto(s, 'scar-for-a-scar-red', []); s = answer(s, 'done');
+  s = passUntil(s, x => step(x, 'reaction') && x.priority === 1); s = play(s, 'inertia-trap-red'); s = passUntil(s, closed);
+  eq(count(s, 0, 'arena', 'inertia'), 0);
+});
+test('Beckoning Mistblade: when it hits, your next blue attack this turn gets +1 power and go again', () => {
+  let s = game(NUU, KAY); give(s, 0, ['hit-and-run-blu', 'double-trouble-blu']); give(s, 1, []);
+  s = act(s, 'beckoning-mistblade'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => step(x, 'resolution'));
+  ok(s.effects.some(e => e.k === 'next' && e.f.pitch === 3 && e.p === 1 && e.grant === 'goAgain'));
+  s = play(s, 'double-trouble-blu'); s = passUntil(s, x => step(x, 'reaction'));
+  eq(FAB.attackPower(s, FAB.activeLink(s)), 2); ok(FAB.attackHas(s, FAB.activeLink(s), 'goAgain'));
+});
+test('Spider’s Bite: piercing 1, and when it hits the next time they defend with attack action cards those cards get -1 defense', () => {
+  let s = game(NUU, KAY); give(s, 0, ['hit-and-run-blu', 'hit-and-run-blu', 'double-trouble-red']); give(s, 1, ['bear-hug-blu']);
+  s = act(s, 'spiders-bite'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => step(x, 'resolution'));
+  ok(s.effects.some(e => e.k === 'my_defMinus' && e.who === 1));
+  s = play(s, 'double-trouble-red'); s = passUntil(s, x => asked(x, 'defend')); s = answerCard(s, 'bear-hug-blu'); s = answer(s, 'done');
+  const link = FAB.activeLink(s); eq(FAB.defenseOf(s, link.defs[0].iid, link), 2); ok(!s.effects.some(e => e.k === 'my_defMinus'), 'used up');
+});
+test('Stalker’s Steps: destroy it to give a target attack with stealth go again', () => {
+  let s = game(NUU, KAY); give(s, 0, ['art-of-desire-body-red']); give(s, 1, []);
+  ok(!FAB.legalActions(s).some(a => a.type === 'act' && s.cards[a.iid].id === 'stalkers-steps'), 'only in the reaction step');
+  s = attackInto(s, 'art-of-desire-body-red', []); s = answer(s, 'done'); s = passUntil(s, x => step(x, 'reaction') && x.priority === 0);
+  s = act(s, 'stalkers-steps'); s = passUntil(s, x => asked(x, 'target')); s = answer(s, s.pending.q.opts[0].id); s = passUntil(s, x => step(x, 'resolution'));
+  eq(s.players[0].ap, 1); ok(has(s, 0, 'grave', 'stalkers-steps'));
+});
+test('Arousing Wave and Undertow Stilettos: pay {r} and destroy to create a Fang Strike / Slither in hand', () => {
+  let s = game(NUU, KAY); give(s, 0, ['art-of-desire-body-red', 'hit-and-run-blu']); give(s, 1, []); put(s, 0, 'undertow-stilettos', 'equip');
+  s = attackInto(s, 'art-of-desire-body-red', []); s = answer(s, 'done'); s = passUntil(s, x => step(x, 'reaction') && x.priority === 0);
+  s = act(s, 'arousing-wave'); s = answerCard(s, 'hit-and-run-blu'); s = passUntil(s, x => count(x, 0, 'hand', 'fang-strike') === 1);
+  eq(count(s, 0, 'hand', 'fang-strike'), 1); ok(has(s, 0, 'grave', 'arousing-wave'));
+  s = act(s, 'undertow-stilettos'); s = passUntil(s, x => count(x, 0, 'hand', 'slither') === 1);
+});
+test('Nuu: {c}{c}{c} looks at the top card of their deck, may banish it if blue, and lets you play their banished blue cards for free this turn', () => {
+  let s = game(NUU, KAY); give(s, 0, ['inner-chi-blu']); give(s, 1, []); topdeck(s, 1, ['bear-hug-blu']); const bh = put(s, 1, 'smash-instinct-blu', 'banish');
+  s = act(s, 'nuu'); s = answerCard(s, 'inner-chi-blu'); s = passUntil(s, x => asked(x, 'my_peek')); s = answer(s, 'ok');
+  s = passUntil(s, x => asked(x, 'my_nuuBanish')); s = answer(s, 'yes'); s = passUntil(s, closed);
+  ok(has(s, 1, 'banish', 'bear-hug-blu')); ok(canPlay(s, 'smash-instinct-blu'), 'free to play from their banished zone');
+  eq(FAB.costOf(s, bh), 0);
+  const before = s.players[1].banish.length; s = play(s, 'smash-instinct-blu'); eq(s.players[1].banish.length, before - 1); eq(s.cards[bh].ctrl, 0, 'under my control while on the stack');
+  s = passUntil(s, x => asked(x, 'defend') || closed(x)); if (asked(s, 'defend')) s = answer(s, 'done'); s = passUntil(s, closed);
+  eq(s.cards[bh].zone, 'grave'); ok(s.players[1].grave.includes(bh), 'it goes to its owner’s graveyard'); eq(s.cards[bh].ctrl, undefined);
+});
+test('Nuu: a red top card is only looked at; nothing is asked about banishing it', () => {
+  let s = game(NUU, KAY); give(s, 0, ['inner-chi-blu']); give(s, 1, []); topdeck(s, 1, ['wild-ride-red']);
+  s = act(s, 'nuu'); s = answerCard(s, 'inner-chi-blu'); s = passUntil(s, x => asked(x, 'my_peek')); s = answer(s, 'ok'); s = passUntil(s, closed);
+  eq(s.cards[s.players[1].deck[0]].id, 'wild-ride-red'); eq(s.players[1].banish.length, 0);
+});
+test('Path Well Traveled: target attack gets go again; transcend with another blue card played', () => {
+  let s = game(NUU, KAY); give(s, 0, ['double-trouble-red', 'pass-over-blu', 'path-well-traveled-blu']); give(s, 1, []); put(s, 1, 'bear-hug-blu', 'grave');
+  s = attackInto(s, 'double-trouble-red', []); s = answer(s, 'done'); s = passUntil(s, x => step(x, 'reaction') && x.priority === 0);
+  s = play(s, 'pass-over-blu'); s = passUntil(s, x => asked(x, 'my_gravePick')); s = answerCard(s, 'bear-hug-blu'); s = passUntil(s, x => step(x, 'reaction') && x.priority === 0 && !x.stack.length);
+  ok(!s.players[0].h.my_transcended, 'the first blue card does not transcend');
+  s = play(s, 'path-well-traveled-blu'); s = answer(s, s.pending.q.opts[0].id); s = passUntil(s, x => step(x, 'reaction') && x.priority === 0 && !x.stack.length);
+  ok(FAB.attackHas(s, FAB.activeLink(s), 'goAgain')); ok(s.players[0].h.my_transcended); ok(has(s, 0, 'hand', 'inner-chi-blu'));
 });

@@ -107,7 +107,11 @@
     return c.zone === 'banish' && c.owner !== who && c.faceUp && FAB.cards[c.id].pitch === 3 && s.effects.some(e => e.k === 'my_playBanished' && e.who === who && e.from === c.owner);
   };
   FAB.hooks.playFrom.push(playableFromBanish);
-  FAB.hooks.costMods.push(function (s, iid, ab) { return (!ab && playableFromBanish(s, 1 - I(s, iid).owner, iid)) ? -99 : 0; });
+  FAB.hooks.costMods.push(function (s, iid, ab) {                                                   // free while it is in their banished zone, and still free once it is on the stack
+    const c = I(s, iid);
+    if (ab) return 0;
+    return ((c.zone === 'banish' && playableFromBanish(s, 1 - c.owner, iid)) || (c.zone === 'stack' && c.ctrl != null && c.ctrl !== c.owner)) ? -99 : 0;
+  });
   FAB.hooks.attackBegin.push(function (s, link) {
     if (!link.weapon) I(s, link.iid).my_ban = [];                                                   // the colors of the cards this attack has banished (Bonds of Attraction)
     const p = P(s, link.ctrl), d = D(s, link.iid);
