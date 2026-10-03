@@ -19,6 +19,8 @@
   const P = (s, seat) => s.players[seat];
   const log = FAB.log = function (s, t, d) { s.log.push(Object.assign({ t: t, turn: s.turn }, d)); };
   const isAttackDef = d => d.kind === 'action' && d.types.includes('Attack');
+  // [mystics] extension points for rules the core has no table for (ward, abilities granted to permanents, state read at attack time).
+  FAB.hooks = { damage: [], grantedActs: [], attackBegin: [], attackGrants: [], costMods: [], play: [], enter: [], extraCost: {} };
   const freshHist = () => ({ attacks: 0, weaponAttacks: 0, weaponHits: 0, disc6: 0, disc6Action: 0, pitched6: 0, dmg: 0, played: 0 });
 
   function Ask(q) { this.ask = q; }
@@ -43,7 +45,7 @@
     for (let seat = 0; seat < 2; seat++) {
       const deck = FAB.decks[setup.decks[seat]];
       if (!deck || !deck.registered) throw new Error('deck is not registered: ' + setup.decks[seat]);
-      const p = { seat: seat, deckId: deck.id, hero: null, life: 0, hand: [], deck: [], grave: [], banish: [], pitch: [], arsenal: [], arena: [], equip: [], weapons: [], res: 0, ap: 0, h: freshHist() };
+      const p = { seat: seat, deckId: deck.id, hero: null, life: 0, hand: [], deck: [], grave: [], banish: [], pitch: [], arsenal: [], arena: [], equip: [], weapons: [], res: 0, chi: 0, soul: [], ap: 0, h: freshHist() };
       s.players.push(p);
       const mk = (id, zone) => {
         const d = FAB.cards[id];
@@ -79,6 +81,7 @@
       case 'hand': return p.hand; case 'deck': return p.deck; case 'grave': return p.grave;
       case 'banish': return p.banish; case 'pitch': return p.pitch; case 'arsenal': return p.arsenal;
       case 'arena': return p.arena; case 'equip': return p.equip; case 'weapon': return p.weapons;
+      case 'soul': return p.soul;                                                       // [mystics] CR 3.11.5
       default: return null;
     }
   }
@@ -95,6 +98,8 @@
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
     if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });
+    if (zone === 'arena' && prev !== 'arena') { for (const f of FAB.hooks.enter) f(s, iid); emit(s, { t: 'enterArena', iid: iid, ctrl: c.owner }); }   // [mystics] "enters the arena with ..." and "When this enters the arena"
+    if (prev === 'chain' && zone !== 'chain') emit(s, { t: 'leaveChain', iid: iid, ctrl: c.owner });                                                          // [mystics] "While this is attacking or defending, when this leaves the arena" (the combat chain is in the arena)
     if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"   // "When this leaves the arena" (CR 6.6)
     return prev;
   };
@@ -107,7 +112,10 @@
   const destroy = FAB.destroy = function (s, iid) {
     const c = I(s, iid); if (c.zone === 'grave' || c.zone === 'gone') return;
     log(s, 'destroy', { who: c.owner, c: c.id });
+    const from = c.zone;
     move(s, iid, 'grave');
+    if (s.chain) for (const l of s.chain.links) if (!l.resolved) l.defs = l.defs.filter(e => e.iid !== iid);   // [mystics] a destroyed card no longer defends
+    emit(s, { t: 'destroyed', iid: iid, ctrl: c.owner, from: from });   // [mystics] "When this is destroyed", "Whenever an aura ... you control is destroyed"
   };
   const discard = FAB.discard = function (s, iid, random) {
     const c = I(s, iid); const pw = FAB.powerOf(s, iid); const p = P(s, c.owner);
@@ -128,6 +136,7 @@
     const iid = s.nid++;
     s.cards[iid] = { iid: iid, id: id, owner: who, zone: 'arena', counters: {}, mods: [], faceUp: true };
     P(s, who).arena.push(iid);
+    P(s, who).h.created = (P(s, who).h.created || 0) + 1;   // [mystics] "If you've created a card this turn"
     log(s, 'token', { who: who, c: id });
     return iid;
   };
@@ -166,11 +175,11 @@
     const c = I(s, link.iid), d = FAB.cards[c.id];
     const nog = !link.weapon && isAttackDef(d) && noGainP(s, link.ctrl);
     const gain = v => (nog && v > 0) ? 0 : v;
-    let p = d.power + gain(c.counters.p || 0);
+    let p = (d.power != null ? d.power : link.base) + gain(c.counters.p || 0);          // [mystics] link.base: an aura that is a weapon has the base {p} the granting effect gives it
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
     for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(ab.p);
     const me = P(s, link.ctrl);                                                        // "Your first attack each turn gets +1{p}": a continuous effect of a permanent
-    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1)) p += gain(ab.p);
+    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1) && FAB.cond(x, ab.cond)) p += gain(ab.p);   // [mystics] ab.cond
     let pierce = 0;
     for (const m of link.mods) { if (m.p) p += gain(m.p); if (m.piercing) pierce += m.piercing; }
     if (d.kw.piercing) pierce += d.kw.piercing;
@@ -183,6 +192,7 @@
     if (d.kw[kw] && !link.weapon) return true;
     if (link.mods.some(m => m.grant === kw)) return true;
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
+    if (FAB.hooks.attackGrants.some(f => f(s, link, kw))) return true;        // [mystics] "Your aura attacks with ... get go again"
     return d.ab.some(ab => ab.k === 'static' && ab.grant === kw && FAB.cond(x, ab.cond));
   };
   FAB.defenseOf = function (s, iid, link) {
@@ -191,7 +201,7 @@
     let v = d.def - (c.counters.d || 0);
     for (const m of c.mods) if (m.d) v += m.d;
     const x = { s: s, ctrl: c.owner, iid: iid, link: link, flags: {} };
-    for (const ab of d.ab) if (ab.k === 'static' && ab.d && FAB.cond(x, ab.cond)) v += ab.d;
+    for (const ab of d.ab) if (ab.k === 'static' && ab.d && FAB.cond(x, ab.cond)) v += FAB.num(x, ab.d);   // [mystics] ab.d may be { v: name } ("+1{d} for each blue card you've pitched")
     return Math.max(0, v);
   };
   FAB.linkDefense = (s, link) => link.defs.reduce((a, e) => a + FAB.defenseOf(s, e.iid, link), 0);
@@ -252,6 +262,7 @@
       const k = Math.min(n, e.n); n -= k; e.n -= k;
       log(s, 'prevent', { who: o.to, n: k, c: I(s, e.by).id });
     }
+    for (const f of FAB.hooks.damage) { if (n > 0) n = f(s, o, n); }   // [mystics] fixed prevention (Moon Chakra, Essence of Ancestry) and Ward (CR 8.3.20); they may ask, so o.x is needed
     if (n <= 0) return 0;
     const p = P(s, o.to);
     p.life -= n;
@@ -329,7 +340,7 @@
       switch (s.chain.step) {
         case 'attack': s.todo.push({ t: 'defend', answers: [] }); return;                  // CR 7.2.5
         case 'defend': s.chain.step = 'reaction'; setPriority(s, s.tp); return;           // CR 7.3.4
-        case 'reaction': damageStep(s); return;                                            // CR 7.4.3
+        case 'reaction': s.todo.push({ t: 'damageStep', answers: [] }); return;            // CR 7.4.3   [mystics] an invocation, so prevention that asks (Ward, CR 8.3.20) can ask
         case 'damage': resolutionStep(s); return;                                          // CR 7.5.4
         case 'resolution': s.closing = true; log(s, 'chainClose', {}); return;             // CR 7.6.4
         default: throw new Error('both passed in step ' + s.chain.step);
@@ -370,7 +381,7 @@
           s.sub = 3; return;
         default: {
           { const me = P(s, tp); for (const iid of [me.hero].concat(me.weapons, me.equip, me.arena)) delete I(s, iid).tapped; }   // CR 4.4.3d
-          for (const p of s.players) { p.ap = 0; p.res = 0; }                              // CR 4.4.3e
+          for (const p of s.players) { p.ap = 0; p.res = 0; p.chi = 0; }                              // CR 4.4.3e
           draw(s, tp, Math.max(0, FAB.intellect(s, tp) - P(s, tp).hand.length));           // CR 4.4.3f
           if (s.firstTurn) draw(s, 1 - tp, Math.max(0, FAB.intellect(s, 1 - tp) - P(s, 1 - tp).hand.length));
           s.firstTurn = false;
@@ -389,35 +400,25 @@
   // -------------------------------------------------------------------------------------------
   function beginAttackStep(s) {                                                            // CR 7.2
     const L = s.chain.queue.shift();
-    const link = { n: s.chain.links.length, iid: L.iid, weapon: L.kind === 'act', ctrl: L.ctrl, tgt: 1 - L.ctrl, mods: L.mods, defs: [], hit: false, dmg: 0, handDef: false, resolved: false, costDisc6: !!L.costDisc6 };
+    const srcGone = L.kind === 'act' && L.base != null && I(s, L.iid).zone !== 'arena';    // [mystics] CR 1.4.3c: an aura's attack-proxy ceases to exist with the aura
+    if (L.atkTgt != null || srcGone) {                                                     // [mystics] CR 7.2.2c: the attack-target (a Spectra permanent, CR 8.3.14) no longer exists, so the attack is cleared from the queue
+      if (L.atkTgt != null && !srcGone && I(s, L.atkTgt).zone === 'arena') throw new Error('an attack-target with spectra survived being targeted');
+      log(s, 'my_attackCleared', { who: L.ctrl, c: I(s, L.iid).id });
+      if (L.kind === 'card') move(s, L.iid, 'grave');
+      if (s.chain.queue.length) { beginAttackStep(s); return; }                            // CR 7.2.2c: the next attack in the queue
+      s.closing = true; log(s, 'chainClose', {});                                          // CR 7.7.2b
+      return;
+    }
+    const link = { n: s.chain.links.length, iid: L.iid, weapon: L.kind === 'act', ctrl: L.ctrl, tgt: 1 - L.ctrl, mods: L.mods, defs: [], hit: false, dmg: 0, handDef: false, resolved: false, costDisc6: !!L.costDisc6, base: L.base };
     if (!link.weapon) move(s, L.iid, 'chain');
     s.chain.links.push(link);
     s.chain.step = 'attack';
     const p = P(s, L.ctrl); p.h.attacks++; if (link.weapon) p.h.weaponAttacks++;
     link.seq = p.h.attacks;                                                                // "your first attack each turn"
+    for (const f of FAB.hooks.attackBegin) f(s, link);                                     // [mystics]
     log(s, 'attack', { who: L.ctrl, c: I(s, L.iid).id, power: FAB.attackPower(s, link), link: link.n });
     emit(s, { t: 'attack', iid: L.iid, ctrl: L.ctrl });
     setPriority(s, s.tp);
-  }
-  function damageStep(s) {                                                                 // CR 7.5
-    const link = activeLink(s);
-    const pw = FAB.attackPower(s, link), df = FAB.linkDefense(s, link);
-    const dmg = Math.max(0, pw - df);
-    s.chain.step = 'damage';
-    log(s, 'clashOfArms', { who: link.ctrl, c: I(s, link.iid).id, power: pw, def: df, dmg: dmg });
-    if (dmg > 0) {
-      const dealt = dealDamage(s, { to: link.tgt, n: dmg, src: link.iid, kind: 'p' });
-      if (dealt > 0) {                                                                     // CR 7.5.5: a hit-event
-        link.hit = true; link.dmg = dealt;
-        const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
-        emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
-        emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
-        if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
-        for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
-        for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
-      }
-    }
-    if (s.winner == null) setPriority(s, s.tp);
   }
   function resolutionStep(s) {                                                             // CR 7.6
     const link = activeLink(s);
@@ -455,26 +456,44 @@
     const d = D(s, iid), p = P(s, who);
     const pw = FAB.powerOf(s, iid);
     move(s, iid, 'pitch');
-    p.res += d.pitch;
+    if (d.chi) p.chi += d.pitch; else p.res += d.pitch;                                       // [mystics] CR 1.13.5a: pitching a card with a chi value gains chi points
     if (pw != null && pw >= 6) p.h.pitched6++;
     log(s, 'pitch', { who: who, c: d.id, n: d.pitch });
   }
   // o.cancel === false: the payment is part of a resolving effect, so there is nothing to back out of. o.excl: a card that may not pay for itself.
   const payRes = FAB.payRes = function (x, who, n, forIid, label, o) {
     const s = x.s, p = P(s, who);
-    while (p.res < n) {
+    if (o && o.chi) {                                                                         // [mystics] CR 1.14.2c: a chi cost is paid with chi points only
+      while (p.chi < n) {
+        const opts = p.hand.filter(i => i !== (o && o.excl) && D(s, i).chi && D(s, i).pitch > 0).map(i => ({ id: i, iid: i }));
+        if (!opts.length) throw new Illegal('cannot pay');
+        const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.chi, cost: n, chi: true, opts: opts, cancel: !(o && o.cancel === false) });
+        pitchCard(s, who, a);
+      }
+      p.chi -= n;
+      return;
+    }
+    while (p.res + p.chi < n) {                                                               // [mystics] CR 1.14.2d: chi points may pay a resource cost
       const opts = p.hand.filter(i => i !== (o && o.excl) && D(s, i).pitch > 0).map(i => ({ id: i, iid: i }));
       if (!opts.length) throw new Illegal('cannot pay');
-      const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.res, cost: n, opts: opts, cancel: !(o && o.cancel === false) });
+      const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.res - p.chi, cost: n, opts: opts, cancel: !(o && o.cancel === false) });
       pitchCard(s, who, a);
     }
-    p.res -= n;
+    const useChi = Math.min(p.chi, n);                                                        // CR 1.14.2d: all chi points are used before any resource points
+    p.chi -= useChi; p.res -= n - useChi;
+  };
+  // [mystics] Can this many chi points be paid, pitching chi cards from hand?
+  FAB.canPayChi = function (s, who, n, exclIid) {
+    const p = P(s, who);
+    let pool = p.chi;
+    for (const i of p.hand) if (i !== exclIid && D(s, i).chi) pool += D(s, i).pitch;
+    return pool >= n;
   };
   const canPay = FAB.canPay = function (s, who, r, exclIid, extraCards) {
     const p = P(s, who);
     const others = p.hand.filter(i => i !== exclIid);
     const pitches = others.map(i => D(s, i).pitch).sort((a, b) => b - a);
-    let pool = p.res, k = 0;
+    let pool = p.res + p.chi, k = 0;                                                          // [mystics] chi points pay resource costs too
     while (pool < r && k < pitches.length && pitches[k] > 0) pool += pitches[k++];
     return pool >= r && k + (extraCards || 0) <= others.length;
   };
@@ -482,10 +501,14 @@
   // abIdx: the index of an activated ability on that card; omitted, the cost of playing the card.
   const isActionSrc = (d, ab) => ab ? ab.type === 'action' : d.kind === 'action';
   const costRedFits = (d, e) => (!e.f.aa || isAttackDef(d)) && (!e.f.klass || e.f.klass.every(k => d.types.includes(k)));
+  // [mystics] An ability index of 1000 or more names an ability a continuous effect grants to this permanent (an aura that is a weapon), in the order FAB.hooks.grantedActs gives them.
+  const abOf = FAB.abOf = function (s, iid, i) { return i >= 1000 ? grantedOf(s, iid)[i - 1000] : D(s, iid).ab[i]; };
+  const grantedOf = FAB.grantedOf = function (s, iid) { const out = []; for (const f of FAB.hooks.grantedActs) out.push.apply(out, f(s, iid)); return out; };
   FAB.costOf = function (s, iid, abIdx) {
-    const c = I(s, iid), d = FAB.cards[c.id], ab = abIdx == null ? null : d.ab[abIdx];
+    const c = I(s, iid), d = FAB.cards[c.id], ab = abIdx == null ? null : abOf(s, iid, abIdx);
     const n = ab ? (ab.cost.r || 0) : (d.cost || 0);
     let tax = 0, red = 0;
+    for (const f of FAB.hooks.costMods) { const v = f(s, iid, ab); if (v > 0) tax += v; else red -= v; }   // [mystics] "Your first Spectral Shield attack each turn costs {r} less to activate"
     for (const e of s.effects) {
       if (e.who !== c.owner) continue;
       if (e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) tax += e.n;                 // Cartilage Crush
@@ -516,12 +539,14 @@
     if (r && !(D(s, link.iid).power <= r.n)) return false;
     return true;
   }
+  // [mystics] CR 5.1.3d: a card that may be played as an instant (Astral Etchings) is declared as one or the other.
+  const asInstantOk = (s, who, iid, d) => d.ab.some(a => a.k === 'asInstant' && FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, a.cond));
   const canPlay = FAB.canPlay = function (s, who, iid) {
     const c = I(s, iid), d = FAB.cards[c.id];
     if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal')) return false;
     const link = activeLink(s);
     switch (d.kind) {
-      case 'action': if (!actionTiming(s, who, isAttackDef(d))) return false; break;
+      case 'action': if (!actionTiming(s, who, isAttackDef(d)) && !asInstantOk(s, who, iid, d)) return false; break;   // [mystics] "you may play this as though it were an instant"
       case 'instant': break;
       case 'ar': if (!(link && s.chain.step === 'reaction' && link.ctrl === who)) return false; break;                 // CR 7.4.2a
       case 'dr':                                                                                                       // CR 7.4.2b-c
@@ -542,7 +567,7 @@
     return canPay(s, who, FAB.costOf(s, iid), iid, extra);
   };
   const canAct = FAB.canAct = function (s, who, iid, i) {
-    const c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[i];
+    const c = I(s, iid), d = FAB.cards[c.id], ab = abOf(s, iid, i);
     if (c.owner !== who || ab.k !== 'act') return false;
     const zone = ab.zone || 'arena';
     if (zone === 'arena' && !['hero', 'weapon', 'equip', 'arena'].includes(c.zone)) return false;
@@ -552,6 +577,8 @@
     if (ab.opt) { const used = c.acts || 0, extra = c.extra || 0; if (used >= 1 + extra) return false; }                // CR 5.2.3
     if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
     if (ab.cond && !FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, ab.cond)) return false;
+    if (ab.cost.c && !FAB.canPayChi(s, who, ab.cost.c, null)) return false;                                            // [mystics] CR 1.14.2c
+    for (const k in ab.cost) if (FAB.hooks.extraCost[k] && !FAB.hooks.extraCost[k].can(s, who, iid, ab.cost[k])) return false;   // [mystics] costs the core has no field for (banish a card from your soul)
     return canPay(s, who, FAB.costOf(s, iid, i), ab.cost.discardSelf ? iid : null, ab.cost.discard || 0);
   };
 
@@ -572,6 +599,8 @@
     for (const iid of srcs) {
       const ab = D(s, iid).ab;
       for (let i = 0; i < ab.length; i++) if (ab[i].k === 'act' && canAct(s, who, iid, i)) out.push({ type: 'act', iid: iid, ab: i });
+      const gr = grantedOf(s, iid);                                                       // [mystics] abilities a continuous effect grants (Cosmo, Iris of Reality)
+      for (let j = 0; j < gr.length; j++) if (canAct(s, who, iid, 1000 + j)) out.push({ type: 'act', iid: iid, ab: 1000 + j });
     }
     out.push({ type: 'pass' });
     return out;
@@ -654,6 +683,13 @@
   }
   function openChain(s) { if (!s.chain) s.chain = { links: [], queue: [], step: 'layer' }; else s.chain.step = 'layer'; }   // CR 7.0.2a
 
+  // [mystics] CR 1.4.5 / 8.3.14: an attack may target a permanent with Spectra instead of the hero. Asked only when there is such a permanent to choose.
+  function declareAttackTarget(x, who, srcIid) {
+    const s = x.s, sp = P(s, 1 - who).arena.filter(i => FAB.cards[I(s, i).id].kw.spectra);
+    if (!sp.length) return null;
+    const a = ask(x, { who: who, kind: 'my_attackTarget', src: srcIid, opts: [{ id: 'hero' }].concat(sp.map(i => ({ id: i, iid: i }))), cancel: true });
+    return a === 'hero' ? null : a;
+  }
   EXEC.play = function (x) {
     const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], p = P(s, who);
     const fromArsenal = c.zone === 'arsenal';
@@ -680,7 +716,14 @@
       const link = activeLink(s);
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
-    if (d.kind === 'action') p.ap -= 1;                                                     // CR 5.1.6b
+    if (L.isAttack) L.atkTgt = declareAttackTarget(x, who, iid);                            // [mystics] CR 1.4.5: the attack-target
+    let asInstant = false;                                                                  // [mystics] CR 5.1.3d
+    if (d.kind === 'action' && asInstantOk(s, who, iid, d)) {
+      if (!actionTiming(s, who, L.isAttack)) asInstant = true;
+      else asInstant = ask(x, { who: who, kind: 'my_playAs', src: iid, opts: [{ id: 'instant' }, { id: 'action' }], cancel: true }) === 'instant';
+      if (asInstant) log(s, 'my_asInstant', { who: who, c: d.id });
+    }
+    if (d.kind === 'action' && !asInstant) p.ap -= 1;                                       // CR 5.1.6b
     payRes(x, who, FAB.costOf(s, iid) + extra, iid);                                        // CR 5.1.7
     spendCostFx(s, who, d, null);
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.cost.discardRandom) {               // CR 5.1.9 effect-costs
@@ -690,7 +733,9 @@
     }
     s.stack.push(L);
     p.h.played++;
+    for (const f of FAB.hooks.play) f(s, iid, who, L);                                      // [mystics] counts of what was played this turn
     log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : 'hand' });
+    if (L.atkTgt != null) emit(s, { t: 'my_targeted', iid: L.atkTgt, ctrl: who });          // [mystics] CR 8.3.14b: Spectra triggers when it becomes the target of an attack
     if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
@@ -698,15 +743,19 @@
   };
 
   EXEC.act = function (x) {
-    const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[x.inv.ab], p = P(s, who);
-    const L = { lid: s.lid++, kind: 'act', ctrl: who, iid: iid, ab: x.inv.ab, isAttack: !!ab.attack, mods: [], cid: d.id };
+    const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], ab = abOf(s, iid, x.inv.ab), p = P(s, who);
+    const L = { lid: s.lid++, kind: 'act', ctrl: who, iid: iid, ab: x.inv.ab, isAttack: !!ab.attack, mods: [], cid: d.id, base: ab.base };   // [mystics] ab.base: base {p} of an aura attack
+    if (L.isAttack) L.atkTgt = declareAttackTarget(x, who, iid);                            // [mystics] CR 1.4.5: the attack-target
+    if (ab.attack && ab.goAgain) L.mods.push({ grant: 'goAgain', src: iid });               // [mystics] "Attack. Go again": the attack has go again (CR 8.3.5b)
     if (ab.type === 'action') p.ap -= 1;
     if (ab.cost.tap) {                                                                      // CR 8.5.55: tapping is a cost
       if (c.tapped) throw new Illegal('already tapped');
       c.tapped = true; log(s, 'tap', { who: who, c: d.id });
     }
+    if (ab.cost.c) payRes(x, who, ab.cost.c, iid, 'ability', { chi: true });                // [mystics] CR 1.14.2a: chi points are paid first
     payRes(x, who, FAB.costOf(s, iid, x.inv.ab), iid, 'ability');
     spendCostFx(s, who, d, ab);
+    for (const k in ab.cost) if (FAB.hooks.extraCost[k]) FAB.hooks.extraCost[k].pay(x, who, iid, ab.cost[k]);   // [mystics]
     if (ab.cost.discard) {
       const opts = p.hand.filter(i => i !== iid).map(i => ({ id: i, iid: i }));
       if (!opts.length) throw new Illegal('no card to discard');
@@ -718,6 +767,7 @@
     if (ab.cost.destroySelf) destroy(s, iid);
     s.stack.push(L);
     if (L.isAttack) { applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }
+    if (L.atkTgt != null) emit(s, { t: 'my_targeted', iid: L.atkTgt, ctrl: who });          // [mystics] CR 8.3.14b
     setPriority(s, who);
   };
 
@@ -742,7 +792,7 @@
       }
       if (go) FAB.runOps(X, ab.ops);
     } else if (L.kind === 'act') {
-      const ab = FAB.cards[L.cid].ab[L.ab];
+      const ab = abOf(s, L.iid, L.ab);
       FAB.runOps(X, ab.ops);
       if (ab.goAgain) P(s, L.ctrl).ap++;                                                    // CR 8.3.5a
     } else {
@@ -756,6 +806,7 @@
           if (from === 'hand') link.handDef = true;
           log(s, 'defend', { who: L.ctrl, cs: [d.id], link: link.n });
           emit(s, { t: 'defend', iids: [L.iid], anyHand: from === 'hand', who: L.ctrl });
+          emit(s, { t: 'defended', iid: link.iid, iids: [L.iid], who: L.ctrl });          // [mystics] the attack was defended: Phantasm, Fragment (CR 8.3.13, 8.3.43)
         } else move(s, L.iid, 'grave');
       } else {
         const res = d.ab.find(a => a.k === 'res');
@@ -770,7 +821,39 @@
     if (s.flow === 'action' && s.sub !== 'begin' && !s.closing && s.winner == null) setPriority(s, s.tp);         // CR 1.11 (not before the action phase has begun, CR 4.3.3)
   };
 
-  function defendOptions(s, link, who, chosen) {                                            // CR 7.3.2a-b
+  // [mystics] CR 7.2.2d, 7.7.2c: the active attack ceased to exist before damage. The next attack in the queue begins, or the combat chain closes.
+  FAB.attackCeased = function (s, link) {
+    log(s, 'my_attackCleared', { who: link.ctrl, c: I(s, link.iid).id });
+    link.resolved = true;
+    if (s.chain.queue.length) beginAttackStep(s);
+    else { s.closing = true; log(s, 'chainClose', {}); }
+  };
+  EXEC.damageStep = function (x) {                                                        // CR 7.5   [mystics] was a plain function; an invocation so Ward can ask (CR 8.3.20)
+    const s = x.s, link = activeLink(s);
+    if (link.weapon && link.base != null && I(s, link.iid).zone !== 'arena') {              // [mystics] CR 7.2.2d, 1.4.3c: an aura's attack ceases to exist with the aura; before damage the next attack in the queue begins, or the chain closes
+      FAB.attackCeased(s, link);
+      return;
+    }
+    const pw = FAB.attackPower(s, link), df = FAB.linkDefense(s, link);
+    const dmg = Math.max(0, pw - df);
+    s.chain.step = 'damage';
+    log(s, 'clashOfArms', { who: link.ctrl, c: I(s, link.iid).id, power: pw, def: df, dmg: dmg });
+    if (dmg > 0) {
+      const dealt = dealDamage(s, { to: link.tgt, n: dmg, src: link.iid, kind: 'p', x: x });
+      if (dealt > 0) {                                                                     // CR 7.5.5: a hit-event
+        link.hit = true; link.dmg = dealt;
+        const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
+        emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
+        emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
+        if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
+        for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
+        for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
+      }
+    }
+    if (s.winner == null) setPriority(s, s.tp);
+  };
+
+  function defendOptions(s, link, who, chosen) {                                          // CR 7.3.2a-b
     const p = P(s, who), out = [];
     const handChosen = chosen.filter(i => I(s, i).zone === 'hand').length;
     for (const iid of p.hand) {
@@ -804,6 +887,7 @@
     if (anyHand) link.handDef = true;
     log(s, 'defend', { who: who, cs: chosen.map(i => I(s, i).id), link: link.n });
     if (chosen.length) emit(s, { t: 'defend', iids: chosen, anyHand: anyHand, who: who });
+    if (chosen.length) emit(s, { t: 'defended', iid: link.iid, iids: chosen, who: who });   // [mystics] Phantasm, Fragment (CR 8.3.13, 8.3.43)
     s.chain.step = 'defend';
     setPriority(s, s.tp);                                                                   // CR 7.3.3
   };

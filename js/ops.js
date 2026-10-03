@@ -180,7 +180,7 @@
     token(x, op) {
       const who = op.who === 'winner' ? x.flags.winner : op.who === 'opp' ? 1 - x.ctrl : op.who === 'defender' ? (x.link ? x.link.tgt : 1 - x.ctrl) : x.ctrl;
       if (who == null) return;
-      FAB.createToken(x.s, who, op.name);
+      x.flags.tok = FAB.createToken(x.s, who, op.name);                                     // [mystics] "... put three counters on it" refers to the token just created
     },
     draw(x, op) {
       const p = P(x.s, x.ctrl); let k = 0;
@@ -230,7 +230,7 @@
     clearCounters(x, op) { const c = I(x.s, x.iid); if (c.counters[op.k]) { FAB.log(x.s, 'counterClear', { who: x.ctrl, c: c.id, k: op.k, n: c.counters[op.k] }); delete c.counters[op.k]; } },
     destroySelf(x) { FAB.destroy(x.s, x.iid); },
     selfToBottom(x) { if (I(x.s, x.iid).zone === 'grave') { FAB.move(x.s, x.iid, 'deck'); FAB.log(x.s, 'toBottom', { who: x.ctrl, c: I(x.s, x.iid).id }); } },
-    damage(x, op) { FAB.dealDamage(x.s, { to: 1 - x.ctrl, n: op.n, src: x.iid, kind: 'gen' }); },
+    damage(x, op) { FAB.dealDamage(x.s, { to: 1 - x.ctrl, n: op.n, src: x.iid, kind: 'gen', x: x }); },   // [mystics] x: so prevention that asks (Ward) can
     discardUnlessReveal(x) {            // Strongest Survive
       const s = x.s, who = 1 - x.ctrl, p = P(s, who), n = x.ev.n;
       if (!p.hand.length) return;

@@ -113,7 +113,7 @@
       if (a.type === 'answer') return 3;
       const d = D(s, a.iid);
       if (a.type === 'play') { if (d.kw.goAgain) return 0; if (d.kind === 'ar') return 1; return d.types.includes('Attack') ? 2 : 3; }
-      return d.ab[a.ab].attack ? 2.5 : 4;
+      return FAB.abOf(s, a.iid, a.ab).attack ? 2.5 : 4;                           // [mystics] abOf: an ability index of 1000 or more is one a continuous effect granted
     };
     const seen = new Set(), out = [];
     for (const a of legal) {

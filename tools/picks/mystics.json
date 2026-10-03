@@ -1,1 +1,12 @@
-{}
+{
+  "enigma-calling-bangkok": {
+    "rule": "Enigma's list from Calling: Bangkok (2nd). Its 55-card pool is cut to 40 by leaving the two Oasis Respite and the two Test of Strength in the sideboard. Cosmo, Scroll of Ancestral Tapestry makes Enigma's Spectral Shields and wards attack; Silent Stilettos, Skycrest Keikoi (cloaked) and Uphold Tradition (cloaked) are not implemented and stay in the sideboard.",
+    "loadout": ["cosmo-scroll-of-ancestral-tapestry", "nullrune-hood", "blade-beckoner-plating", "nullrune-gloves", "unflinching-foothold"],
+    "cut": [["oasis-respite-red", 2], ["test-of-strength-red", 2]]
+  },
+  "prism-wcq-new-zealand": {
+    "rule": "Prism's list from the World Championship Qualifier in New Zealand (1st). Its pool is cut to 40 by leaving the two Arcane Polarity, the two Pummel and the two Unmovable in the sideboard. Iris of Reality makes Prism's Illusionist auras attack; Dream Weavers and Silent Stilettos are not implemented and stay in the sideboard.",
+    "loadout": ["iris-of-reality", "silken-shroud", "nullrune-robe", "wave-of-reality", "silken-slippers"],
+    "cut": [["arcane-polarity-red", 2], ["pummel-red", 2], ["unmovable-red", 2]]
+  }
+}

@@ -376,6 +376,7 @@ function toCard(c) {
     kw: comp.kw, ab: comp.ab,
   };
   if (comp.un.length) card.un = comp.un;
+  if (T.includes('Chi')) card.chi = true;                       // [mystics] CR 1.12.4f: a card with a chi value; pitching it gains chi points
   return card;
 }
 
@@ -432,6 +433,8 @@ for (const f of fs.readdirSync(S('decks')).filter(f => (/^silver-age-.*\.html$/.
 // Which cards go in the pack: everything in any pool, plus tokens they can create.
 const want = new Set(); for (const d of Object.values(decks)) for (const p of d.pool) want.add(p.id);
 for (const [id, c] of byId) if (c.types.includes('Token') && !c.types.includes('Hero')) want.add(id);   // every token: an effect may create any of them
+// [mystics] CR 9.1.5: a transcend-card's back face (Inner Chi) must be in the pack for any list that can transcend.
+if ([...want].some(id => byId.has(id) && /transcend\b/.test(byId.get(id).functional_text_plain || '')) && byId.has('inner-chi-blu')) want.add('inner-chi-blu');
 const cards = {};
 for (const id of [...want].sort()) if (byId.has(id)) cards[id] = toCard(byId.get(id));
 
@@ -451,6 +454,7 @@ for (const d of Object.values(decks)) {
   const bad = [...d.deck.map(p => p.id), ...d.loadout, d.hero].filter(id => !cards[id] || cards[id].un);
   if (total !== 40) problems.push(`${d.id}: default deck has ${total} cards, needs exactly 40 (TRP 7.4)`);
   if (d.deck.some(p => p.n > 2)) problems.push(`${d.id}: more than 2 copies of a card (TRP 7.4)`);
+  for (const p of d.deck) if (p.n > 1 && cards[p.id] && cards[p.id].ab.some(a => a.k === 'meta' && a.rule === 'legendary')) problems.push(`${d.id}: more than 1 copy of ${p.id}, which is Legendary (CR 8.3.6)`);   // [mystics]
   for (const id of pk.loadout) if (!d.pool.some(p => p.id === id)) problems.push(`${d.id}: loadout card not in pool: ${id}`);
   if (bad.length) problems.push(`${d.id}: not registered, uncompiled: ${[...new Set(bad)].join(', ')}`);
   else if (total === 40) { d.registered = true; registered.push(d.id); }

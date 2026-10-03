@@ -66,7 +66,7 @@
     } else {
       for (const a of FAB.legalActions(s)) {
         if (a.type === 'play') add(a.iid, a, 'Play ' + FAB.cards[s.cards[a.iid].id].name + ' (costs ' + FAB.costOf(s, a.iid) + ')');
-        else if (a.type === 'act') { const d = FAB.cards[s.cards[a.iid].id], ab = d.ab[a.ab]; add(a.iid, a, (ab.attack ? 'Attack with ' + d.name : 'Use ' + d.name + '’s ability') + ' (costs ' + FAB.costOf(s, a.iid, a.ab) + ')'); }
+        else if (a.type === 'act') { const d = FAB.cards[s.cards[a.iid].id], ab = FAB.abOf(s, a.iid, a.ab); add(a.iid, a, (ab.attack ? 'Attack with ' + d.name : 'Use ' + d.name + '’s ability') + ' (costs ' + FAB.costOf(s, a.iid, a.ab) + ')'); }
         else if (a.type === 'pass') btns.push({ a: a, label: T.passLabel(s), cls: 'primary' });
       }
     }
