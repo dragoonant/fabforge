@@ -72,6 +72,7 @@ const SPLIT = [
 ];
 const COSTS = [];        // extension cost parsers: (part, cost) => true when handled
 const LINES = [];        // extension whole-line handlers: (line, ctx) => true when consumed
+const EXTRA_CARDS = [];  // [ninjas] ids of cards that effects create but no pool lists (Crouching Tiger): tools/patterns/<group>.mjs exports EXTRA_CARDS
 
 const nextFilter = w => {
   w = (w || '').trim();
@@ -286,6 +287,7 @@ if (fs.existsSync(patDir)) for (const f of fs.readdirSync(patDir).filter(f => f.
   const m = await import(pathToFileURL(path.join(patDir, f)).href);
   if (m.init) m.init(helpers);
   if (m.KW_LINES) Object.assign(KW_LINES, m.KW_LINES);
+  if (m.EXTRA_CARDS) EXTRA_CARDS.push(...m.EXTRA_CARDS);   // [ninjas]
   for (const [name, arr] of [['CONDS', CONDS], ['EFFECTS', EFFECTS], ['TRIGGERS', TRIGGERS], ['STATICS', STATICS], ['ACTCONDS', ACTCONDS], ['LABELS', LABELS], ['SPLIT', SPLIT], ['COSTS', COSTS], ['LINES', LINES]]) if (m[name]) arr.push(...m[name]);
 }
 
@@ -432,6 +434,7 @@ for (const f of fs.readdirSync(S('decks')).filter(f => (/^silver-age-.*\.html$/.
 // Which cards go in the pack: everything in any pool, plus tokens they can create.
 const want = new Set(); for (const d of Object.values(decks)) for (const p of d.pool) want.add(p.id);
 for (const [id, c] of byId) if (c.types.includes('Token') && !c.types.includes('Hero')) want.add(id);   // every token: an effect may create any of them
+for (const id of EXTRA_CARDS) { if (!byId.has(id)) problems.push('extra card not in dataset: ' + id); else want.add(id); }   // [ninjas]
 const cards = {};
 for (const id of [...want].sort()) if (byId.has(id)) cards[id] = toCard(byId.get(id));
 
@@ -447,6 +450,7 @@ for (const d of Object.values(decks)) {
   d.side = pk.cut.map(([id, n]) => ({ id, n }));
   d.loadout = pk.loadout;
   d.rule = pk.rule;
+  d.grave = pk.grave || [];                                  // [ninjas] cards that start the game in the graveyard (Fai)
   const total = d.deck.reduce((a, p) => a + p.n, 0);
   const bad = [...d.deck.map(p => p.id), ...d.loadout, d.hero].filter(id => !cards[id] || cards[id].un);
   if (total !== 40) problems.push(`${d.id}: default deck has ${total} cards, needs exactly 40 (TRP 7.4)`);

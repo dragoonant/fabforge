@@ -368,7 +368,130 @@ window.FAB.decks = {
   "rank": "3rd",
   "player": "Bartosz Dobrowolski",
   "date": "09 Apr 2026",
-  "poolCompiled": 8
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "aspect-of-tiger-body-red",
+    "n": 2
+   },
+   {
+    "id": "bittering-thorns-red",
+    "n": 2
+   },
+   {
+    "id": "blessing-of-qi-red",
+    "n": 2
+   },
+   {
+    "id": "bluster-buff-red",
+    "n": 2
+   },
+   {
+    "id": "cut-through-red",
+    "n": 1
+   },
+   {
+    "id": "flex-claws-red",
+    "n": 2
+   },
+   {
+    "id": "flying-kick-red",
+    "n": 2
+   },
+   {
+    "id": "growl-red",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-red",
+    "n": 2
+   },
+   {
+    "id": "razor-reflex-red",
+    "n": 1
+   },
+   {
+    "id": "reinforce-the-line-red",
+    "n": 2
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 1
+   },
+   {
+    "id": "torrent-of-tempo-red",
+    "n": 2
+   },
+   {
+    "id": "untamed-red",
+    "n": 2
+   },
+   {
+    "id": "up-sticks-and-run-red",
+    "n": 2
+   },
+   {
+    "id": "salt-the-wound-yel",
+    "n": 1
+   },
+   {
+    "id": "tiger-eye-reflex-yel",
+    "n": 2
+   },
+   {
+    "id": "aspect-of-tiger-mind-blu",
+    "n": 1
+   },
+   {
+    "id": "feign-vengeance-blu",
+    "n": 2
+   },
+   {
+    "id": "nip-at-the-heels-blu",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-blu",
+    "n": 2
+   },
+   {
+    "id": "rushing-river-blu",
+    "n": 1
+   },
+   {
+    "id": "soulbead-strike-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "seek-vengeance-blu",
+    "n": 2
+   },
+   {
+    "id": "legacy-of-ikaru-blu",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "life-of-the-party-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "harmonized-kodachi",
+   "harmonized-kodachi",
+   "mask-of-many-faces",
+   "blood-scent",
+   "tearing-shuko",
+   "pouncing-paws"
+  ],
+  "rule": "Bartosz Dobrowolski's list from the Pro Tour: Yokohama (3rd). The sideboard holds the two Seek Vengeance (they look for Edge of Autumn, which this list does not carry), the two Legacy of Ikaru (the same), the two Arcane Polarity and the Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew).",
+  "grave": [],
+  "registered": true
  },
  "iyslander-pt-yokohama": {
   "id": "iyslander-pt-yokohama",
@@ -676,6 +799,7 @@ window.FAB.decks = {
    "aetherstorm-wellingtons"
   ],
   "rule": "Iyslander's list from the first Pro Tour, Yokohama, with the staff, Nullrune Hood, Spellfire Cloak, Nullrune Gloves and Aetherstorm Wellingtons equipped. Frost Spike is left in the sideboard because its text does not say whose exposed equipment zone receives the Frostbite, so it is not implemented; Look Tuff and one Chest Puff are cut with it to reach exactly 40.",
+  "grave": [],
   "registered": true
  },
  "enigma-calling-bangkok": {
@@ -1184,6 +1308,7 @@ window.FAB.decks = {
    "basalt-boots"
   ],
   "rule": "Valda's list from the Calling: Shanghai (2026), 46 non-arena cards cut to 40 (TRP 7.4). Both Blinding of the Old Ones are sideboarded because the engine cannot yet make every card a player owns lose all abilities, and both Promising Terrain because its second sentence races the Seismic Surge tokens' own start-of-action-phase triggers and the engine does not let a player order simultaneous triggers (DEVIATIONS D-1); the rest of the sideboard is one Arcane Polarity and one red Tension in the Air. The loadout is Miller's Grindstone with Steelbraid Buckler, Civic Peak, Magmatic Carapace, Gauntlet of Boulderhold and Basalt Boots.",
+  "grave": [],
   "registered": true
  },
  "dash-pt-yokohama": {
@@ -1502,6 +1627,7 @@ window.FAB.decks = {
    "hyper-driver-red"
   ],
   "rule": "Dash's list from the Pro Tour: Yokohama (3rd place). Dash starts with Plasma Barrel Shot, the mBrio base head and chest, Punching Gloves and Achilles Accelerator, and with Hyper Driver in the arena (CR 4.1.6b), so the deck zone holds 39 cards. This default leaves four cards in the sideboard: the equipment-hate Scramble Pulse and one Out Pace, plus Overblast and Penetration Script.",
+  "grave": [],
   "registered": true
  },
  "rhinar-calling-bangkok": {
@@ -1843,6 +1969,7 @@ window.FAB.decks = {
    "beaten-trackers"
   ],
   "rule": "Rhinar's list from the 5th Calling: Bangkok (2026), 44 non-arena cards cut to the 40 Silver Age needs (TRP 7.4). The sideboard keeps four narrow cards: Bear Hug (play only after pitching a 6+ card), Strongest Survive, Smash with Big Tree and one Agile Windup. The loadout is the two 1H weapons Ball Breaker and Mandible Claw with Buzzard Helm; Ravenous Meataxe (2H), Monstrous Veil, the Nullrune pieces and Blade Beckoner Gauntlets stay out.",
+  "grave": [],
   "registered": true
  },
  "kano-pt-yokohama": {
@@ -2137,6 +2264,7 @@ window.FAB.decks = {
    "aetherstorm-wellingtons"
   ],
   "rule": "Kano's list from the first Pro Tour, Yokohama, with the staff, Talismanic Lens, Spellfire Cloak, Hold Focus and Aetherstorm Wellingtons equipped. The sideboard keeps Fyendal's Fighting Spirit, Energy Potion and one Overflow the Aetherwell to reach exactly 40.",
+  "grave": [],
   "registered": true
  },
  "chane-bh-hong-kong": {
@@ -2449,6 +2577,7 @@ window.FAB.decks = {
    "sutcliffes-suede-hides"
   ],
   "rule": "Chane's list from Battle Hardened: Hong Kong (1st). The default 40 leaves the two Pummel, both Right Behind You, the Sift and the Timesnap Potion in the sideboard: generic cards that do nothing for the Runechant, banish and rune gate plan. The Nullrune pieces, the Blade Beckoner pieces and the second pair of arms/legs stay in the sideboard too (one piece per slot).",
+  "grave": [],
   "registered": true
  },
  "fai-showdown-las-vegas": {
@@ -2634,7 +2763,119 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Fabian Rex",
   "date": "19 Jul 2026",
-  "poolCompiled": 8
+  "poolCompiled": 34,
+  "deck": [
+   {
+    "id": "blaze-headlong-red",
+    "n": 2
+   },
+   {
+    "id": "brand-with-cinderclaw-red",
+    "n": 2
+   },
+   {
+    "id": "display-loyalty-red",
+    "n": 2
+   },
+   {
+    "id": "enflame-the-firebrand-red",
+    "n": 2
+   },
+   {
+    "id": "fire-tenet-strike-first-red",
+    "n": 2
+   },
+   {
+    "id": "fire-that-burns-within-red",
+    "n": 2
+   },
+   {
+    "id": "hot-on-their-heels-red",
+    "n": 2
+   },
+   {
+    "id": "lava-burst-red",
+    "n": 2
+   },
+   {
+    "id": "lava-vein-loyalty-red",
+    "n": 2
+   },
+   {
+    "id": "march-of-loyalty-red",
+    "n": 1
+   },
+   {
+    "id": "phoenix-flame-red",
+    "n": 1
+   },
+   {
+    "id": "ravenous-rabble-red",
+    "n": 2
+   },
+   {
+    "id": "rise-from-the-ashes-red",
+    "n": 2
+   },
+   {
+    "id": "rising-resentment-red",
+    "n": 2
+   },
+   {
+    "id": "ronin-renegade-red",
+    "n": 2
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "snatch-red",
+    "n": 2
+   },
+   {
+    "id": "brand-with-cinderclaw-yel",
+    "n": 2
+   },
+   {
+    "id": "fire-tenet-strike-first-yel",
+    "n": 2
+   },
+   {
+    "id": "salt-the-wound-yel",
+    "n": 2
+   },
+   {
+    "id": "nip-at-the-heels-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "burning-blade-dance-red",
+    "n": 2
+   },
+   {
+    "id": "growl-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "searing-emberblade",
+   "blade-beckoner-helm",
+   "blood-scent",
+   "tearing-shuko",
+   "pouncing-paws"
+  ],
+  "rule": "Fabian Rex's list from the Sunday Showdown: Las Vegas (1st), starting with Searing Emberblade and the Phoenix Flame in the graveyard (Fai may start the game with one). The sideboard holds the two Burning Blade Dance (no dagger to use their hit effect on while Searing Emberblade, a two-handed sword, is equipped), the two Growl and the two Arcane Polarity.",
+  "grave": [
+   "phoenix-flame-red"
+  ],
+  "registered": true
  },
  "oscilio-showdown-kansas-city": {
   "id": "oscilio-showdown-kansas-city",
@@ -2941,6 +3182,7 @@ window.FAB.decks = {
    "twinkle-toes"
   ],
   "rule": "Oscilio's list from Sunday Showdown: Kansas City 2026, with Volzar, Voltic Vanguard, Spellfire Cloak, Constella Waves and Twinkle Toes equipped. The sideboard keeps the generic attacks (Ravenous Rabble, Scar for a Scar, Snatch and Fyendal's Fighting Spirit) to reach exactly 40.",
+  "grave": [],
   "registered": true
  },
  "dorinthea-calling-london": {
@@ -3234,6 +3476,7 @@ window.FAB.decks = {
    "refraction-bolters"
   ],
   "rule": "Dorinthea's list from the 2nd Calling: London, 46 non-arena cards cut to the 40 a Silver Age deck needs (TRP 7.4). The sideboard holds Lay Low (it needs the marked condition, which is not implemented), both Arcane Polarity, and one Chest Puff and one Look Tuff.",
+  "grave": [],
   "registered": true
  },
  "bravo-flattering-showman-calling-bangkok": {
@@ -3520,6 +3763,7 @@ window.FAB.decks = {
    "civic-steps"
   ],
   "rule": "Bravo's list from the 5th Calling: Bangkok (2026), 46 non-arena cards cut to 40 (TRP 7.4). The sideboard is the narrow cards: both Arcane Polarity, both Oasis Respite and both Flatten the Field. The loadout is Miller's Grindstone with Steelbraid Buckler in the off-hand, Blade Beckoner Helm, Richter Scale, Gauntlet of Boulderhold and Civic Steps.",
+  "grave": [],
   "registered": true
  },
  "terra-calling-shanghai": {
@@ -3818,6 +4062,7 @@ window.FAB.decks = {
    "civic-steps"
   ],
   "rule": "Terra's 5th-place list from Calling: Shanghai. This default leaves six cards in the sideboard: both Sit! (only good against Brute attacks), both Renounce Grandeur (aura-token hate), one Concuss and the Battlefront Bastion.",
+  "grave": [],
   "registered": true
  },
  "florian-pt-yokohama": {
@@ -4107,6 +4352,7 @@ window.FAB.decks = {
    "well-grounded"
   ],
   "rule": "Florian's list from the Pro Tour: Yokohama (5th). Scepter of Pain, Garland of Spring, Nullrune Gloves and Well Grounded start equipped. The default leaves two Sift, a Sigil of Silphidae and two Harvest Season in the sideboard.",
+  "grave": [],
   "registered": true
  },
  "kayo-calling-london": {
@@ -4391,6 +4637,7 @@ window.FAB.decks = {
    "beaten-trackers"
   ],
   "rule": "Kayo's list from the Calling: London (2026), 48 non-arena cards cut to 40 (TRP 7.4). The sideboard is both Sirens of Safe Harbor colours, Strongest Survive (red) and Bear Hug. Kayo has one weapon zone: Mandible Claw, with Knucklehead, Predatory Plating, Skera Strapping and Beaten Trackers.",
+  "grave": [],
   "registered": true
  },
  "blaze-firemind-showdown-shinjuku": {
@@ -4729,6 +4976,7 @@ window.FAB.decks = {
    "aetherstorm-wellingtons"
   ],
   "rule": "Blaze's list from Sunday Showdown: Shinjuku 2026, with the staff, Talismanic Lens, Spellfire Cloak, Unyielding Grip and Aetherstorm Wellingtons equipped. The sideboard keeps the generic attacks (Fyendal's Fighting Spirit, Ravenous Rabble, Snatch, Wounded Bull, one Scar for a Scar) and On the Horizon to reach exactly 40.",
+  "grave": [],
   "registered": true
  },
  "benji-the-piercing-wind-showdown-kansas-city": {
@@ -4919,7 +5167,125 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Sabastian Chizhik",
   "date": "30 Aug 2026",
-  "poolCompiled": 13
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "bittering-thorns-red",
+    "n": 2
+   },
+   {
+    "id": "bluster-buff-red",
+    "n": 2
+   },
+   {
+    "id": "chest-puff-red",
+    "n": 2
+   },
+   {
+    "id": "flying-kick-red",
+    "n": 1
+   },
+   {
+    "id": "growl-red",
+    "n": 1
+   },
+   {
+    "id": "oasis-respite-red",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-red",
+    "n": 2
+   },
+   {
+    "id": "ravenous-rabble-red",
+    "n": 2
+   },
+   {
+    "id": "reinforce-the-line-red",
+    "n": 1
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "seek-vengeance-red",
+    "n": 2
+   },
+   {
+    "id": "smash-up-red",
+    "n": 1
+   },
+   {
+    "id": "soulbead-strike-red",
+    "n": 2
+   },
+   {
+    "id": "wax-on-red",
+    "n": 2
+   },
+   {
+    "id": "biting-breeze-yel",
+    "n": 2
+   },
+   {
+    "id": "growl-yel",
+    "n": 2
+   },
+   {
+    "id": "tiger-eye-reflex-yel",
+    "n": 2
+   },
+   {
+    "id": "flying-kick-blu",
+    "n": 2
+   },
+   {
+    "id": "legacy-of-ikaru-blu",
+    "n": 2
+   },
+   {
+    "id": "pouncing-qi-blu",
+    "n": 2
+   },
+   {
+    "id": "seek-vengeance-blu",
+    "n": 2
+   },
+   {
+    "id": "soulbead-strike-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "life-of-the-party-red",
+    "n": 2
+   },
+   {
+    "id": "reinforce-the-line-red",
+    "n": 1
+   },
+   {
+    "id": "snatch-blu",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "edge-of-autumn",
+   "mask-of-many-faces",
+   "blood-scent",
+   "tearing-shuko",
+   "pouncing-paws"
+  ],
+  "rule": "Sabastian Chizhik's list from the Sunday Showdown: Kansas City (2nd), starting with Edge of Autumn (a two-handed weapon, so the Harmonized Kodachi and the Arcane Lantern stay out). The sideboard holds the two Arcane Polarity, the two Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew), one Reinforce the Line and one Snatch.",
+  "grave": [],
+  "registered": true
  },
  "olympia-calling-london": {
   "id": "olympia-calling-london",
@@ -5208,6 +5574,7 @@ window.FAB.decks = {
    "pillar-of-unity"
   ],
   "rule": "Olympia's list from the 3rd Calling: London, 47 non-arena cards cut to the 40 a Silver Age deck needs (TRP 7.4). The sideboard holds the lone Arcane Polarity, both Oasis Respite, and both red Fyendal's Fighting Spirit and red Sirens of Safe Harbor, the least synergistic cards.",
+  "grave": [],
   "registered": true
  },
  "nuu-calling-san-diego": {
@@ -5731,6 +6098,7 @@ window.FAB.decks = {
    "civic-steps"
   ],
   "rule": "Oldhim's 5th-place list from Pro Tour: Yokohama. This default leaves two cards in the sideboard: Lay Low (it needs the marked condition, which this game does not have yet) and Arcane Polarity (a narrow arcane-damage card).",
+  "grave": [],
   "registered": true
  },
  "briar-pt-yokohama": {
@@ -6034,6 +6402,7 @@ window.FAB.decks = {
    "blade-beckoner-boots"
   ],
   "rule": "Briar's list from the Pro Tour: Yokohama (2nd). Star Fall, Helm of Might and Magic, Garland of Spring, Swiftstrike Bracers and Blade Beckoner Boots start equipped. The default leaves Flourish (a replacement effect on any power gain, not yet implemented), two Ravenous Rabble and two Scar for a Scar in the sideboard.",
+  "grave": [],
   "registered": true
  },
  "bravo-flattering-showman": {
@@ -6324,6 +6693,7 @@ window.FAB.decks = {
    "basalt-boots"
   ],
   "rule": "LSS's Silver Age precon is a 44-card deck pool; a registered deck is exactly 40 (TRP 7.4). This default leaves four cards in the sideboard: both Macho Grande (the 7-cost one), one Crush the Weak and one Disable. The loadout is the 2H Sledge of Anvilheim, which fills both weapon zones, so the 1H hammer and the buckler stay out.",
+  "grave": [],
   "registered": true
  },
  "dash": {
@@ -6971,6 +7341,7 @@ window.FAB.decks = {
    "beaten-trackers"
   ],
   "rule": "LSS's Silver Age precon is a 55-card pool; a registered deck is exactly 40 (TRP 7.4). This default leaves seven cards in the sideboard: Unexpected Backhand, Rally the Coast Guard, Agile Windup and the yellow Clash of Might.",
+  "grave": [],
   "registered": true
  },
  "arakni-web-of-deceit": {
@@ -7142,7 +7513,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 3
+  "poolCompiled": 4
  },
  "azalea": {
   "id": "azalea",
@@ -7612,6 +7983,7 @@ window.FAB.decks = {
    "refraction-bolters"
   ],
   "rule": "LSS's Silver Age precon is a 55-card pool; a registered deck is exactly 40 (TRP 7.4). This default leaves seven cards in the sideboard: the two defense reactions that cannot block an attack with more than 3 base power, the two prevention instants, the potion, and the two +1 reactions.",
+  "grave": [],
   "registered": true
  },
  "enigma": {
@@ -7984,7 +8356,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 8
+  "poolCompiled": 30
  },
  "blaze-firemind": {
   "id": "blaze-firemind",

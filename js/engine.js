@@ -66,6 +66,11 @@
       }
       for (const e of deck.deck) for (let i = 0; i < e.n; i++) { if (startItems.includes(e.id)) { startItems.splice(startItems.indexOf(e.id), 1); continue; } p.deck.push(mk(e.id, 'deck')); }   // [mech] the starting item is one of the 40, not a 41st
       if (startItems.length) throw new Error('a starting item is not in the deck: ' + startItems.join(', '));
+      for (const id of deck.grave) {                // [ninjas] Fai: "You may start the game with a Phoenix Flame in your graveyard"; the choice is made when the deck is registered (tools/picks)
+        const iid = p.deck.find(i => s.cards[i].id === id);
+        if (iid == null) throw new Error('deck.grave names a card that is not in the deck: ' + id);
+        p.deck.splice(p.deck.indexOf(iid), 1); s.cards[iid].zone = 'grave'; p.grave.push(iid);
+      }
       FAB.shuffle(s, p.deck);                       // CR 4.1.8
     }
     // CR 4.1.3: a randomly selected player chooses the first-turn-player.
@@ -93,8 +98,9 @@
     const prev = c.zone;
     if (c.rbBase && zone !== 'stack' && zone !== 'chain') { c.id = c.rbBase; delete c.rbBase; }   // [runeblades] CR 9.2.3: a split-card is one side only while it is on the stack; anywhere else it is the whole card
     if (FAB.cards[c.id].kind === 'token' && zone !== 'arena') zone = 'gone';   // a token leaving the arena ceases to exist
+    if (zone === 'grave' && FAB.cards[c.id].kw.ephemeral) { zone = 'gone'; log(s, 'nj_ephemeral', { who: c.owner, c: c.id }); }   // [ninjas] CR 8.3.21 Ephemeral: instead of the graveyard, remove it from the game
     c.zone = zone;
-    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; delete c.fused; } }   // [runeblades] c.fused: Fusion was paid (CR 8.3.17a)
+    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; delete c.destroyAtClose; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; delete c.fused; delete c.playTurn; delete c.costLess; } }   // [runeblades] c.fused: Fusion was paid (CR 8.3.17a)
     c.faceUp = !o.faceDown;
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
@@ -185,7 +191,7 @@
     let p = (d.power != null ? d.power : FAB.num(x, d.ab.find(a => a.k === 'basePower').p)) + gain(c.counters.p || 0);
     for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(FAB.num(x, ab.p));
     const me = P(s, link.ctrl);                                                        // "Your first attack each turn gets +1{p}": a continuous effect of a permanent
-    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1) && FAB.cond(x, ab.cond)) p += gain(ab.p);   // [mech] a permanent's attackStatic may carry a condition on the attack
+    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1) && FAB.cond(x, ab.cond) && (!ab.nth || link.seq === ab.nth)) p += gain(ab.p);   // [ninjas] ab.nth: Ira's second attack; [mech] a permanent's attackStatic may carry a condition on the attack
     let pierce = 0;
     for (const m of link.mods) { if (m.p) p += gain(m.p); if (m.piercing) pierce += m.piercing; if (m.cp && FAB.cond(x, m.cp.cond)) p += gain(m.cp.p); }   // [brutes] cp: a granted "if <cond>, this gets +N{p}"
     for (const m of c.mods) if (m.ap) p += gain(m.ap);                                  // [brutes] "this gets +N{p} until end of turn" is carried by the card (Ravenous Meataxe)
@@ -219,16 +225,17 @@
     for (const e of s.effects) if (e.k === 'intellect' && e.who === who) n = e.n;
     return n;
   };
-  FAB.matchAttack = function (s, iid, weapon, f) {
+  FAB.matchAttack = function (s, iid, weapon, f, mods) {
     const d = D(s, iid);
     if (f.weapon && !weapon) return false;
     if (f.sub && !f.sub.some(t => d.types.includes(t))) return false;
-    if (f.klass && !f.klass.some(t => d.types.includes(t))) return false;
+    if (f.klass && !f.klass.some(t => d.types.includes(t) || (t === 'Draconic' && ((mods && mods.some(m => m.drac)) || s.effects.some(e => e.k === 'nj_attacksDrac' && e.ctrl === s.cards[iid].owner))))) return false;   // [ninjas] an attack made Draconic by an effect
     if (f.baseMax != null && !(d.power <= f.baseMax)) return false;
     if (f.aa && (weapon || !isAttackDef(d))) return false;
     if (f.costMin != null && !(d.cost != null && d.cost >= f.costMin)) return false;
     if (f.fromArsenal && !I(s, iid).fromArsenal) return false;                          // [brutes] "you play from arsenal" (Craterhoof)
     if (f.costMax != null && !(d.cost != null && d.cost <= f.costMax)) return false;                // [wizards] "with cost 1 or less"
+    if (f.name && d.name !== f.name) return false;                                       // [ninjas] "the next Crouching Tiger"
     return true;
   };
 
@@ -323,7 +330,7 @@
   function trigMatch(s, ab, iid, ev) {
     if (ab.on !== ev.t) return false;
     const c = I(s, iid), own = c.owner, p = P(s, own);
-    if (ab.tcond && !FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, link: activeLink(s), flags: {} }, ab.tcond)) return false;   // [brutes] a condition on the trigger itself (an intervening "if", or "to a Guardian hero")
+    if (ab.tcond && !FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, link: activeLink(s) || ev.link || null, flags: {} }, ab.tcond)) return false;   // [brutes] a condition on the trigger itself (an intervening "if", or "to a Guardian hero")
     switch (ev.t) {
       case 'attack': case 'played': case 'selfRandDisc': case 'clashWin': return ev.iid === iid;
       case 'defend': return ev.iids.includes(iid) && (!ab.cond || FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, flags: {} }, ab.cond));
@@ -463,10 +470,12 @@
       const dealt = dealDamage(s, { to: link.tgt, n: dmg, src: link.iid, kind: 'p' });
       if (dealt > 0) {                                                                     // CR 7.5.5: a hit-event
         link.hit = true; link.dmg = dealt;
+        if (P(s, link.tgt).marked) { P(s, link.tgt).marked = false; log(s, 'nj_unmark', { who: link.tgt }); }   // [ninjas] CR 9.3.3: a marked hero hit by an opponent's source is no longer marked
         const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
         emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
         emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
         emit(s, { t: 'me_hit', iid: link.iid, ctrl: link.ctrl, n: dealt, weapon: link.weapon });   // [mech] "When a Mechanologist attack action card you control hits a hero"
+        if (!link.weapon && isAttackDef(D(s, link.iid))) { const hh = P(s, link.ctrl).h; hh.aaHits = (hh.aaHits || 0) + 1; emit(s, { t: 'nj_aaHit', ctrl: link.ctrl, iid: link.iid, n: dealt, first: hh.aaHits === 1 }); }   // [ninjas] Benji: the first time an attack action card you control hits each turn
         if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
         for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
         for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
@@ -480,6 +489,7 @@
     if (FAB.attackHas(s, link, 'goAgain')) { P(s, link.ctrl).ap++; log(s, 'goAgain', { who: link.ctrl, c: I(s, link.iid).id }); }
     link.resolved = true;
     for (const m of link.mods) if (m.resolveOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.resolveOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'linkResolve', iid: link.iid }, linkN: link.n });   // [warriors] wagers (CR 8.5.46): an effect that triggers when the chain link resolves
+    emit(s, { t: 'nj_linkResolve', iid: link.iid, ctrl: link.ctrl, link: link });          // [ninjas] CR 7.6: "When this chain link resolves" (the link is carried: it is no longer the active one)
     setPriority(s, s.tp);
   }
   function finishClose(s) {                                                                // CR 7.7.5-7.7.7
@@ -499,6 +509,7 @@
         if (d.kw.temper && FAB.defenseOf(s, e.iid, null) === 0) destroy(s, e.iid);
       }
     }
+    for (const p of s.players) for (const iid of p.weapons.slice()) if (I(s, iid).destroyAtClose) destroy(s, iid);   // [ninjas] CR 7.7.7: "destroy this when the combat chain closes" (Kunai of Retribution)
     for (const k in s.cards) s.cards[k].mods = s.cards[k].mods.filter(m => m.dur !== 'chain');
     s.effects = s.effects.filter(e => e.dur !== 'chain');
     s.chain = null; s.closing = false;
@@ -544,7 +555,9 @@
     const c = I(s, iid), d = FAB.cards[as || c.id], ab = abIdx == null ? null : d.ab[abIdx];
     // [shadow] CR 8.3.27: a rune-gated card is played without paying its {r} cost (in the banished zone: if it could be rune gated; on the stack: if it was)
     const gated = !ab && d.kw.runeGate && (c.zone === 'banish' ? FAB.banishWay(s, iid) === 'rune' : c.mods.some(m => m.gate === 'rune'));
-    const n = ab ? (ab.cost.r || 0) : gated ? 0 : (d.cost || 0);
+    let n = ab ? (ab.cost.r || 0) : gated ? 0 : (d.cost || 0);
+    if (ab && ab.cost.lessVar) n = Math.max(0, n - FAB.num({ s: s, ctrl: c.owner, iid: iid, link: activeLink(s), flags: {} }, { v: ab.cost.lessVar }));   // [ninjas] Fai: costs {r} less for each Draconic chain link you control
+    if (!ab && c.costLess && (c.zone === 'banish' || c.zone === 'stack')) n = Math.max(0, n - c.costLess);                                              // [ninjas] Rising Resentment: the banished card costs {r} less
     let tax = 0, red = 0;
     for (const t of P(s, c.owner).arena) for (const a of FAB.cards[I(s, t).id].ab) if (a.k === 'costUp') tax += a.n;   // [elemguard] Frostbite: cards and abilities cost an additional {r}
     for (const e of s.effects) {
@@ -578,6 +591,10 @@
     const r = d.ab.find(a => a.k === 'rule' && a.rule === 'defendBaseMax');
     if (r && !(D(s, link.iid).power <= r.n)) return false;
     if (d.kind === 'equipment' && D(s, link.iid).ab.some(a => a.k === 'rule' && a.rule === 'me_noEquipDef')) return false;   // [mech] Out Pace: can't be defended by equipment
+    if (fromHand) {                                                                         // [ninjas] Benji: attack action cards you control with 2 or less {p} can't be defended by cards from hand
+      const nh = D(s, P(s, link.ctrl).hero).ab.find(a => a.k === 'heroStatic' && a.rule === 'nj_noHandDef');
+      if (nh && !link.weapon && isAttackDef(D(s, link.iid)) && FAB.attackPower(s, link) <= nh.n) return false;
+    }
     return true;
   }
   // [shadow] CR 5.1.1a, 5.1.2b, 8.3.27: a card in the banished zone may be played when a play-static ability says so, and only while it is public (CR 5.4.4).
@@ -589,6 +606,7 @@
     if (c.zone !== 'banish' || !c.faceUp) return null;
     if (d.kw.runeGate && P(s, c.owner).arena.filter(i => I(s, i).id === 'runechant').length >= (d.cost || 0)) return 'rune';
     if (d.kw.playBanished) return 'banish';
+    if (c.playTurn === s.turn) return 'nj';                                                 // [ninjas] 'nj' = a created Crouching Tiger, or a card banished by Rising Resentment: the effect names the turn it may be played (the card carries playTurn)
     if (s.effects.some(e => e.k === 'wz_bplay' && e.iid === iid && e.who === c.owner)) return 'wz';
     return null;
   };
@@ -723,21 +741,25 @@
   };
 
   function applyNext(s, L, weapon) {       // CR 5.1.2a: "your next attack" effects attach as the attack is announced
-    const keep = [];
-    for (const e of s.effects) {
-      if (e.k === 'next' && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f)) {
-        L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src, ...(e.cp ? { cp: e.cp } : {}), ...(e.hitOps ? { hitOps: e.hitOps } : {}) });   // extras carried onto the attack: cp, hitOps
-        if (e.grantFused && I(s, L.iid).fused) L.mods.push({ p: 0, grant: e.grantFused, src: e.src });   // [runeblades] "If it's fused, it gets go again" (CR 8.3.17a)
-        log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
-      } else keep.push(e);
+    let rest = s.effects;
+    for (const grants of [true, false]) {                        // [ninjas] effects that change the attack's type (Draconic) apply first, so a "next Draconic attack" effect sees it
+      const keep = [];
+      for (const e of rest) {
+        if (e.k === 'next' && !!(e.mod && e.mod.drac) === grants && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f, L.mods)) {
+          L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src, ...(e.cp ? { cp: e.cp } : {}), ...(e.hitOps ? { hitOps: e.hitOps } : {}), ...(e.mod || {}) });   // extras carried onto the attack: cp, hitOps; [ninjas] e.mod: a name or Draconic given to the attack
+          if (e.grantFused && I(s, L.iid).fused) L.mods.push({ p: 0, grant: e.grantFused, src: e.src });   // [runeblades] "If it's fused, it gets go again" (CR 8.3.17a)
+          log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
+        } else keep.push(e);
+      }
+      rest = keep;
     }
-    s.effects = keep;
+    s.effects = rest;
   }
   // Bravo: "it gets +2{p} and dominate this turn" belongs to that card, and applies when it is played as an attack.
   function applyCardBuffs(s, L, c) {
     const keep = [];
     for (const e of s.effects) {
-      if (e.k === 'cardBuff' && e.iid === L.iid && c.fromArsenal) {
+      if (e.k === 'cardBuff' && e.iid === L.iid && (c.fromArsenal || e.anyZone)) {   // [ninjas] e.anyZone: a created Crouching Tiger
         L.mods.push({ p: e.p || 0, grant: e.grant || null, src: e.src });
         log(s, 'buff', { who: L.ctrl, c: I(s, e.src).id, to: c.id, p: e.p || 0, grant: e.grant || null, piercing: 0 });
       } else keep.push(e);
@@ -789,7 +811,9 @@
     if (d.kind === 'action' && !asInst) p.ap -= 1;                                          // CR 5.1.6b ([wizards] not when it is played as though it were an instant)
     // [shadow] CR 5.1.3c: a declared alternative cost replaces the asset-cost (Soul Reaping)
     const pz0 = p.pitch.length;
-    if (!d.ab.some(a => a.k === 'altCost' && FAB.altCosts[a.alt].pay(x, who, iid))) payRes(x, who, FAB.costOf(s, iid) + extra, iid);   // CR 5.1.7
+    const altUsed = d.ab.map(a => a.k === 'altCost' ? FAB.altCosts[a.alt] : null).find(a => a && a.pay(x, who, iid, L));
+    if (!altUsed) payRes(x, who, FAB.costOf(s, iid) + extra, iid);   // CR 5.1.7
+    else if (altUsed.keepExtras) payRes(x, who, Math.max(0, FAB.costOf(s, iid) - (d.cost || 0)) + extra, iid);   // [ninjas] CR 5.1.7: this alternative cost replaces only the asset-cost; increases and additional costs are still paid
     L.pitched = p.pitch.slice(pz0);                                                         // [wizards] "if a Lightning card was pitched to play this" (Bond, CR 8.4.15)
 
     spendCostFx(s, who, d, null);
@@ -800,11 +824,14 @@
     }
     s.stack.push(L);
     p.h.played++;
+    { const fe = s.effects.findIndex(e => e.k === 'nj_nextDrac' && e.ctrl === who);               // [ninjas] Fealty: the next card you play this turn is Draconic
+      if (fe >= 0) { s.effects.splice(fe, 1); L.drac = true; log(s, 'nj_fx', { who: who, c: d.id, fx: 'madeDrac' }); }
+      if (L.drac || d.types.includes('Draconic')) p.h.dracPlayed = (p.h.dracPlayed || 0) + 1; }
     log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : way ? 'banish' : 'hand', inst: asInst });
     emit(s, { t: 'eg_use', ctrl: who });                                                    // [elemguard] "When you play a card or activate an ability" (Frostbite)
     if (way === 'rune' || way === 'banish') log(s, 'sh_gate', { who: who, c: d.id, way: way });   // [shadow] said in words by js/text-shadow.js ([wizards] 'wz' is said by the play line)
     for (const f of FAB.playHooks) f(s, L, c, d);                                           // [shadow] continuous effects that attach to the card as it is played (CR 5.1.2a)
-    if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
+    if (L.isAttack) { if (L.drac) L.mods.push({ p: 0, grant: null, drac: true, src: iid }); applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
     FAB.rbPlayed(s, who, iid, d);                                                           // [runeblades] this turn's plays are remembered ("if you've played a Lightning card this turn") and announced to any player's triggers
@@ -831,13 +858,14 @@
       discard(s, ask(x, { who: who, kind: 'discardCost', src: iid, opts: opts, cancel: true }), false);
     }
     if (ab.opt) c.acts = (c.acts || 0) + 1;                                                 // [mech] CR 5.2.3: only a once-per-turn ability counts toward its limit (another ability on the same card does not use it up)
+    if (ab.cost.destroyAtClose) c.destroyAtClose = true;                                    // [ninjas] Kunai of Retribution: destroyed when the combat chain closes
     log(s, 'activate', { who: who, c: d.id, attack: !!ab.attack });
     emit(s, { t: 'eg_use', ctrl: who });                                                    // [elemguard] "When you play a card or activate an ability" (Frostbite)
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
     for (const k in ab.cost) if (FAB.costExt[k]) FAB.costExt[k].pay(x, who, iid, ab.cost[k], L, ab);   // [shadow] effect-costs (CR 5.1.9)
     s.stack.push(L);
-    if (L.isAttack) { applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }
+    if (L.isAttack) { if (ab.goAgain) L.mods.push({ p: 0, grant: 'goAgain', src: iid }); applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }   // [ninjas] CR 8.3.5: "Attack. Go again" gives the attack go again (it was never applied)
     setPriority(s, who);
   };
 
@@ -911,6 +939,10 @@
       if (chosen.includes(iid) || c.onLink != null) continue;
       if (canDefendWith(s, link, iid, false, false)) out.push({ id: iid, iid: iid });
     }
+    for (const iid of p.arsenal) {                                                          // [ninjas] CR 8.3.28 Ambush: while in your arsenal, you may defend with it
+      if (chosen.includes(iid) || !D(s, iid).kw.ambush) continue;
+      if (canDefendWith(s, link, iid, false, false)) out.push({ id: iid, iid: iid });
+    }
     return out;
   }
   EXEC.defend = function (x) {                                                              // CR 7.3
@@ -928,6 +960,7 @@
     for (const iid of chosen) {                                                             // CR 7.3.2d: one multi-event
       const c = I(s, iid);
       if (c.zone === 'hand') { move(s, iid, 'chain'); link.defs.push({ iid: iid, from: 'hand' }); anyHand = true; }
+      else if (c.zone === 'arsenal') { move(s, iid, 'chain'); link.defs.push({ iid: iid, from: 'arsenal' }); }   // [ninjas] Ambush
       else { c.onLink = link.n; link.defs.push({ iid: iid, from: 'equip' }); }
     }
     if (anyHand) link.handDef = true;

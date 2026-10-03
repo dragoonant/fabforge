@@ -1,1 +1,18 @@
-{}
+{
+  "ira-crimson-haze-pt-yokohama": {
+    "rule": "Bartosz Dobrowolski's list from the Pro Tour: Yokohama (3rd). The sideboard holds the two Seek Vengeance (they look for Edge of Autumn, which this list does not carry), the two Legacy of Ikaru (the same), the two Arcane Polarity and the Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew).",
+    "loadout": ["harmonized-kodachi", "harmonized-kodachi", "mask-of-many-faces", "blood-scent", "tearing-shuko", "pouncing-paws"],
+    "cut": [["seek-vengeance-blu", 2], ["legacy-of-ikaru-blu", 2], ["arcane-polarity-red", 2], ["life-of-the-party-red", 1]]
+  },
+  "fai-showdown-las-vegas": {
+    "rule": "Fabian Rex's list from the Sunday Showdown: Las Vegas (1st), starting with Searing Emberblade and the Phoenix Flame in the graveyard (Fai may start the game with one). The sideboard holds the two Burning Blade Dance (no dagger to use their hit effect on while Searing Emberblade, a two-handed sword, is equipped), the two Growl and the two Arcane Polarity.",
+    "loadout": ["searing-emberblade", "blade-beckoner-helm", "blood-scent", "tearing-shuko", "pouncing-paws"],
+    "grave": ["phoenix-flame-red"],
+    "cut": [["burning-blade-dance-red", 2], ["growl-red", 2], ["arcane-polarity-red", 2]]
+  },
+  "benji-the-piercing-wind-showdown-kansas-city": {
+    "rule": "Sabastian Chizhik's list from the Sunday Showdown: Kansas City (2nd), starting with Edge of Autumn (a two-handed weapon, so the Harmonized Kodachi and the Arcane Lantern stay out). The sideboard holds the two Arcane Polarity, the two Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew), one Reinforce the Line and one Snatch.",
+    "loadout": ["edge-of-autumn", "mask-of-many-faces", "blood-scent", "tearing-shuko", "pouncing-paws"],
+    "cut": [["arcane-polarity-red", 2], ["life-of-the-party-red", 2], ["reinforce-the-line-red", 1], ["snatch-blu", 1]]
+  }
+}

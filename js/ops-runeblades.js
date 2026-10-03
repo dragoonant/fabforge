@@ -213,8 +213,8 @@
   // ---- numbers the engine reads through its public doors ----------------------------------------------------------
   // Filters for "next ... attack" effects and targets: cost at most N, or having one of several talents.
   const coreMatch = FAB.matchAttack;
-  FAB.matchAttack = function (s, iid, weapon, f) {
-    if (!coreMatch(s, iid, weapon, f)) return false;
+  FAB.matchAttack = function (s, iid, weapon, f, mods) {   // [ninjas] `mods`: the attack's own modifiers (an effect that made it Draconic)
+    if (!coreMatch(s, iid, weapon, f, mods)) return false;
     if (f.costMax != null && !(D(s, iid).cost != null && D(s, iid).cost <= f.costMax)) return false;
     if (f.talents && !f.talents.some(t => typesOf(s, iid, true).includes(t))) return false;
     return true;

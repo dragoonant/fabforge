@@ -173,7 +173,7 @@
       // while life is plentiful. Swept blockHigh 1.0 / 1.5 / 2.0 over 30 games, both seats: blocked
       // 73.1% / 68.7% / 67.9% of incoming power, hand entering own turn 2.59 / 2.66 / 2.69. A weak
       // lever: most blocks are equipment and crush-avoidance. Do not expect more from this number.
-      if (hand) cost = d.kind === 'block' ? 0.6 : W.card * (0.75 + 0.1 * keepValue(s, o.iid)) * (life >= 12 ? W.blockHigh : life >= 7 ? W.blockMid : 1);
+      if (hand || c.zone === 'arsenal') cost = d.kind === 'block' ? 0.6 : W.card * (0.75 + 0.1 * keepValue(s, o.iid)) * (life >= 12 ? W.blockHigh : life >= 7 ? W.blockMid : 1);   // [ninjas] an Ambush card defends from the arsenal; losing it costs a card like one from hand
       else cost = d.kw.bladeBreak ? def * W.equipDef + 0.5 : d.kw.guardwell ? def * W.equipDef : (d.kw.temper || d.kw.battleworn) ? W.equipDef + 0.2 : 0.2;
       return { id: o.id, def: def, cost: cost, hand: hand };
     }).filter(it => it.def > 0).slice(0, 10);
