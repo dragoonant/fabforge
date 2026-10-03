@@ -2,10 +2,17 @@
 // See tools/build-cards.mjs for the shape of each table.
 let h;
 export function init(helpers) { h = helpers; }
-export const KW_LINES = {};
+const res = s => (s.match(/\{r\}/g) || []).length;
+export const KW_LINES = {
+  'Essence of Ice': ['essence', 'Ice'],                // CR 8.3.16: a deck-building rule; it has no effect in play
+  'Essence of Lightning': ['essence', 'Lightning'],
+};
 export const CONDS = [
   ['this deals damage', () => ({ c: 'wz_dealt' })],
   ["this was played during an opponent's turn", () => ({ c: 'oppTurn' })],      // CR 5.1: it is still the opponent's turn when it resolves
+  ['this was fused and deals damage to a hero', () => ({ c: 'wz_fusedHit' })],
+  ["you've dealt damage this turn", () => ({ c: 'wz_dealtDmg' })],
+  ['an instant card has been put into your graveyard this turn', () => ({ c: 'wz_starfall' })],   // CR 8.4.21
 ];
 export const EFFECTS = [
   // Amp (CR 8.5.47) and the cards that give a later card more arcane damage
@@ -21,18 +28,31 @@ export const EFFECTS = [
   [/^opt (\d+)$/, m => ({ o: 'opt', n: +m[1] })],
   [/^Opt X, where X is the damage dealt by this$/, () => ({ o: 'opt', n: { v: 'wz_dealt' } })],
   [/^Prevent the next X arcane damage that would be dealt to you this turn, where X is the damage dealt by this$/, () => ({ o: 'wz_dampen' })],
+  [/^[Gg]ain (\d+) action points$/, m => ({ o: 'gainAP', n: +m[1] })],
   // hero abilities, read from the whole printed sentence by SPLIT below
   [/^<WZKANO>$/, () => ({ o: 'wz_kano' })],
   [/^<WZBLAZE>$/, () => ({ o: 'wz_blazeBanish' })],
   [/^<WZREVERB>$/, () => ({ o: 'if', cond: { c: 'wz_dealt' }, then: [{ o: 'wz_reverb' }] })],
   [/^put energy counters on Blaze equal to the number of cards looked at this way$/, () => ({ o: 'wz_energy' })],
+  // Iyslander: Frostbite (CR 8.6.10), Ice cards
+  [/^[Cc]reate (?:a|(\d+)) Frostbite tokens? under target hero's control$/, m => ({ o: 'wz_frostbite', n: m[1] ? +m[1] : 1, who: 'target' })],
+  [/^create a Frostbite token under their control$/, () => ({ o: 'wz_frostbite', n: 1, who: 'opp' })],
+  [/^Target hero discards a card unless they pay ((?:\{r\})+)$/, m => ({ o: 'wz_discardUnlessPay', r: res(m[1]), who: 'target' })],
+  [/^they discard a card unless they pay ((?:\{r\})+)$/, m => ({ o: 'wz_discardUnlessPay', r: res(m[1]), who: 'hit' })],
+  [/^Shuffle up to (\d+) non-attack action cards? from your graveyard into your deck$/, m => ({ o: 'wz_shuffleBack', n: +m[1] })],
+  // Oscilio
+  [/^this gets \+(\d+)\{p\} and go again$/, m => [{ o: 'selfBuff', p: +m[1] }, { o: 'selfBuff', grant: 'goAgain' }]],
 ];
 export const TRIGGERS = [
   [/^Whenever you opt, (.+)$/, () => ({ on: 'wz_opt' })],
+  [/^Whenever you play an Ice card during an opponent's turn, (.+)$/, () => ({ on: 'wz_play', ice: true, oppTurn: true })],
+  [/^When you play a card or activate an ability, (.+)$/, () => ({ on: 'wz_use' })],
 ];
-export const STATICS = [];
+export const STATICS = [
+  [/^Cards and abilities cost you an additional ((?:\{r\})+) to play or activate$/, m => ({ k: 'wzCostTax', n: res(m[1]) })],
+];
 export const ACTCONDS = [];
-export const LABELS = [];
+export const LABELS = ['Starfall'];
 // The final full stop is optional because an activated ability's body has already lost it.
 export const SPLIT = [
   [/Look at the top card of your deck\. If it's a non-attack action card, you may banish it\. If you do, you may play it this turn as though it were an instant\.?/g, '<WZKANO>.'],
@@ -61,8 +81,15 @@ export const LINES = [
     const RULES = [
       [/^If it's not your turn, you may play this as though it were an instant\.?$/, { c: 'oppTurn' }],
       [/^If you've played another Wizard non-attack action card this turn, you may play this as though it were an instant\.?$/, { c: 'wz_wizNAA' }],
+      [/^If you've dealt arcane damage to an opposing hero this turn, you may play this as though it were an instant\.?$/, { c: 'wz_arcOpp' }],
     ];
     for (const [re, cond] of RULES) if (re.test(line)) { ctx.out.ab.push({ k: 'rule', rule: 'wz_asInstant', cond }); return true; }
+    // Iyslander
+    if (/^If it's not your turn, you may play blue non-attack action cards from your arsenal as though they were instants\.?$/.test(line)) { ctx.out.ab.push({ k: 'heroStatic', rule: 'wz_blueArsenalInstant' }); return true; }
+    // Fusion (CR 8.3.17): an optional additional cost, revealing a card of that talent from hand
+    m = line.match(/^(Ice|Lightning|Earth) Fusion$/);
+    if (m) { ctx.out.ab.push({ k: 'fusion', talent: m[1] }); return true; }
+    if (/^If this was fused, it gets go again\.?$/.test(line)) { ctx.out.ab.push({ k: 'wzFusedGrant', grant: 'goAgain' }); return true; }
     return false;
   },
 ];

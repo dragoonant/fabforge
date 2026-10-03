@@ -179,6 +179,87 @@ test('Absorb in Aether: a defense reaction whose effect adds 2 to the next arcan
   eq(s.effects.find(e => e.k === 'wz_nextArc').n, 2);
 });
 
+// ---- Iyslander ------------------------------------------------------------------------------
+const I = 'iyslander-pt-yokohama';
+const arsenalPut = (s, seat, id) => { const iid = s.nid++; s.cards[iid] = { iid, id, owner: seat, zone: 'arsenal', counters: {}, mods: [], faceUp: false }; s.players[seat].arsenal.push(iid); return iid; };
+test('Frostbite: cards and abilities cost the controller an additional {r} for each Frostbite', () => {
+  let s = game('kayo', I); give(s, 1, ['voltic-bolt-red', F, F, F, F]); give(s, 0, []);
+  const vb = s.players[1].hand[0];
+  eq(FAB.costOf(s, vb), 2);
+  FAB.createToken(s, 1, 'Frostbite'); FAB.createToken(s, 1, 'Frostbite');
+  eq(FAB.costOf(s, vb), 4, '2 + 1 + 1');
+  eq(FAB.costOf(s, s.players[1].weapons[0], 0), 3, 'the staff’s ability costs {r} + 2');
+});
+test('Frostbite: at the beginning of its controller’s end phase it is destroyed', () => {
+  let s = game('kayo', I); give(s, 0, []); give(s, 1, []);
+  FAB.createToken(s, 0, 'Frostbite'); const g = s.players[0].arena[0];
+  s = passUntil(s, x => x.turn === 2); ok(s.cards[g].zone !== 'arena', 'gone by the end of its controller’s end phase');
+  eq(logged(s, 'destroy').filter(e => e.c === 'frostbite').length, 1);
+});
+test('Arctic Incarceration: create Frostbite tokens under target hero’s control (3 for the red card)', () => {
+  let s = solo(['arctic-incarceration-red'], I);
+  s = play(s, 'arctic-incarceration-red'); s = passUntil(s, x => asked(x, 'wz_targetHero')); s = answer(s, 1); s = settle(s);
+  eq(s.players[1].arena.filter(i => s.cards[i].id === 'frostbite').length, 3);
+});
+test('Frostbite tokens make the next card cost more, and playing it destroys them all', () => {
+  let s = solo(['arctic-incarceration-blu'], I);
+  s = play(s, 'arctic-incarceration-blu'); s = passUntil(s, x => asked(x, 'wz_targetHero')); s = answer(s, 0); s = settle(s);   // under our own control
+  eq(s.players[0].arena.filter(i => s.cards[i].id === 'frostbite').length, 1);
+  give(s, 0, ['voltic-bolt-red', F, F, F]); s.players[0].ap = 1;
+  const vb = s.players[0].hand[0]; eq(FAB.costOf(s, vb), 3);
+  s = play(s, 'voltic-bolt-red'); s = pitchAll(s); s = settle(s);
+  eq(s.players[0].arena.filter(i => s.cards[i].id === 'frostbite').length, 0, 'destroyed by the play');
+});
+test('Winter’s Bite: target hero discards a card unless they pay {r}; go again', () => {
+  let s = game(I, 'kayo'); give(s, 0, ['winters-bite-blu']); give(s, 1, ['voltic-bolt-red', F]);
+  s = play(s, 'winters-bite-blu'); s = passUntil(s, x => asked(x, 'wz_targetHero')); s = answer(s, 1);
+  s = passUntil(s, x => asked(x, 'wz_payOr')); eq(s.pending.q.who, 1); s = answer(s, 'no');
+  s = passUntil(s, x => asked(x, 'wz_discard')); s = answerCard(s, F); s = settle(s);
+  ok(has(s, 1, 'grave', F)); eq(s.players[0].ap, 1, 'go again');
+  s = game(I, 'kayo'); give(s, 0, ['winters-bite-blu']); give(s, 1, ['voltic-bolt-red', F]);
+  s = play(s, 'winters-bite-blu'); s = passUntil(s, x => asked(x, 'wz_targetHero')); s = answer(s, 1);
+  s = passUntil(s, x => asked(x, 'wz_payOr')); s = answer(s, 'yes'); s = answerCard(s, F); s = settle(s);
+  ok(has(s, 1, 'pitch', F) && has(s, 1, 'hand', 'voltic-bolt-red'), 'paid by pitching; nothing discarded');
+});
+test('Aether Icevein: Ice Fusion, and a fused one makes the hero discard unless they pay {r}{r}', () => {
+  let s = solo(['aether-icevein-red', 'ice-bolt-red', F, F, F], I, 1); give(s, 1, ['voltic-bolt-red', 'voltic-bolt-red']); const L = life1(s);
+  s = play(s, 'aether-icevein-red'); eq(s.pending.q.kind, 'wz_fusion'); eq(s.pending.q.cancel, true);
+  s = answerCard(s, 'ice-bolt-red'); s = pitchAll(s);
+  s = passUntil(s, x => asked(x, 'wz_payOr')); eq(s.pending.q.who, 1);
+  s = answer(s, 'no'); s = settle(s);
+  eq(life1(s), L - 5); ok(has(s, 0, 'hand', 'ice-bolt-red'), 'the revealed card stays in hand');
+  eq(s.players[1].grave.length, 1, 'they discarded');
+  s = solo(['aether-icevein-red', 'ice-bolt-red', F, F, F], I, 1); give(s, 1, ['voltic-bolt-red']);
+  s = play(s, 'aether-icevein-red'); s = answer(s, 'no'); s = pitchAll(s); s = settle(s);
+  eq(s.players[1].grave.length, 0, 'not fused: no discard');
+});
+test('Save the Thought: shuffle up to 3 non-attack action cards from the graveyard into the deck, create a Ponder', () => {
+  let s = solo(['save-the-thought-red', F, F], I);
+  for (const id of ['voltic-bolt-red', 'scalding-rain-red']) { const iid = s.nid++; s.cards[iid] = { iid, id, owner: 0, zone: 'grave', counters: {}, mods: [], faceUp: true }; s.players[0].grave.push(iid); }
+  const deck0 = s.players[0].deck.length;
+  s = play(s, 'save-the-thought-red'); s = pitchAll(s); s = passUntil(s, x => asked(x, 'wz_gravePick'));
+  eq(s.pending.q.opts.length, 3, 'two cards and done'); s = answerCard(s, 'voltic-bolt-red'); s = answer(s, 'done'); s = settle(s);
+  eq(s.players[0].deck.length, deck0 + 1); ok(has(s, 0, 'arena', 'ponder'));
+});
+test('Timesnap Potion: Action, destroy it: gain 2 action points', () => {
+  let s = solo(['timesnap-potion-blu'], I, 2); equipArena(s, 0, 'timesnap-potion-blu');
+  s = act(s, 'timesnap-potion-blu'); s = settle(s);
+  eq(s.players[0].ap, 3, '2 points, minus 1 for the action ability, plus 2');
+});
+const equipArena = (s, seat, id) => { const iid = s.nid++; s.cards[iid] = { iid, id, owner: seat, zone: 'arena', counters: {}, mods: [], faceUp: true }; s.players[seat].arena.push(iid); return iid; };
+test('Iyslander: on the opponent’s turn blue non-attack action cards in arsenal may be played as instants', () => {
+  let s = game('kayo', I); give(s, 0, []); give(s, 1, []);
+  arsenalPut(s, 1, 'frosting-blu'); arsenalPut(s, 1, 'ice-bolt-red');
+  s = pass(s);
+  ok(canPlay(s, 'frosting-blu'), 'blue, from arsenal'); ok(!canPlay(s, 'ice-bolt-red'), 'red is not covered');
+});
+test('Iyslander: whenever you play an Ice card during an opponent’s turn, create a Frostbite under their control', () => {
+  let s = game('kayo', I); give(s, 0, []); give(s, 1, []);
+  arsenalPut(s, 1, 'frosting-blu');
+  s = pass(s); s = play(s, 'frosting-blu'); s = settle2(s);
+  eq(s.players[0].arena.filter(i => s.cards[i].id === 'frostbite').length, 1);
+});
+
 // ---- Blaze, Firemind ------------------------------------------------------------------------
 const heroOf = (s, seat) => s.cards[s.players[seat].hero];
 test('Blaze: whenever you opt, put energy counters on Blaze equal to the cards looked at', () => {

@@ -26,6 +26,9 @@
     wz_surge: (x, c) => (x.flags.dealt || 0) > c.n,                                            // CR 8.4.8 Surge: more than N damage dealt
     wz_wizNAA: x => (P(x.s, x.ctrl).h.wzNAA || 0) > 0,                                         // "another Wizard non-attack action card this turn" (checked before this one is played)
     wz_arcOpp: x => (P(x.s, x.ctrl).h.arcaneDealt || 0) > 0,                                   // "dealt arcane damage to an opposing hero this turn"
+    wz_fusedHit: x => !!(x.L && x.L.fused) && (x.flags.dealt || 0) > 0,                         // "If this was fused and deals damage to a hero"
+    wz_dealtDmg: x => (P(x.s, x.ctrl).h.dmg || 0) > 0,                                          // "you've dealt damage this turn"
+    wz_starfall: x => (P(x.s, x.ctrl).h.instGrave || 0) > 0,                                    // CR 8.4.21: an instant card has been put into your graveyard this turn
   });
   FAB.vars.wz_dealt = x => x.flags.dealt || 0;
 
@@ -53,6 +56,26 @@
       return true;
     });
     if (isWizNAA(d)) { const h = P(s, who).h; h.wzNAA = (h.wzNAA || 0) + 1; }
+    const link = FAB.activeLink(s);
+    if (link && d.kind === 'instant') { link.wzInst = link.wzInst || {}; link.wzInst[who] = true; }          // "an instant card this chain link"
+    FAB.emit(s, { t: 'wz_play', ctrl: who, iid: L.iid });                                                   // Iyslander
+    FAB.emit(s, { t: 'wz_use', ctrl: who, iid: L.iid });                                                    // Frostbite: "when you play a card or activate an ability"
+  });
+  // Frostbite (CR 8.6.10): every one you control adds {r} to playing a card or activating an ability.
+  FAB.costMods.push((s, c) => { let n = 0; for (const i of P(s, c.owner).arena) for (const a of D(s, i).ab) if (a.k === 'wzCostTax') n += a.n; return n; });
+  // Fusion (CR 8.3.17): "you may reveal a card with that talent from your hand" as an additional cost; the card is then fused.
+  FAB.playExtras.push((x, L, d, iid) => {
+    const fz = d.ab.find(a => a.k === 'fusion');
+    if (!fz) return;
+    const s = x.s, who = L.ctrl;
+    const opts = P(s, who).hand.filter(i => i !== iid && D(s, i).types.includes(fz.talent)).map(i => ({ id: i, iid: i }));
+    if (!opts.length) return;
+    opts.push({ id: 'no' });
+    const a = FAB.ask(x, { who: who, kind: 'wz_fusion', src: iid, talent: fz.talent, opts: opts, cancel: true });
+    if (a === 'no') return;
+    L.fused = true;
+    FAB.log(s, 'reveal', { who: who, c: I(s, a).id });
+    for (const ab of d.ab) if (ab.k === 'wzFusedGrant') L.mods.push({ p: 0, grant: ab.grant, src: iid });   // "If this was fused, it gets go again"
   });
   // Rules that let a non-attack action card be played as though it were an instant (CR 8.1.1d).
   FAB.asInstant.push((s, who, iid) => {
@@ -161,6 +184,38 @@
       c.counters.energy = (c.counters.energy || 0) + n;
       FAB.log(x.s, 'wz_energy', { who: x.ctrl, c: c.id, n: n, left: c.counters.energy });
     },
+    // Iyslander: Frostbite tokens under a hero's control (the hero is chosen, even when there is only one sensible one)
+    wz_frostbite(x, op) {
+      const s = x.s;
+      const who = op.who === 'opp' ? 1 - x.ctrl : FAB.ask(x, { who: x.ctrl, kind: 'wz_targetHero', src: x.iid, opts: [{ id: 1 - x.ctrl }, { id: x.ctrl }] });
+      for (let i = 0; i < op.n; i++) FAB.createToken(s, who, 'Frostbite');
+    },
+    // "Target hero / they discard a card unless they pay {r}": the hero pays by pitching if it can and wants to, else discards a card of its choice
+    wz_discardUnlessPay(x, op) {
+      const s = x.s;
+      const who = op.who === 'hit' ? x.flags.hero : FAB.ask(x, { who: x.ctrl, kind: 'wz_targetHero', src: x.iid, opts: [{ id: 1 - x.ctrl }, { id: x.ctrl }] });
+      const p = P(s, who);
+      if (who == null || !p.hand.length) return;
+      if (FAB.canPay(s, who, op.r, null, 0) && FAB.ask(x, { who: who, kind: 'wz_payOr', src: x.iid, r: op.r, opts: yesNo }) === 'yes') {
+        FAB.payRes(x, who, op.r, x.iid, 'effect', { cancel: false });
+        return;
+      }
+      FAB.discard(s, FAB.ask(x, { who: who, kind: 'wz_discard', src: x.iid, opts: p.hand.map(i => ({ id: i, iid: i })) }), false);
+    },
+    // Save the Thought: up to N non-attack action cards from the graveyard into the deck, which is then shuffled
+    wz_shuffleBack(x, op) {
+      const s = x.s, p = P(s, x.ctrl); let k = 0;
+      while (k < op.n) {
+        const opts = p.grave.filter(i => isNAA(D(s, i))).map(i => ({ id: i, iid: i }));
+        if (!opts.length) break;
+        opts.push({ id: 'done' });
+        const a = FAB.ask(x, { who: x.ctrl, kind: 'wz_gravePick', src: x.iid, n: op.n, placed: k, opts: opts });
+        if (a === 'done') break;
+        FAB.move(s, a, 'deck'); k++;
+        FAB.log(s, 'wz_shuffle', { who: x.ctrl, c: I(s, a).id });
+      }
+      if (k) FAB.shuffle(s, p.deck);                                                             // CR 8.5.x: shuffled inside apply, from the seeded generator
+    },
     wz_dampen(x) {                                                                               // Dampen: prevent the next X arcane damage to you this turn
       const n = x.flags.dealt || 0;
       if (n <= 0) return;
@@ -190,6 +245,8 @@
 
   Object.assign(FAB.trigMatchers, {
     wz_opt: (s, ab, iid, ev) => ev.who === I(s, iid).owner,
+    wz_play: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner && (!ab.oppTurn || s.tp !== ev.ctrl) && (!ab.ice || D(s, ev.iid).types.includes('Ice')),
+    wz_use: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner,
   });
   // The AI plays these spells at instant speed whenever it can: that is the point of the deck.
   const bestArc = (s, opts) => opts.filter(o => o.iid != null).sort((a, b) => Math.max(0, ...arcAmounts(D(s, b.iid))) - Math.max(0, ...arcAmounts(D(s, a.iid))))[0];
@@ -198,5 +255,10 @@
     wz_may: () => 'yes',
     wz_energyX: (s, q) => q.opts.reduce((a, o) => (o.id > a ? o.id : a), 0),
     wz_banish: (s, q) => { const b = bestArc(s, q.opts); return b ? b.id : 'no'; },
+    wz_targetHero: (s, q) => 1 - q.who,                                                          // Frostbite and discard effects go on the opponent
+    wz_payOr: (s, q, h) => (s.players[q.who].hand.length > 2 ? 'yes' : 'no'),                    // pay when the hand is full enough to spare the cards
+    wz_discard: (s, q, h) => h.leastKept(s, q.opts).id,
+    wz_fusion: (s, q) => { const o = q.opts.find(o => o.id !== 'no'); return o.id; },           // revealing is free
+    wz_gravePick: (s, q) => { const o = q.opts.find(o => o.id !== 'done'); return o ? o.id : 'done'; },
   });
 })();

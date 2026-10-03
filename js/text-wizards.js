@@ -25,6 +25,16 @@
     wz_banish: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'banish', 'banishes')} ${tag(e.c)} with ${tag(e.by)}; ${e.who === v ? 'you' : 'they'} may play it this turn as though it were an instant.`,
     wz_energy: (s, e, v) => e.n > 0 ? `${tag(e.c)} gets ${plural(e.n, 'energy counter')} (${e.left} in all).` : `${tag(e.c)} loses ${plural(-e.n, 'energy counter')} (${e.left} left).`,
   });
+  Object.assign(T.lines, {
+    wz_shuffle: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'put', 'puts')} ${tag(e.c)} from the graveyard into the deck.`,
+  });
+  Object.assign(T.prompts, {
+    wz_targetHero: (s, q) => ({ title: `${cardOf(s, q.src)}: choose a hero`, body: FAB.cards[s.cards[q.src].id].text, labels: { [q.who]: 'Me', [1 - q.who]: 'My opponent' } }),
+    wz_payOr: (s, q) => ({ title: `${cardOf(s, q.src)}: pay ${q.r} or discard`, body: `You discard a card unless you pay ${q.r}. Paying pitches cards from your hand; declining means you choose a card to discard.`, labels: { yes: `Pay ${q.r}`, no: 'Discard a card' } }),
+    wz_discard: (s, q) => ({ title: `${cardOf(s, q.src)}: discard a card`, body: 'Choose a card from your hand to discard.', labels: {} }),
+    wz_fusion: (s, q) => ({ title: `Fuse ${cardOf(s, q.src)}?`, body: `${q.talent} Fusion: as an additional cost you may reveal a${q.talent === 'Ice' ? 'n' : ''} ${q.talent} card from your hand. If you do, it is fused. The revealed card stays in your hand.`, labels: { no: 'Do not fuse' } }),
+    wz_gravePick: (s, q) => ({ title: `${cardOf(s, q.src)}: shuffle a card into your deck`, body: `Choose up to ${q.n} non-attack action cards from your graveyard to shuffle into your deck (${q.placed} chosen so far).`, labels: { done: 'Done' } }),
+  });
   Object.assign(T.prompts, {
     wz_instant: (s, q) => ({ title: `Play ${cardOf(s, q.src)} as though it were an instant?`, body: `${FAB.cards[s.cards[q.src].id].text} Played as an instant it costs no action point and can be played whenever you have priority; declined, it is an ordinary action and costs one.`, labels: { yes: 'Play it as an instant', no: 'Play it as an action' } }),
     wz_may: (s, q) => {

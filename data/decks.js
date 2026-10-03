@@ -563,7 +563,120 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Chanon Puttaree",
   "date": "09 Apr 2026",
-  "poolCompiled": 28
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "aether-icevein-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "arctic-incarceration-red",
+    "n": 1
+   },
+   {
+    "id": "chest-puff-red",
+    "n": 1
+   },
+   {
+    "id": "emeritus-scolding-red",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 2
+   },
+   {
+    "id": "ice-bolt-red",
+    "n": 2
+   },
+   {
+    "id": "save-the-thought-red",
+    "n": 1
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "voltic-bolt-red",
+    "n": 2
+   },
+   {
+    "id": "wounded-bull-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-twining-blu",
+    "n": 2
+   },
+   {
+    "id": "arctic-incarceration-blu",
+    "n": 2
+   },
+   {
+    "id": "emeritus-scolding-blu",
+    "n": 2
+   },
+   {
+    "id": "frosting-blu",
+    "n": 2
+   },
+   {
+    "id": "ice-bolt-blu",
+    "n": 2
+   },
+   {
+    "id": "open-the-flood-gates-blu",
+    "n": 2
+   },
+   {
+    "id": "photon-splicing-blu",
+    "n": 2
+   },
+   {
+    "id": "stir-the-aetherwinds-blu",
+    "n": 2
+   },
+   {
+    "id": "timesnap-potion-blu",
+    "n": 1
+   },
+   {
+    "id": "voltic-bolt-blu",
+    "n": 2
+   },
+   {
+    "id": "winters-bite-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "frost-spike-blu",
+    "n": 1
+   },
+   {
+    "id": "look-tuff-red",
+    "n": 2
+   },
+   {
+    "id": "chest-puff-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "crucible-of-aetherweave",
+   "nullrune-hood",
+   "spellfire-cloak",
+   "nullrune-gloves",
+   "aetherstorm-wellingtons"
+  ],
+  "rule": "Iyslander's list from the first Pro Tour, Yokohama, with the staff, Nullrune Hood, Spellfire Cloak, Nullrune Gloves and Aetherstorm Wellingtons equipped. Frost Spike is left in the sideboard because its text does not say whose exposed equipment zone receives the Frostbite, so it is not implemented; Look Tuff and one Chest Puff are cut with it to reach exactly 40.",
+  "registered": true
  },
  "enigma-calling-bangkok": {
   "id": "enigma-calling-bangkok",
@@ -1857,7 +1970,7 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Evanking Chiu",
   "date": "21 Dec 2025",
-  "poolCompiled": 7
+  "poolCompiled": 8
  },
  "fai-showdown-las-vegas": {
   "id": "fai-showdown-las-vegas",
@@ -2232,7 +2345,7 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Kevin Murphy",
   "date": "30 Aug 2026",
-  "poolCompiled": 11
+  "poolCompiled": 17
  },
  "dorinthea-calling-london": {
   "id": "dorinthea-calling-london",
@@ -4445,7 +4558,7 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Yuki Lee Bender",
   "date": "09 Apr 2026",
-  "poolCompiled": 12
+  "poolCompiled": 14
  },
  "bravo-flattering-showman": {
   "id": "bravo-flattering-showman",
@@ -5097,7 +5210,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 22
+  "poolCompiled": 28
  },
  "kayo": {
   "id": "kayo",

@@ -95,7 +95,8 @@
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
     if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });
-    if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"   // "When this leaves the arena" (CR 6.6)
+    if (zone === 'grave' && prev !== 'grave' && FAB.cards[c.id].types.includes('Instant')) { const h = P(s, c.owner).h; h.instGrave = (h.instGrave || 0) + 1; }   // [wizards] CR 8.4.21 Starfall: instants put into your graveyard this turn
+    if (zone === 'grave' && prev !== 'grave') emit(s,{ t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"   // "When this leaves the arena" (CR 6.6)
     return prev;
   };
   function draw(s, who, n) {
@@ -217,6 +218,8 @@
   // [wizards] registries read by canPlay / EXEC.play / canAct / EXEC.act. Empty unless an extension file fills them.
   FAB.asInstant = [];                // (s, who, iid) => true when a rule lets this non-attack action card be played as though it were an instant (CR 8.1.1d)
   FAB.playHooks = [];                // (s, L, d, c) called as a card is put on the stack, after its costs are paid
+  FAB.costMods = [];                 // (s, c, d, ab) => extra {r} added to the cost of playing a card (ab null) or activating ability ab
+  FAB.playExtras = [];               // (x, L, d, iid) declared with the optional additional costs as a card is played (Fusion, CR 8.3.17)
   FAB.costHooks = {};                // cost key on an activated ability -> { can(s, who, iid, ab), pay(x, who, iid, ab, L) }
   FAB.trigMatchers = {
     toGrave: (s, ab, iid, ev) => ev.iid === iid,
@@ -496,6 +499,7 @@
       if (e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) tax += e.n;                 // Cartilage Crush
       if (e.k === 'costRed' && !ab && costRedFits(d, e)) red += e.n;                              // Seismic Surge
     }
+    for (const f of FAB.costMods) tax += f(s, c, d, ab);                                       // [wizards] Frostbite: "cards and abilities cost you an additional {r}"
     return Math.max(0, n + tax - red);
   };
   // Once the cost is paid, the effects that applied to it are used up.
@@ -681,6 +685,7 @@
         log(s, 'optCost', { who: who, c: d.id, n: ab.cost.r });
       }
     }
+    for (const f of FAB.playExtras) f(x, L, d, iid);                                        // [wizards] Fusion is declared with the other additional costs
     const res = d.ab.find(a => a.k === 'res');
     let tgt = res ? res.tgt : null;
     if (res && res.modes) {                                                                 // CR 5.1.4a, 1.7.5a: modes are declared as the card is played
@@ -733,6 +738,7 @@
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
     s.stack.push(L);
+    emit(s, { t: 'wz_use', ctrl: who, iid: iid });                                          // [wizards] "when you play a card or activate an ability" (Frostbite)
     if (L.isAttack) { applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }
     setPriority(s, who);
   };
