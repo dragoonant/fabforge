@@ -450,6 +450,7 @@ for (const d of Object.values(decks)) {
   d.side = pk.cut.map(([id, n]) => ({ id, n }));
   d.loadout = pk.loadout;
   d.rule = pk.rule;
+  d.grave = pk.grave || [];                                  // [ninjas] cards that start the game in the graveyard (Fai)
   const total = d.deck.reduce((a, p) => a + p.n, 0);
   const bad = [...d.deck.map(p => p.id), ...d.loadout, d.hero].filter(id => !cards[id] || cards[id].un);
   if (total !== 40) problems.push(`${d.id}: default deck has ${total} cards, needs exactly 40 (TRP 7.4)`);

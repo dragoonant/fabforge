@@ -91,7 +91,7 @@
       ? (mine || s.cards[p.arsenal[0]].faceUp ? cardAt(p.arsenal[0], { why: mine && !am.m[p.arsenal[0]] && s.priority === seat && !s.pending ? FAB.whyNot(s, seat, p.arsenal[0]) : null }) : back())
       : '';
     const grave = p.grave.length ? face(s, s.cards[p.grave[p.grave.length - 1]].id, { cls: 'sm' }) : '';
-    const faceDownBanished = p.banish.filter(i => !s.cards[i].faceUp).length;   // [ninjas] the banished zone below also shows a banished card the human may play (Crouching Tiger), so it can be clicked
+    const faceDownBanished = p.banish.filter(i => !s.cards[i].faceUp).length;   // [ninjas] the banished zone below also shows a banished card the human may play (Crouching Tiger), so it can be clicked; a marked hero gets a chip (CR 9.3)
     const pitch = p.pitch.map(i => cardAt(i, { cls: 'sm' })).join('');
     const active = s.tp === seat;
     return `<div class="side ${mine ? 'me' : 'opp'} ${active ? 'active' : ''}">
@@ -99,7 +99,7 @@
         <div class="portrait" style="background-image:${FAB.art.css(hero.id)}"></div>
         <div class="hname">${esc(hero.name)}${mine ? ' <span class="you">you</span>' : ''}</div>
         <div class="life ${ui.hurt && ui.hurt[seat] ? 'hurt' : ''}" title="Life">${Math.max(0, p.life)}${ui.hurt && ui.hurt[seat] ? `<span class="dmgfly">−${ui.hurt[seat]}</span>` : ''}</div>
-        <div class="chips"><span class="chip ap" title="Action points">${p.ap} AP</span><span class="chip res" title="Resource points in the pool">${p.res} res</span><span class="chip" title="Intellect: you draw up to this many cards at the end of your turn">int ${FAB.intellect(s, seat)}</span></div>
+        <div class="chips"><span class="chip ap" title="Action points">${p.ap} AP</span><span class="chip res" title="Resource points in the pool">${p.res} res</span><span class="chip" title="Intellect: you draw up to this many cards at the end of your turn">int ${FAB.intellect(s, seat)}</span>${p.marked ? '<span class="chip" title="Marked (CR 9.3): this hero is marked until an opponent hits them">marked</span>' : ''}</div>
         ${am.m[p.hero] ? `<div class="heroact" data-acts='${JSON.stringify(am.m[p.hero])}'>Hero ability</div>` : ''}
       </div>
       <div class="gear">${weapons}${gear}</div>

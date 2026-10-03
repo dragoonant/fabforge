@@ -63,6 +63,11 @@
         else throw new Error('loadout card is not a weapon or equipment: ' + id);
       }
       for (const e of deck.deck) for (let i = 0; i < e.n; i++) p.deck.push(mk(e.id, 'deck'));
+      for (const id of deck.grave) {                // [ninjas] Fai: "You may start the game with a Phoenix Flame in your graveyard"; the choice is made when the deck is registered (tools/picks)
+        const iid = p.deck.find(i => s.cards[i].id === id);
+        if (iid == null) throw new Error('deck.grave names a card that is not in the deck: ' + id);
+        p.deck.splice(p.deck.indexOf(iid), 1); s.cards[iid].zone = 'grave'; p.grave.push(iid);
+      }
       FAB.shuffle(s, p.deck);                       // CR 4.1.8
     }
     // CR 4.1.3: a randomly selected player chooses the first-turn-player.
@@ -91,7 +96,7 @@
     if (FAB.cards[c.id].kind === 'token' && zone !== 'arena') zone = 'gone';   // a token leaving the arena ceases to exist
     if (zone === 'grave' && FAB.cards[c.id].kw.ephemeral) { zone = 'gone'; log(s, 'nj_ephemeral', { who: c.owner, c: c.id }); }   // [ninjas] CR 8.3.21 Ephemeral: instead of the graveyard, remove it from the game
     c.zone = zone;
-    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; } }
+    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; delete c.destroyAtClose; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; } }
     c.faceUp = !o.faceDown;
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
@@ -205,7 +210,7 @@
     const d = D(s, iid);
     if (f.weapon && !weapon) return false;
     if (f.sub && !f.sub.some(t => d.types.includes(t))) return false;
-    if (f.klass && !f.klass.some(t => d.types.includes(t) || (t === 'Draconic' && mods && mods.some(m => m.drac)))) return false;   // [ninjas] an attack made Draconic by an effect
+    if (f.klass && !f.klass.some(t => d.types.includes(t) || (t === 'Draconic' && ((mods && mods.some(m => m.drac)) || s.effects.some(e => e.k === 'nj_attacksDrac' && e.ctrl === s.cards[iid].owner))))) return false;   // [ninjas] an attack made Draconic by an effect
     if (f.baseMax != null && !(d.power <= f.baseMax)) return false;
     if (f.aa && (weapon || !isAttackDef(d))) return false;
     if (f.costMin != null && !(d.cost != null && d.cost >= f.costMin)) return false;
@@ -414,6 +419,7 @@
       const dealt = dealDamage(s, { to: link.tgt, n: dmg, src: link.iid, kind: 'p' });
       if (dealt > 0) {                                                                     // CR 7.5.5: a hit-event
         link.hit = true; link.dmg = dealt;
+        if (P(s, link.tgt).marked) { P(s, link.tgt).marked = false; log(s, 'nj_unmark', { who: link.tgt }); }   // [ninjas] CR 9.3.3: a marked hero hit by an opponent's source is no longer marked
         const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
         emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
         emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
@@ -448,6 +454,7 @@
         if (d.kw.temper && FAB.defenseOf(s, e.iid, null) === 0) destroy(s, e.iid);
       }
     }
+    for (const p of s.players) for (const iid of p.weapons.slice()) if (I(s, iid).destroyAtClose) destroy(s, iid);   // [ninjas] CR 7.7.7: "destroy this when the combat chain closes" (Kunai of Retribution)
     for (const k in s.cards) s.cards[k].mods = s.cards[k].mods.filter(m => m.dur !== 'chain');
     s.effects = s.effects.filter(e => e.dur !== 'chain');
     s.chain = null; s.closing = false;
@@ -491,7 +498,9 @@
   const costRedFits = (d, e) => (!e.f.aa || isAttackDef(d)) && (!e.f.klass || e.f.klass.every(k => d.types.includes(k)));
   FAB.costOf = function (s, iid, abIdx) {
     const c = I(s, iid), d = FAB.cards[c.id], ab = abIdx == null ? null : d.ab[abIdx];
-    const n = ab ? (ab.cost.r || 0) : (d.cost || 0);
+    let n = ab ? (ab.cost.r || 0) : (d.cost || 0);
+    if (ab && ab.cost.lessVar) n = Math.max(0, n - FAB.num({ s: s, ctrl: c.owner, iid: iid, link: activeLink(s), flags: {} }, { v: ab.cost.lessVar }));   // [ninjas] Fai: costs {r} less for each Draconic chain link you control
+    if (!ab && c.costLess && (c.zone === 'banish' || c.zone === 'stack')) n = Math.max(0, n - c.costLess);                                                                                 // [ninjas] Rising Resentment: the banished card costs {r} less
     let tax = 0, red = 0;
     for (const e of s.effects) {
       if (e.who !== c.owner) continue;
@@ -709,8 +718,11 @@
     }
     s.stack.push(L);
     p.h.played++;
+    { const fe = s.effects.findIndex(e => e.k === 'nj_nextDrac' && e.ctrl === who);               // [ninjas] Fealty: the next card you play this turn is Draconic
+      if (fe >= 0) { s.effects.splice(fe, 1); L.drac = true; log(s, 'nj_fx', { who: who, c: d.id, fx: 'madeDrac' }); }
+      if (L.drac || d.types.includes('Draconic')) p.h.dracPlayed = (p.h.dracPlayed || 0) + 1; }
     log(s, 'play', { who: who, c: d.id, from: fromZone === 'banish' ? 'banish' : fromArsenal ? 'arsenal' : 'hand' });   // [ninjas] from: banish
-    if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
+    if (L.isAttack) { if (L.drac) L.mods.push({ p: 0, grant: null, drac: true, src: iid }); applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
     setPriority(s, who);                                                                    // CR 5.1.10
@@ -732,11 +744,12 @@
       discard(s, ask(x, { who: who, kind: 'discardCost', src: iid, opts: opts, cancel: true }), false);
     }
     c.acts = (c.acts || 0) + 1;
+    if (ab.cost.destroyAtClose) c.destroyAtClose = true;                                    // [ninjas] Kunai of Retribution: destroyed when the combat chain closes
     log(s, 'activate', { who: who, c: d.id, attack: !!ab.attack });
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
     s.stack.push(L);
-    if (L.isAttack) { applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }
+    if (L.isAttack) { if (ab.goAgain) L.mods.push({ p: 0, grant: 'goAgain', src: iid }); applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }   // [ninjas] CR 8.3.5: "Attack. Go again" gives the attack go again (it was never applied)
     setPriority(s, who);
   };
 

@@ -490,6 +490,7 @@ window.FAB.decks = {
    "pouncing-paws"
   ],
   "rule": "Bartosz Dobrowolski's list from the Pro Tour: Yokohama (3rd). The sideboard holds the two Seek Vengeance (they look for Edge of Autumn, which this list does not carry), the two Legacy of Ikaru (the same), the two Arcane Polarity and the Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew).",
+  "grave": [],
   "registered": true
  },
  "iyslander-pt-yokohama": {
@@ -2055,7 +2056,119 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Fabian Rex",
   "date": "19 Jul 2026",
-  "poolCompiled": 14
+  "poolCompiled": 34,
+  "deck": [
+   {
+    "id": "blaze-headlong-red",
+    "n": 2
+   },
+   {
+    "id": "brand-with-cinderclaw-red",
+    "n": 2
+   },
+   {
+    "id": "display-loyalty-red",
+    "n": 2
+   },
+   {
+    "id": "enflame-the-firebrand-red",
+    "n": 2
+   },
+   {
+    "id": "fire-tenet-strike-first-red",
+    "n": 2
+   },
+   {
+    "id": "fire-that-burns-within-red",
+    "n": 2
+   },
+   {
+    "id": "hot-on-their-heels-red",
+    "n": 2
+   },
+   {
+    "id": "lava-burst-red",
+    "n": 2
+   },
+   {
+    "id": "lava-vein-loyalty-red",
+    "n": 2
+   },
+   {
+    "id": "march-of-loyalty-red",
+    "n": 1
+   },
+   {
+    "id": "phoenix-flame-red",
+    "n": 1
+   },
+   {
+    "id": "ravenous-rabble-red",
+    "n": 2
+   },
+   {
+    "id": "rise-from-the-ashes-red",
+    "n": 2
+   },
+   {
+    "id": "rising-resentment-red",
+    "n": 2
+   },
+   {
+    "id": "ronin-renegade-red",
+    "n": 2
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "snatch-red",
+    "n": 2
+   },
+   {
+    "id": "brand-with-cinderclaw-yel",
+    "n": 2
+   },
+   {
+    "id": "fire-tenet-strike-first-yel",
+    "n": 2
+   },
+   {
+    "id": "salt-the-wound-yel",
+    "n": 2
+   },
+   {
+    "id": "nip-at-the-heels-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "burning-blade-dance-red",
+    "n": 2
+   },
+   {
+    "id": "growl-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "searing-emberblade",
+   "blade-beckoner-helm",
+   "blood-scent",
+   "tearing-shuko",
+   "pouncing-paws"
+  ],
+  "rule": "Fabian Rex's list from the Sunday Showdown: Las Vegas (1st), starting with Searing Emberblade and the Phoenix Flame in the graveyard (Fai may start the game with one). The sideboard holds the two Burning Blade Dance (no dagger to use their hit effect on while Searing Emberblade, a two-handed sword, is equipped), the two Growl and the two Arcane Polarity.",
+  "grave": [
+   "phoenix-flame-red"
+  ],
+  "registered": true
  },
  "oscilio-showdown-kansas-city": {
   "id": "oscilio-showdown-kansas-city",
@@ -3662,6 +3775,7 @@ window.FAB.decks = {
    "pouncing-paws"
   ],
   "rule": "Sabastian Chizhik's list from the Sunday Showdown: Kansas City (2nd), starting with Edge of Autumn (a two-handed weapon, so the Harmonized Kodachi and the Arcane Lantern stay out). The sideboard holds the two Arcane Polarity, the two Life of the Party (its Crazy Brew cost can never be met without a Crazy Brew), one Reinforce the Line and one Snatch.",
+  "grave": [],
   "registered": true
  },
  "olympia-calling-london": {
@@ -4732,6 +4846,7 @@ window.FAB.decks = {
    "basalt-boots"
   ],
   "rule": "LSS's Silver Age precon is a 44-card deck pool; a registered deck is exactly 40 (TRP 7.4). This default leaves four cards in the sideboard: both Macho Grande (the 7-cost one), one Crush the Weak and one Disable. The loadout is the 2H Sledge of Anvilheim, which fills both weapon zones, so the 1H hammer and the buckler stay out.",
+  "grave": [],
   "registered": true
  },
  "dash": {
@@ -5379,6 +5494,7 @@ window.FAB.decks = {
    "beaten-trackers"
   ],
   "rule": "LSS's Silver Age precon is a 55-card pool; a registered deck is exactly 40 (TRP 7.4). This default leaves seven cards in the sideboard: Unexpected Backhand, Rally the Coast Guard, Agile Windup and the yellow Clash of Might.",
+  "grave": [],
   "registered": true
  },
  "arakni-web-of-deceit": {
@@ -6020,6 +6136,7 @@ window.FAB.decks = {
    "refraction-bolters"
   ],
   "rule": "LSS's Silver Age precon is a 55-card pool; a registered deck is exactly 40 (TRP 7.4). This default leaves seven cards in the sideboard: the two defense reactions that cannot block an attack with more than 3 base power, the two prevention instants, the potion, and the two +1 reactions.",
+  "grave": [],
   "registered": true
  },
  "enigma": {
@@ -6392,7 +6509,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 14
+  "poolCompiled": 30
  },
  "blaze-firemind": {
   "id": "blaze-firemind",

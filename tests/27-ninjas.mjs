@@ -9,6 +9,7 @@ const iidOf = (s, seat, zone, id) => zone === 'chain' ? +Object.keys(s.cards).fi
 const pay = (s, id = FILL) => { while (asked(s, 'pitch')) s = answerCard(s, id); return s; };
 const atRes = s => passUntil(s, x => step(x, 'resolution') && !x.stack.length);
 const power = (s, n = -1) => logged(s, 'attack').slice(n)[0].power;
+const now = s => FAB.attackPower(s, s.chain.links[s.chain.links.length - 1]);   // the power after triggers have resolved (the log holds the power as it was announced)
 const ctrl = s => s.players[0];
 // A chain that already has these links (seat 0's attacks), as if they had been played earlier this turn.
 function chainOf(s, specs) {
@@ -366,4 +367,237 @@ test('Life of the Party: discarding or destroying a Crazy Brew instead of paying
   s = atRes(s);
   eq(power(s), 6, '4 +2'); eq(s.players[0].ap, 1, 'go again'); eq(s.players[1].life, 14); eq(s.players[0].life, 19, 'gained 2 when it hit');
   delete FAB.cards['crazy-brew'];
+});
+
+// ---- Fai: Draconic chain links ----------------------------------------------------------------------------------------------------
+const FAI = 'fai-showdown-las-vegas';
+const DR = 'ronin-renegade-red';          // a Draconic Ninja attack with go again
+test('Draconic chain links: a Draconic attack by type counts, itself included (Lava Vein Loyalty: 2 or more - go again)', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['lava-vein-loyalty-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }]);
+  s = play(s, 'lava-vein-loyalty-red'); s = atRes(s); eq(s.players[0].ap, 1, 'Ronin Renegade + itself');
+  s = game(FAI, 'kayo'); give(s, 0, ['lava-vein-loyalty-red']); give(s, 1, []);
+  s = play(s, 'lava-vein-loyalty-red'); s = atRes(s); eq(s.players[0].ap, 0, 'only itself');
+  s = game(FAI, 'kayo'); give(s, 0, ['lava-vein-loyalty-red']); give(s, 1, []);
+  chainOf(s, [{ id: 'scar-for-a-scar-red' }]);
+  s = play(s, 'lava-vein-loyalty-red'); s = atRes(s); eq(s.players[0].ap, 0, 'a Generic link is not Draconic');
+});
+test('Searing Emberblade: its attacks get go again with 2 or more Draconic chain links; its own attack is Draconic', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, [FILL, FILL]); give(s, 1, []);
+  chainOf(s, [{ id: DR }]);
+  s = act(s, 'searing-emberblade'); s = pay(s); s = pay(s); s = atRes(s);
+  eq(s.players[0].ap, 1, 'go again');
+  s = game(FAI, 'kayo'); give(s, 0, [FILL, FILL]); give(s, 1, []);
+  s = act(s, 'searing-emberblade'); s = pay(s); s = pay(s); s = atRes(s);
+  eq(s.players[0].ap, 0, 'one Draconic link: no go again');
+});
+test('Phoenix Flame: with 2 or more Draconic chain links it gets +1{p}', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['phoenix-flame-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }]);
+  s = play(s, 'phoenix-flame-red'); s = atRes(s); eq(power(s), 1);
+  s = game(FAI, 'kayo'); give(s, 0, ['phoenix-flame-red']); give(s, 1, []);
+  s = play(s, 'phoenix-flame-red'); s = atRes(s); eq(power(s), 0);
+});
+test('Lava Burst: Rupture - played as chain link 4 or higher it gets +3{p}', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['lava-burst-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }, { id: DR }, { id: DR }]);
+  s = play(s, 'lava-burst-red'); s = atRes(s); eq(power(s), 5);
+  s = game(FAI, 'kayo'); give(s, 0, ['lava-burst-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }, { id: DR }]);
+  s = play(s, 'lava-burst-red'); s = atRes(s); eq(power(s), 2);
+});
+test('Blaze Headlong: if you have played another red card this turn, go again', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['scar-for-a-scar-red', 'blaze-headlong-red']); give(s, 1, []);
+  s = play(s, 'scar-for-a-scar-red'); s = atRes(s); s.players[0].ap = 1;
+  s = play(s, 'blaze-headlong-red'); s = atRes(s); eq(s.players[0].ap, 1);
+  s = game(FAI, 'kayo'); give(s, 0, ['snatch-blu', 'blaze-headlong-red']); give(s, 1, []);
+  s = play(s, 'snatch-blu'); s = atRes(s); s.players[0].ap = 1;
+  s = play(s, 'blaze-headlong-red'); s = atRes(s); eq(s.players[0].ap, 0, 'a blue card is not red');
+  s = game(FAI, 'kayo'); give(s, 0, ['blaze-headlong-red']); give(s, 1, []);
+  s = play(s, 'blaze-headlong-red'); s = atRes(s); eq(s.players[0].ap, 0, 'itself does not count');
+});
+test('March of Loyalty: if you have created a Fealty token this turn, go again', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['march-of-loyalty-red']); give(s, 1, []);
+  FAB.createToken(s, 0, 'Fealty');
+  s = play(s, 'march-of-loyalty-red'); s = atRes(s); eq(s.players[0].ap, 1);
+  s = game(FAI, 'kayo'); give(s, 0, ['march-of-loyalty-red']); give(s, 1, []);
+  s = play(s, 'march-of-loyalty-red'); s = atRes(s); eq(s.players[0].ap, 0);
+});
+test('Brand with Cinderclaw: your next attack this combat chain is Draconic - it counts as a Draconic chain link', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['brand-with-cinderclaw-red', 'lava-vein-loyalty-red', 'scar-for-a-scar-red']); give(s, 1, []);
+  s = play(s, 'brand-with-cinderclaw-red'); s = atRes(s);
+  s = play(s, 'scar-for-a-scar-red'); s = atRes(s);
+  ok(s.chain.links[1].mods.some(m => m.drac), 'Scar for a Scar is Draconic now');
+  s.players[0].ap = 1; s = play(s, 'lava-vein-loyalty-red'); s = atRes(s);
+  eq(s.players[0].ap, 1, 'Brand + Scar + itself: 3 Draconic links, go again');
+});
+test('Fire Tenet: Strike First: your next Draconic attack this combat chain gets +1{p}; a non-Draconic one does not', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['fire-tenet-strike-first-red', DR, 'scar-for-a-scar-red']); give(s, 1, []);
+  s = play(s, 'fire-tenet-strike-first-red'); s = atRes(s);
+  s = play(s, DR); s = atRes(s); eq(power(s), 4, '3 +1');
+  s = game(FAI, 'kayo'); give(s, 0, ['fire-tenet-strike-first-red', 'scar-for-a-scar-red', DR]); give(s, 1, []);
+  s = play(s, 'fire-tenet-strike-first-red'); s = atRes(s);
+  s = play(s, 'scar-for-a-scar-red'); s = atRes(s); eq(power(s), 4, 'Scar for a Scar: printed 4, no bonus');
+  s.players[0].ap = 1; s = play(s, DR); s = atRes(s); eq(power(s), 4, 'the effect waited for a Draconic attack: 3 +1');
+});
+test('Effects that make an attack Draconic apply before effects that look for a Draconic attack (layer order)', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, []);
+  const src = put(s, 0, 'brand-with-cinderclaw-red', 'grave');
+  s.effects.push({ k: 'next', ctrl: 0, f: { klass: ['Draconic'] }, p: 1, grant: null, hitGoAgain: false, dur: 'chain', src });
+  s.effects.push({ k: 'next', ctrl: 0, f: {}, p: 0, grant: null, hitGoAgain: false, dur: 'chain', src, mod: { drac: true } });
+  s = play(s, 'scar-for-a-scar-red'); s = atRes(s);
+  eq(power(s), 5, 'made Draconic, then +1');
+});
+test('Enflame the Firebrand: 2 or more - go again; 3 or more - your attacks are Draconic; 4 or more - +2{p}; all from one count', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['enflame-the-firebrand-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }]);
+  s = play(s, 'enflame-the-firebrand-red'); s = atRes(s);
+  eq(s.players[0].ap, 1, '2: go again'); eq(power(s), 2); ok(!s.effects.some(e => e.k === 'nj_attacksDrac'), 'not 3');
+  s = game(FAI, 'kayo'); give(s, 0, ['enflame-the-firebrand-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }, { id: DR }, { id: 'scar-for-a-scar-red' }]);
+  s = play(s, 'enflame-the-firebrand-red'); s = atRes(s);
+  eq(s.players[0].ap, 1, '3: go again'); ok(s.effects.some(e => e.k === 'nj_attacksDrac'), '3: your attacks are Draconic');
+  eq(now(s), 2, 'the count was 3 when decided, so no +2 even though the Generic link is now Draconic');
+  s = game(FAI, 'kayo'); give(s, 0, ['enflame-the-firebrand-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }, { id: DR }, { id: DR }]);
+  s = play(s, 'enflame-the-firebrand-red'); s = atRes(s); eq(now(s), 4, '4: 2 +2');
+});
+test('Enflame the Firebrand: with fewer than 2 Draconic chain links it does not even trigger', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['enflame-the-firebrand-red']); give(s, 1, []);
+  s = play(s, 'enflame-the-firebrand-red'); s = atRes(s);
+  eq(logged(s, 'trigger').length, 0); eq(s.players[0].ap, 0);
+});
+test('Display Loyalty: with 2 or more Draconic chain links, go again and attacking creates a Fealty token', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['display-loyalty-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }]);
+  s = play(s, 'display-loyalty-red'); s = atRes(s);
+  ok(has(s, 0, 'arena', 'fealty'), 'Fealty token'); eq(s.players[0].ap, 1);
+  s = game(FAI, 'kayo'); give(s, 0, ['display-loyalty-red']); give(s, 1, []);
+  s = play(s, 'display-loyalty-red'); s = atRes(s);
+  ok(!has(s, 0, 'arena', 'fealty'));
+});
+test('Fealty: destroy it and the next card you play this turn is Draconic', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['scar-for-a-scar-red', 'snatch-blu']); give(s, 1, []);
+  FAB.createToken(s, 0, 'Fealty');
+  s = act(s, 'fealty'); s = passUntil(s, x => x.stack.length === 0);
+  ok(!has(s, 0, 'arena', 'fealty'), 'destroyed');
+  s = play(s, 'scar-for-a-scar-red'); s = atRes(s);
+  ok(s.chain.links[0].mods.some(m => m.drac), 'Draconic'); s.players[0].ap = 1;
+  s = play(s, 'snatch-blu'); s = atRes(s);
+  ok(!s.chain.links[1].mods.some(m => m.drac), 'only the next card');
+});
+test('Fealty: at the beginning of your end phase it is destroyed unless you created a Fealty token or played a Draconic card this turn', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, []); give(s, 1, []);
+  put(s, 0, 'fealty', 'arena');
+  s = passUntil(s, x => x.turn === 2);
+  ok(!has(s, 0, 'arena', 'fealty'), 'nothing Draconic was played: destroyed');
+  s = game(FAI, 'kayo'); give(s, 0, [DR]); give(s, 1, []);
+  put(s, 0, 'fealty', 'arena');
+  s = play(s, DR); s = passUntil(s, x => x.turn === 2);
+  ok(has(s, 0, 'arena', 'fealty'), 'a Draconic card was played: kept');
+  s = game(FAI, 'kayo'); give(s, 0, []); give(s, 1, []);
+  put(s, 0, 'fealty', 'arena'); FAB.createToken(s, 0, 'Fealty');
+  s = passUntil(s, x => x.turn === 2);
+  ok(s.players[0].arena.filter(i => s.cards[i].id === 'fealty').length === 2, 'a Fealty token was created: kept');
+});
+test('Hot on Their Heels: with 2 or more Draconic chain links, go again and a hit marks them; the next hit by you removes it', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['hot-on-their-heels-red', 'snatch-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }]);
+  s = play(s, 'hot-on-their-heels-red'); s = atRes(s);
+  eq(s.players[1].marked, true); eq(s.players[0].ap, 1);
+  s = play(s, 'snatch-red'); s = atRes(s);
+  eq(s.players[1].marked, false, 'hit by a source an opponent of theirs controls');
+});
+test('Burning Blade Dance: a dagger you control deals 1 damage, has hit, and is destroyed', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['burning-blade-dance-red']); give(s, 1, []);
+  const k = put(s, 0, 'kunai-of-retribution', 'weapon');
+  chainOf(s, [{ id: DR }]);
+  s = play(s, 'burning-blade-dance-red'); s = passUntil(s, x => asked(x, 'nj_poke'));
+  eq(s.pending.q.opts.length, 2, 'the dagger, or decline'); s = answer(s, k);
+  s = atRes(s);
+  eq(s.players[1].life, 20 - 3 - 1, 'the hit and the dagger'); eq(s.cards[k].zone, 'grave'); eq(s.players[0].ap, 1);
+  s = game(FAI, 'kayo'); give(s, 0, ['burning-blade-dance-red']); give(s, 1, []);
+  const k2 = put(s, 0, 'kunai-of-retribution', 'weapon'); chainOf(s, [{ id: DR }]);
+  s = play(s, 'burning-blade-dance-red'); s = passUntil(s, x => asked(x, 'nj_poke')); s = answer(s, 'no');
+  eq(s.cards[k2].zone, 'weapon', 'declined: the dagger stays');
+});
+test('Kunai of Retribution: it is destroyed when the combat chain closes', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, [FILL]); give(s, 1, []);
+  const k = put(s, 0, 'kunai-of-retribution', 'weapon');
+  s = act(s, 'kunai-of-retribution'); s = pay(s);
+  s = atRes(s); eq(s.cards[k].zone, 'weapon', 'still there during the chain'); eq(s.players[0].ap, 1, 'go again');
+  s = passUntil(s, closed); eq(s.cards[k].zone, 'grave');
+});
+test('Fai: starts with a Phoenix Flame in the graveyard; the ability costs {r} less for each Draconic chain link', () => {
+  let s = game(FAI, 'kayo');
+  eq(s.players[0].grave.filter(i => s.cards[i].id === 'phoenix-flame-red').length, 1); eq(s.players[0].deck.length + s.players[0].hand.length, 39);
+  const hero = s.players[0].hero, idx = FAB.cards.fai.ab.findIndex(a => a.k === 'act');
+  eq(FAB.costOf(s, hero, idx), 3);
+  chainOf(s, [{ id: DR }, { id: DR }]);
+  eq(FAB.costOf(s, hero, idx), 1, '3 - 2');
+  give(s, 0, [FILL]);
+  s = act(s, 'fai'); s = pay(s);
+  s = passUntil(s, x => asked(x, 'nj_returnFlame')); eq(s.pending.q.opts.length, 1, 'asked even with one'); s = answerCard(s, 'phoenix-flame-red');
+  ok(has(s, 0, 'hand', 'phoenix-flame-red')); ok(!FAB.legalActions(s).some(a => a.type === 'act' && a.iid === hero), 'once per turn');
+});
+test('Rise from the Ashes: the next Draconic or Ninja attack action card gets +3{p}; you may return a Phoenix Flame', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['rise-from-the-ashes-red', 'scar-for-a-scar-red', 'soulbead-strike-red']); give(s, 1, []);
+  s = play(s, 'rise-from-the-ashes-red');
+  s = passUntil(s, x => asked(x, 'nj_returnFlame')); eq(s.pending.q.opts.length, 2, 'the Flame, or decline'); s = answerCard(s, 'phoenix-flame-red');
+  ok(has(s, 0, 'hand', 'phoenix-flame-red'));
+  s = passUntil(s, closed);
+  s = play(s, 'scar-for-a-scar-red'); s = atRes(s); eq(power(s), 4, 'a Generic card is not Ninja or Draconic');
+  s.players[0].ap = 1; s = play(s, 'soulbead-strike-red'); s = atRes(s); eq(power(s), 7, '4 +3 (a Ninja card)');
+});
+test('Rising Resentment: banish an attack action card with cost below your Draconic links; it costs 1 less and may be played this turn', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['rising-resentment-red', 'bluster-buff-red']); give(s, 1, []);
+  chainOf(s, [{ id: DR }]);
+  s = play(s, 'rising-resentment-red'); s = passUntil(s, x => asked(x, 'nj_resentment'));
+  eq(s.pending.q.opts.length, 2, 'Bluster Buff (cost 1 < 2 links), or decline'); s = answerCard(s, 'bluster-buff-red');
+  s = passUntil(s, x => step(x, 'resolution') && !x.stack.length);
+  const b = iidOf(s, 0, 'banish', 'bluster-buff-red');
+  eq(FAB.costOf(s, b), 0, 'costs 1 less'); ok(canPlay(s, 'bluster-buff-red'), 'playable from the banished zone');
+  s = play(s, 'bluster-buff-red'); eq(s.pending, null, 'no resources needed'); s = atRes(s);
+  eq(power(s), 6);
+});
+test('Rising Resentment: a card whose cost is not below the number of Draconic chain links is not offered', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['rising-resentment-red', 'flying-kick-red']); give(s, 1, []);
+  s = play(s, 'rising-resentment-red'); s = atRes(s);
+  ok(!has(s, 0, 'banish', 'flying-kick-red'), 'cost 2, one Draconic link');
+});
+test('Fire that Burns Within: you may discard a Phoenix Flame; if you do, draw a card and this gets +2{p}', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['fire-that-burns-within-red', 'phoenix-flame-red', FILL]); give(s, 1, []);
+  topdeck(s, 0, ['snatch-blu']);
+  s = play(s, 'fire-that-burns-within-red'); s = pay(s);
+  s = passUntil(s, x => asked(x, 'nj_flameDiscard')); eq(s.pending.q.opts.length, 2); s = answerCard(s, 'phoenix-flame-red');
+  s = atRes(s);
+  eq(now(s), 4, '2 +2'); ok(has(s, 0, 'grave', 'phoenix-flame-red')); ok(has(s, 0, 'hand', 'snatch-blu'), 'drew');
+});
+test('Ornate Tessen: put a card from your hand on the bottom of your deck; if you do, draw a card', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['snatch-blu', FILL]); give(s, 1, []);
+  put(s, 0, 'ornate-tessen', 'equip'); topdeck(s, 0, ['scar-for-a-scar-red']);
+  s = act(s, 'ornate-tessen'); s = pay(s);
+  s = passUntil(s, x => asked(x, 'nj_handBottom')); s = answerCard(s, 'snatch-blu');
+  s = passUntil(s, x => x.stack.length === 0);
+  ok(has(s, 0, 'hand', 'scar-for-a-scar-red'), 'drew'); eq(s.cards[s.players[0].deck[s.players[0].deck.length - 1]].id, 'snatch-blu', 'on the bottom');
+  ok(!has(s, 0, 'equip', 'ornate-tessen'), 'destroyed');
+});
+
+// ---- weapons whose attack ability says "Attack. Go again" ------------------------------------------------------------------------
+test('Edge of Autumn: "Attack. Go again" - the weapon attack has go again', () => {
+  let s = game(BENJI, 'kayo'); give(s, 0, [FILL]); give(s, 1, []);
+  s = act(s, 'edge-of-autumn'); s = pay(s); s = atRes(s);
+  eq(s.players[0].ap, 1, 'go again from the attack ability');
+});
+test('Fealty makes a non-attack card Draconic too (it counts as having played a Draconic card)', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['arcane-polarity-red']); give(s, 1, []);
+  FAB.createToken(s, 0, 'Fealty'); s = act(s, 'fealty'); s = passUntil(s, x => x.stack.length === 0);
+  s = play(s, 'arcane-polarity-red'); s = passUntil(s, x => x.stack.length === 0);
+  eq(s.players[0].h.dracPlayed, 1); eq(logged(s, 'nj_fx').filter(e => e.fx === 'madeDrac').length, 1);
+});
+test('Marked: a hero that is hit by an opponent is no longer marked, and it is logged', () => {
+  let s = game(FAI, 'kayo'); give(s, 0, ['snatch-red']); give(s, 1, []);
+  s.players[1].marked = true;
+  s = play(s, 'snatch-red'); s = atRes(s);
+  eq(s.players[1].marked, false); eq(logged(s, 'nj_unmark').length, 1);
 });

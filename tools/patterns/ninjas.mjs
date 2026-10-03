@@ -8,8 +8,19 @@ const COLORS = { red: 1, yellow: 2, blue: 3 };
 export const EXTRA_CARDS = ['crouching-tiger'];
 // CR 8.3.21 Ephemeral, CR 8.3.28 Ambush
 export const KW_LINES = { 'Ephemeral': ['ephemeral', true], 'Ambush': ['ambush', true] };
-export const CONDS = [];
+export const CONDS = [
+  ["you haven't created a Fealty token or played a Draconic card this turn", () => ({ c: 'nj_noFealtyDrac' })],   // Fealty's end-phase check
+];
 export const EFFECTS = [
+  // ---- Draconic (Fai) ----
+  [/^<NJRESENT>$/, () => ({ o: 'nj_resentment' })],
+  [/^<NJFLAMEDISC>$/, () => ({ o: 'nj_flameDiscard' })],
+  [/^The next card you play this turn is Draconic$/, () => ({ o: 'nj_nextDrac' })],                    // Fealty
+  [/^[Yy]our next attack this combat chain is Draconic$/, () => ({ o: 'nj_next', f: {}, p: 0, dur: 'chain', mod: { drac: true } })],
+  [/^[Yy]our next Draconic attack this combat chain gets \+(\d+)\{p\}$/, m => ({ o: 'nj_next', f: { klass: ['Draconic'] }, p: +m[1], dur: 'chain' })],
+  [/^The next Draconic or Ninja attack action card you play this turn gets \+(\d+)\{p\}$/, m => ({ o: 'nj_next', f: { klass: ['Draconic', 'Ninja'], aa: true }, p: +m[1], dur: 'turn' })],
+  [/^You may return a Phoenix Flame from your graveyard to your hand$/, () => ({ o: 'nj_returnFlame' })],
+  [/^Put a card from your hand on the bottom of your deck$/, () => ({ o: 'nj_handBottom' })],           // Ornate Tessen; "If you do, draw a card" is the core condition
   // ---- Crouching Tiger (a card created in the banished zone; CR 8.5.40) ----
   [/^<NJTIGER>$/, () => ({ o: 'nj_tiger', when: 'turn' })],
   [/^<NJTIGERNEXT>$/, () => ({ o: 'nj_tiger', when: 'next' })],
@@ -22,7 +33,6 @@ export const EFFECTS = [
   [/^Target dagger or sword weapon attack gets \+(\d+)\{p\}$/, m => ({ o: 'buff', tgt: { weapon: true, sub: ['Dagger', 'Sword'] }, p: +m[1] })],
   [/^Target attack action card with cost (\d+) or less gets \+(\d+)\{p\} and <HITGA>$/, m => ({ o: 'buff', tgt: { aa: true, costMax: +m[1] }, p: +m[2], hitOps: [{ o: 'selfBuff', grant: 'goAgain' }] })],
   [/^Target Ninja attack gets \+(\d+)\{p\} and <HITEDGEDRAW>$/, m => ({ o: 'buff', tgt: { klass: ['Ninja'] }, p: +m[1], hitOps: [{ o: 'if', cond: { c: 'nj_last', names: ['Edge of Autumn'] }, then: [{ o: 'draw', n: 1 }] }] })],
-  [/^Target defending attack action card gets \+(\d+)\{d\}$/, m => ({ o: 'nj_defTarget', n: +m[1] })],
   // ---- naming a card (Mask of Many Faces; CR 8.5.21) ----
   [/^Name a card$/, () => ({ o: 'nj_name' })],
   [/^The next attack action card you play this turn gains that name$/, () => ({ o: 'nj_nextName' })],
@@ -43,6 +53,14 @@ export const STATICS = [
   [/^If this was played as chain link (\d+) or higher, it gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'nj_linkN', n: +m[1] }, p: +m[2] })],
   [/^This gets \+1\{p\} for each attack that has hit this combat chain$/, () => ({ k: 'static', p: { v: 'nj_hitsChain' } })],
   [/^While this is defending an attack action card with cost 0, this gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'nj_defCost0' }, d: +m[1] })],
+  // ---- Draconic chain links (Fai) ----
+  [/^If you control (\d+) or more Draconic chain links, this gets go again$/, m => ({ k: 'static', cond: { c: 'nj_drac', n: +m[1] }, grant: 'goAgain' })],
+  [/^If you control (\d+) or more Draconic chain links, this card's attacks get go again$/, m => ({ k: 'static', cond: { c: 'nj_drac', n: +m[1] }, grant: 'goAgain' })],
+  [/^If you control (\d+) or more Draconic chain links, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'nj_drac', n: +m[1] }, p: +m[2] })],
+  [/^If this is played as chain link (\d+) or higher, it gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'nj_linkN', n: +m[1] }, p: +m[2] })],   // Rupture (CR 8.4.6); the label is stripped
+  [/^If you've played another red card this turn, this gets go again$/, () => ({ k: 'static', cond: { c: 'nj_otherRed' }, grant: 'goAgain' })],
+  [/^If you've created a Fealty token this turn, this gets go again$/, () => ({ k: 'static', cond: { c: 'nj_fealtyMade' }, grant: 'goAgain' })],
+  [/^You may start the game with a Phoenix Flame in your graveyard$/, () => ({ k: 'meta', rule: 'nj_startFlame' })],   // the choice is made when the deck is registered (tools/picks grave)
 ];
 export const ACTCONDS = [
   ["if you've attacked with a Crouching Tiger this turn", () => ({ cond: { c: 'nj_tigerAttacked' } })],
@@ -55,9 +73,12 @@ export const SPLIT = [
   [/[Cc]reate a Crouching Tiger in your banished zone\. You may play it this turn\.?/g, '<NJTIGER>.'],
   [/[Cc]reate a Crouching Tiger in your banished zone\. You may play it during your next turn\.?/g, '<NJTIGERNEXT>.'],
   [/"When this hits, if Edge of Autumn was the last attack this combat chain, draw a card\."/g, '<HITEDGEDRAW>.'],
+  [/you may banish an attack action card from your hand with cost less than the number of Draconic chain links you control\. If you do, it costs \{r\} less to play and you may play it this turn\.?/g, '<NJRESENT>.'],
+  [/you may discard a Phoenix Flame\. If you do, draw a card and this gets \+2\{p\}\.?/g, '<NJFLAMEDISC>.'],
 ];
 export const COSTS = [
   (part, cost) => { if (part === 'destroy this') { cost.destroySelf = true; return true; } return false; },
+  (part, cost) => { if (part === 'destroy this when the combat chain closes') { cost.destroyAtClose = true; return true; } return false; },   // Kunai of Retribution
 ];
 
 // "If <names> was the last attack this combat chain" (CR 8.4.1); a name, or "a red attack action card".
@@ -117,3 +138,31 @@ export const LINES = [
     return ctx.c.name === 'Life of the Party' && ['This gets "When this hits, gain 2{h}."', 'This gets +2{p}.', 'This gets go again.'].includes(line);
   },
 ];
+// ---- Fai: Draconic chain links (CR 1.8.4d conditional effects, CR 8.4.6 Rupture) ----
+const DRAC2 = { c: 'nj_drac', n: 2 };
+const GRANTED = {   // "If you control 2 or more Draconic chain links, this gets go again and "<ability>""
+  'When this attacks a hero, create a Fealty token.': { on: 'attack', ops: [{ o: 'token', name: 'Fealty' }] },
+  'When this hits a hero, mark them.': { on: 'hit', ops: [{ o: 'nj_mark' }] },
+  'When this hits a hero, you may have target dagger you control deal 1 damage to them. If damage is dealt this way, the dagger has hit. Destroy the dagger.': { on: 'hit', ops: [{ o: 'nj_daggerPoke' }] },
+};
+LINES.push(
+  (line, ctx) => {
+    const m = line.match(/^If you control 2 or more Draconic chain links, this gets go again and "(.+)"$/);
+    if (!m || !GRANTED[m[1]]) return false;
+    ctx.out.ab.push({ k: 'static', cond: DRAC2, grant: 'goAgain' });
+    ctx.out.ab.push({ k: 'trig', ncond: DRAC2, ...GRANTED[m[1]] });
+    return true;
+  },
+  // Enflame the Firebrand: the three conditions are evaluated together before any effect is generated (CR 1.8.4d)
+  (line, ctx) => {
+    if (line !== 'When this attacks, if you control 2 or more Draconic chain links, this gets go again, 3 or more, your attacks are Draconic this combat chain, 4 or more, this gets +2{p}.') return false;
+    ctx.out.ab.push({ k: 'trig', on: 'attack', ncond: DRAC2, ops: [{ o: 'nj_tiers' }] });
+    return true;
+  },
+  // Fai: start in the graveyard is a static; the activated ability gets cheaper with Draconic chain links
+  (line, ctx) => {
+    if (line !== 'Once per Turn Instant - {r}{r}{r}: Return a Phoenix Flame from your graveyard to your hand. This ability costs {r} less to activate for each Draconic chain link you control.') return false;
+    ctx.out.ab.push({ k: 'act', type: 'instant', opt: true, cost: { r: 3, lessVar: 'nj_dracLinks' }, ops: [{ o: 'nj_returnFlame', must: true }] });
+    return true;
+  },
+);

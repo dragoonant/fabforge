@@ -51,8 +51,19 @@
     nj_defAA: x => !!x.link && x.link.defs.some(e => I(x.s, e.iid).zone === 'chain' && isAA(D(x.s, e.iid))),
     nj_defCost0: x => !!x.link && !x.link.weapon && isAA(D(x.s, x.link.iid)) && D(x.s, x.link.iid).cost === 0 && x.link.defs.some(e => e.iid === x.iid),   // Wax On
   });
+  // A Draconic chain link: its attack is Draconic by type, by an effect that made it so, or because all your attacks are (Enflame the Firebrand).
+  const isDrac = (s, l) => D(s, l.iid).types.includes('Draconic') || l.mods.some(m => m.drac) || s.effects.some(e => e.k === 'nj_attacksDrac' && e.ctrl === l.ctrl);
+  const dracCount = (s, ctrl) => links(s).filter(l => l.ctrl === ctrl && isDrac(s, l)).length;
+  const madeFealty = (s, who) => s.log.some(e => e.t === 'token' && e.c === 'fealty' && e.who === who && e.turn === s.turn);
+  Object.assign(FAB.conds, {
+    nj_drac: (x, c) => dracCount(x.s, x.ctrl) >= c.n,                                         // "If you control N or more Draconic chain links"
+    nj_otherRed: x => x.s.log.filter(e => e.t === 'play' && e.who === x.ctrl && e.turn === x.s.turn && FAB.cards[e.c].pitch === 1).length >= 2,   // this card is red and was played: another red card was too
+    nj_fealtyMade: x => madeFealty(x.s, x.ctrl),
+    nj_noFealtyDrac: x => !madeFealty(x.s, x.ctrl) && !(P(x.s, x.ctrl).h.dracPlayed > 0),    // Fealty: "if you haven't created a Fealty token or played a Draconic card this turn"
+  });
   Object.assign(FAB.vars, {
     nj_hitsChain: x => links(x.s).filter(l => l.hit).length,                                 // Salt the Wound
+    nj_dracLinks: x => dracCount(x.s, x.ctrl),                                               // Fai
   });
 
   Object.assign(FAB.ops, {
@@ -135,6 +146,90 @@
     },
   });
 
+  // ---- Fai: Draconic, marked, Phoenix Flame ----
+  const flames = (s, ids) => ids.filter(i => D(s, i).name === 'Phoenix Flame');
+  Object.assign(FAB.ops, {
+    // Fealty: the next card you play this turn is Draconic (consumed in EXEC.play).
+    nj_nextDrac(x) {
+      x.s.effects.push({ k: 'nj_nextDrac', ctrl: x.ctrl, dur: 'turn', src: x.iid });
+      FAB.log(x.s, 'nj_fx', { who: x.ctrl, c: I(x.s, x.iid).id, fx: 'nextDrac' });
+    },
+    // CR 8.5.50 Mark: the hero that was hit has the marked condition until an opponent's source hits them (CR 9.3).
+    nj_mark(x) {
+      const who = x.link ? x.link.tgt : 1 - x.ctrl;
+      P(x.s, who).marked = true;
+      FAB.log(x.s, 'nj_mark', { who: who, c: I(x.s, x.iid).id });
+    },
+    // Enflame the Firebrand: 2 or more - go again; 3 or more - your attacks are Draconic this combat chain; 4 or more - +2{p}. All three are decided from one count (CR 1.8.4d).
+    nj_tiers(x) {
+      const s = x.s, n = dracCount(s, x.ctrl);
+      if (n >= 2) FAB.ops.selfBuff(x, { grant: 'goAgain' });
+      if (n >= 3) { s.effects.push({ k: 'nj_attacksDrac', ctrl: x.ctrl, dur: 'chain', src: x.iid }); FAB.log(s, 'nj_fx', { who: x.ctrl, c: I(s, x.iid).id, fx: 'attacksDrac' }); }
+      if (n >= 4) FAB.ops.selfBuff(x, { p: 2 });
+    },
+    // Burning Blade Dance: a dagger you control deals 1 damage to the hero that was hit; if it does, the dagger has hit; destroy the dagger.
+    nj_daggerPoke(x) {
+      const s = x.s, me = P(s, x.ctrl), daggers = me.weapons.filter(i => D(s, i).types.includes('Dagger'));
+      if (!daggers.length) return;
+      const a = FAB.ask(x, { who: x.ctrl, kind: 'nj_poke', src: x.iid, opts: daggers.map(i => ({ id: i, iid: i })).concat([{ id: 'no' }]) });
+      if (a === 'no') return;
+      const to = x.link ? x.link.tgt : 1 - x.ctrl;
+      const dealt = FAB.dealDamage(s, { to: to, n: 1, src: a, kind: 'gen' });
+      if (dealt > 0) {                                                                       // "the dagger has hit" (CR 7.5.5): hit events for the dagger
+        const c = I(s, a); c.hitsTurn = (c.hitsTurn || 0) + 1; me.h.weaponHits++;
+        if (P(s, to).marked) { P(s, to).marked = false; FAB.log(s, 'nj_unmark', { who: to }); }                 // CR 9.3.3
+        FAB.log(s, 'nj_pokeHit', { who: x.ctrl, c: c.id });
+        FAB.emit(s, { t: 'crush', iid: a, ctrl: x.ctrl, n: dealt });
+        FAB.emit(s, { t: 'hit', iid: a, ctrl: x.ctrl, n: dealt });
+        FAB.emit(s, { t: 'weaponHit', ctrl: x.ctrl, iid: a, n: dealt });
+      }
+      FAB.destroy(s, a);
+    },
+    // Fire that Burns Within: you may discard a Phoenix Flame; if you do, draw a card and this gets +2{p}.
+    nj_flameDiscard(x) {
+      const s = x.s, opts = flames(s, P(s, x.ctrl).hand).map(i => ({ id: i, iid: i }));
+      if (!opts.length) return;
+      opts.push({ id: 'no' });
+      const a = FAB.ask(x, { who: x.ctrl, kind: 'nj_flameDiscard', src: x.iid, opts: opts });
+      if (a === 'no') return;
+      FAB.discard(s, a, false);
+      FAB.ops.draw(x, { n: 1 });
+      FAB.ops.selfBuff(x, { p: 2 });
+    },
+    // Fai / Rise from the Ashes: return a Phoenix Flame from your graveyard to your hand ("must": it is not a "may").
+    nj_returnFlame(x, op) {
+      const s = x.s, opts = flames(s, P(s, x.ctrl).grave).map(i => ({ id: i, iid: i }));
+      if (!opts.length) return;
+      if (!op.must) opts.push({ id: 'no' });
+      const a = FAB.ask(x, { who: x.ctrl, kind: 'nj_returnFlame', src: x.iid, must: !!op.must, opts: opts });
+      if (a === 'no') return;
+      FAB.move(s, a, 'hand');
+      FAB.log(s, 'nj_return', { who: x.ctrl, c: I(s, a).id, by: I(s, x.iid).id });
+    },
+    // Rising Resentment: banish an attack action card from your hand with cost less than your Draconic chain links; it costs {r} less and may be played this turn.
+    nj_resentment(x) {
+      const s = x.s, n = dracCount(s, x.ctrl);
+      const opts = P(s, x.ctrl).hand.filter(i => isAA(D(s, i)) && D(s, i).cost != null && D(s, i).cost < n).map(i => ({ id: i, iid: i }));
+      if (!opts.length) return;
+      opts.push({ id: 'no' });
+      const a = FAB.ask(x, { who: x.ctrl, kind: 'nj_resentment', src: x.iid, n: n, opts: opts });
+      if (a === 'no') return;
+      FAB.move(s, a, 'banish');
+      I(s, a).playTurn = s.turn; I(s, a).costLess = 1;
+      FAB.log(s, 'nj_resent', { who: x.ctrl, c: I(s, a).id, by: I(s, x.iid).id });
+    },
+    // Ornate Tessen: put a card from your hand on the bottom of your deck; "if you do" is the core condition.
+    nj_handBottom(x) {
+      const s = x.s, p = P(s, x.ctrl);
+      x.flags.did = false;
+      if (!p.hand.length) return;
+      const a = FAB.ask(x, { who: x.ctrl, kind: 'nj_handBottom', src: x.iid, opts: p.hand.map(i => ({ id: i, iid: i })) });
+      FAB.move(s, a, 'deck');
+      FAB.log(s, 'handToDeck', { who: x.ctrl, where: 'bottom' });
+      x.flags.did = true;
+    },
+  });
+
   Object.assign(FAB.trigMatchers, {
     nj_aaHit: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner && ev.first,
     nj_linkResolve: (s, ab, iid, ev) => ev.iid === iid,
@@ -172,5 +267,10 @@
     nj_smash: (s, q) => q.opts[0].id,
     nj_altCost: () => 'yes',
     nj_altPick: (s, q) => q.opts[0].id,
+    nj_poke: () => 'no',
+    nj_flameDiscard: (s, q) => q.opts[0].id,
+    nj_returnFlame: (s, q) => q.opts[0].id,
+    nj_resentment: (s, q) => q.opts[0].id,
+    nj_handBottom: (s, q, h) => h.leastKept(s, q.opts).id,
   });
 })();
