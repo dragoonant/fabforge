@@ -7,7 +7,7 @@ Status every session.
 
 ## Status — 2026-10-02 (first session)
 
-**It is playable.** `node tools/serve.mjs` then <http://localhost:8181>, or open `index.html`.
+**It is playable and deployed**: <https://dragoonant.github.io/goagain/> (D10). Locally: `node tools/serve.mjs` then <http://localhost:8181>, or open `index.html`.
 
 **Done**
 - `.gitignore` committed alone; `tokens.txt` / `tokens.txt.txt` ignored from commit zero.
@@ -39,8 +39,7 @@ Status every session.
 
 **Not done** — `TODO.md` is the queue, `DEVIATIONS.md` the standing rules gaps. The largest:
 only Silver Age precons are in; arcane damage does not exist yet, so no Wizard or Runeblade;
-equipment loadout and sideboard are fixed per deck rather than chosen; no animation layer; not
-deployed.
+equipment loadout and sideboard are fixed per deck rather than chosen; no animation layer.
 
 **The three things to form an opinion on first**
 1. **Does priority feel right?** The game skips any window in which you have nothing legal, and
@@ -95,3 +94,7 @@ file list and does not commit.
 
 ### D9 — Repository location · 2026-10-02 · owner
 The repo is this OneDrive folder. `scratch/` and `art/masters/` are gitignored.
+
+### D10 — Deployment · 2026-10-02 · owner
+Public repository `dragoonant/goagain`, GitHub Pages from `main` at the root, the same way as GRAND
+LINE. Pushing to `main` redeploys. `docs/takedown.md` Level 1 is how it comes down.

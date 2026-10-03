@@ -9,6 +9,8 @@ Flesh and Blood characters, cards, logos, and art are property of Legend Story S
 
 ## Play it
 
+**<https://dragoonant.github.io/goagain/>** (GitHub Pages, served from `main`). Or locally:
+
 ```bash
 node tools/serve.mjs
 ```
