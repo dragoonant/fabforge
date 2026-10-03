@@ -68,6 +68,16 @@ test('Cosmo: an aura attack with a +1 power counter has go again; the second shi
   ok(nxt, 'the other shield may attack'); eq(FAB.costOf(s, nxt.iid, nxt.ab), 1);
   ok(!FAB.legalActions(s).some(x => x.type === 'act' && x.iid === (s.cards[a].acts ? a : -1)), 'once per turn each');
 });
+test('CR 7.2.2d: if the aura that is attacking ceases to exist before damage, the attack ceases and the combat chain closes', () => {
+  let s = game(ENI, KAY); give(s, 0, []); give(s, 1, []); const sh = shield(s, 0);
+  s = act(s, 'spectral-shield'); s = passUntil(s, x => step(x, 'reaction'));
+  FAB.destroy(s, sh);
+  s = passUntil(s, closed); eq(s.players[1].life, 20); eq(logged(s, 'my_attackCleared').length, 1); eq(logged(s, 'clashOfArms').length, 0);
+});
+test('Legendary (CR 8.3.6) is a meta rule on the card; the deck builder refuses a second copy', () => {
+  for (const id of ['homage-to-ancestors-blu', 'pass-over-blu', 'preserve-tradition-blu', 'path-well-traveled-blu']) ok(FAB.cards[id].ab.some(a => a.k === 'meta' && a.rule === 'legendary'), id);
+  for (const d of Object.values(FAB.decks).filter(d => d.registered)) for (const e of d.deck) if (FAB.cards[e.id].ab.some(a => a.k === 'meta' && a.rule === 'legendary')) eq(e.n, 1, d.id + ' ' + e.id);
+});
 test('Cosmo: auras without ward are not weapons', () => {
   let s = game(ENI, KAY); give(s, 0, []); put(s, 0, 'passing-mirage-blu', 'arena');
   ok(!FAB.legalActions(s).some(x => x.type === 'act' && s.cards[x.iid].id === 'passing-mirage-blu'));

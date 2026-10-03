@@ -438,7 +438,7 @@
 
   const first = (s, q) => q.opts[0].id;
   Object.assign(FAB.aiPolicy, {
-    my_ward: () => 'yes',
+    my_ward: (s, q) => (q.dmg >= Math.min(q.n, 2) || P(s, q.who).life <= q.dmg + 4 ? 'yes' : 'no'),   // do not spend a big ward on a point of damage unless life is short
     my_mayPay: () => 'no',                                                                          // three cards for one action point is rarely worth it
     my_playAs: () => 'instant',
     my_attackTarget: () => 'hero',

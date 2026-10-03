@@ -99,7 +99,7 @@
         <div class="portrait" style="background-image:${FAB.art.css(hero.id)}"></div>
         <div class="hname">${esc(hero.name)}${mine ? ' <span class="you">you</span>' : ''}</div>
         <div class="life ${ui.hurt && ui.hurt[seat] ? 'hurt' : ''}" title="Life">${Math.max(0, p.life)}${ui.hurt && ui.hurt[seat] ? `<span class="dmgfly">−${ui.hurt[seat]}</span>` : ''}</div>
-        <div class="chips"><span class="chip ap" title="Action points">${p.ap} AP</span><span class="chip res" title="Resource points in the pool">${p.res} res</span>${p.chi ? `<span class="chip res" title="Chi points in the pool: they pay resource costs too, and are used first">${p.chi} chi</span>` : ''}<span class="chip" title="Intellect: you draw up to this many cards at the end of your turn">int ${FAB.intellect(s, seat)}</span></div>
+        <div class="chips"><span class="chip ap" title="Action points">${p.ap} AP</span><span class="chip res" title="Resource points in the pool">${p.res} res</span>${p.chi ? `<span class="chip res" title="Chi points in the pool: they pay resource costs too, and are used first">${p.chi} chi</span>` : ''}${p.my_marked ? `<span class="chip" title="Marked: the next time an opponent hits this hero, the marked condition ends">marked</span>` : ''}<span class="chip" title="Intellect: you draw up to this many cards at the end of your turn">int ${FAB.intellect(s, seat)}</span></div>
         ${am.m[p.hero] ? `<div class="heroact" data-acts='${JSON.stringify(am.m[p.hero])}'>Hero ability</div>` : ''}
       </div>
       <div class="gear">${weapons}${gear}</div>
@@ -180,13 +180,13 @@
     return `<div class="log"><div class="loghead">Log <span>turn ${s.turn}</span></div><div class="loglines" id="loglines">${h}</div></div>`;
   }
 
-  function modalHTML(s) {
+  function modalHTML(s, am) {
     if (!ui.modal) return '';
     const [zone, seatS] = ui.modal.split(':'), seat = +seatS, p = s.players[seat];
     const ids = zone === 'grave' ? p.grave : zone === 'soul' ? p.soul : p.banish;   // [mystics] the soul is a public zone (CR 3.11.5)
     const shown = ids.filter(i => s.cards[i].faceUp), hidden = ids.length - shown.length;
     return `<div class="modal" data-ui="closemodal"><div class="mbox"><div class="mtitle">${T.who(s, seat, ui.human) === 'You' ? 'Your' : T.who(s, seat, ui.human) + '’s'} ${zone === 'grave' ? 'graveyard' : zone === 'soul' ? 'soul' : 'banished zone'} — ${ids.length} card${ids.length === 1 ? '' : 's'}${hidden ? ` (${hidden} face-down)` : ''}</div>
-      <div class="mcards">${shown.map(i => face(s, s.cards[i].id, { iid: i })).join('') || '<div class="empty">nothing to see</div>'}</div><button class="btn" data-ui="closemodal">Close</button></div></div>`;
+      <div class="mcards">${shown.map(i => face(s, s.cards[i].id, { iid: i, acts: am.m[i] })).join('') || '<div class="empty">nothing to see</div>'}</div><button class="btn" data-ui="closemodal">Close</button></div></div>`;
   }
 
   function render() {
@@ -207,7 +207,7 @@
         ${logHTML(s)}
       </div>
       ${ui.spot ? `<div class="spot">${face(s, ui.spot.id, { cls: 'big' })}<div class="spotlbl">${esc(ui.spot.label)}</div></div>` : ''}
-      ${modalHTML(s)}
+      ${modalHTML(s, am)}
       ${ui.menu ? `<div class="cmenu" style="left:${ui.menu.x}px;top:${ui.menu.y}px">${ui.menu.items.map((it, i) => `<button class="btn" data-menu="${i}">${esc(it.label)}</button>`).join('')}<button class="btn ghost" data-menu="-1">Never mind</button></div>` : ''}
       <div id="zoom" class="zoom"></div>
     </div>`;
@@ -274,7 +274,7 @@
     const u = t.closest('[data-ui]');
     if (u) {
       const k = u.getAttribute('data-ui');
-      if (k === 'closemodal') { if (t === u || t.tagName === 'BUTTON') { ui.modal = null; render(); } return; }
+      if (k === 'closemodal' && !t.closest('[data-acts]')) { if (t === u || t.tagName === 'BUTTON') { ui.modal = null; render(); } return; }   // [mystics] a card in a zone window may carry an action (Nuu plays blue cards from their banished zone)
       if (k === 'again') return FAB.main.start(ui.setup, true);
       if (k === 'menu') return FAB.main.menu();
       if (k === 'howto') return FAB.main.howto();
@@ -284,6 +284,7 @@
     const a = t.closest('[data-acts]');
     if (a) {
       const items = JSON.parse(a.getAttribute('data-acts'));
+      if (t.closest('.modal')) ui.modal = null;                                       // [mystics]
       if (items.length === 1) return dispatch(items[0].a);
       ui.menu = { items: items, x: Math.min(e.clientX, window.innerWidth - 260), y: Math.max(10, e.clientY - 40 * items.length - 50) };
       render(); return;
