@@ -2602,7 +2602,7 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Kevin Murphy",
   "date": "30 Aug 2026",
-  "poolCompiled": 11
+  "poolCompiled": 17
  },
  "dorinthea-calling-london": {
   "id": "dorinthea-calling-london",
@@ -3664,7 +3664,111 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Michael Hamilton",
   "date": "09 Apr 2026",
-  "poolCompiled": 23
+  "poolCompiled": 30,
+  "deck": [
+   {
+    "id": "amplify-the-arknight-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-seeds-life-red",
+    "n": 2
+   },
+   {
+    "id": "autumns-touch-red",
+    "n": 2
+   },
+   {
+    "id": "chorus-of-rotwood-red",
+    "n": 2
+   },
+   {
+    "id": "colors-of-aria-red",
+    "n": 2
+   },
+   {
+    "id": "fertile-ground-red",
+    "n": 2
+   },
+   {
+    "id": "read-the-runes-red",
+    "n": 2
+   },
+   {
+    "id": "reduce-to-runechant-red",
+    "n": 2
+   },
+   {
+    "id": "rootbound-carapace-red",
+    "n": 2
+   },
+   {
+    "id": "runeblood-incantation-red",
+    "n": 2
+   },
+   {
+    "id": "rune-flash-red",
+    "n": 2
+   },
+   {
+    "id": "autumns-touch-yel",
+    "n": 2
+   },
+   {
+    "id": "fruits-of-the-forest-yel",
+    "n": 2
+   },
+   {
+    "id": "reduce-to-runechant-yel",
+    "n": 2
+   },
+   {
+    "id": "rootbound-carapace-yel",
+    "n": 2
+   },
+   {
+    "id": "amplify-the-arknight-blu",
+    "n": 2
+   },
+   {
+    "id": "autumns-touch-blu",
+    "n": 2
+   },
+   {
+    "id": "fruits-of-the-forest-blu",
+    "n": 2
+   },
+   {
+    "id": "oath-of-the-arknight-blu",
+    "n": 2
+   },
+   {
+    "id": "reduce-to-runechant-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "sift-blu",
+    "n": 2
+   },
+   {
+    "id": "sigil-of-silphidae-blu",
+    "n": 1
+   },
+   {
+    "id": "harvest-season-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "scepter-of-pain",
+   "garland-of-spring",
+   "nullrune-gloves",
+   "well-grounded"
+  ],
+  "rule": "Florian's list from the Pro Tour: Yokohama (5th). Scepter of Pain, Garland of Spring, Nullrune Gloves and Well Grounded start equipped. The default leaves two Sift, a Sigil of Silphidae and two Harvest Season in the sideboard.",
+  "registered": true
  },
  "kayo-calling-london": {
   "id": "kayo-calling-london",
@@ -5345,7 +5449,120 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Yuki Lee Bender",
   "date": "09 Apr 2026",
-  "poolCompiled": 15
+  "poolCompiled": 32,
+  "deck": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-seeds-life-red",
+    "n": 2
+   },
+   {
+    "id": "arcanic-crackle-red",
+    "n": 2
+   },
+   {
+    "id": "arcanic-shockwave-red",
+    "n": 2
+   },
+   {
+    "id": "electrostatic-discharge-red",
+    "n": 2
+   },
+   {
+    "id": "entwine-lightning-red",
+    "n": 2
+   },
+   {
+    "id": "flittering-charge-red",
+    "n": 1
+   },
+   {
+    "id": "fry-red",
+    "n": 1
+   },
+   {
+    "id": "harness-lightning-red",
+    "n": 2
+   },
+   {
+    "id": "lightning-surge-red",
+    "n": 2
+   },
+   {
+    "id": "malefic-incantation-red",
+    "n": 1
+   },
+   {
+    "id": "nimblism-red",
+    "n": 2
+   },
+   {
+    "id": "second-strike-red",
+    "n": 2
+   },
+   {
+    "id": "sigil-of-suffering-red",
+    "n": 2
+   },
+   {
+    "id": "sizzle-red",
+    "n": 2
+   },
+   {
+    "id": "snatch-red",
+    "n": 2
+   },
+   {
+    "id": "sprout-strength-red",
+    "n": 2
+   },
+   {
+    "id": "static-shock-red",
+    "n": 2
+   },
+   {
+    "id": "weave-lightning-red",
+    "n": 2
+   },
+   {
+    "id": "arcanic-shockwave-yel",
+    "n": 1
+   },
+   {
+    "id": "sigil-of-suffering-yel",
+    "n": 2
+   },
+   {
+    "id": "sigil-of-voltaris-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "flourish-yel",
+    "n": 2
+   },
+   {
+    "id": "ravenous-rabble-red",
+    "n": 2
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "star-fall",
+   "helm-of-might-and-magic",
+   "garland-of-spring",
+   "swiftstrike-bracers",
+   "blade-beckoner-boots"
+  ],
+  "rule": "Briar's list from the Pro Tour: Yokohama (2nd). Star Fall, Helm of Might and Magic, Garland of Spring, Swiftstrike Bracers and Blade Beckoner Boots start equipped. The default leaves Flourish (a replacement effect on any power gain, not yet implemented), two Ravenous Rabble and two Scar for a Scar in the sideboard.",
+  "registered": true
  },
  "bravo-flattering-showman": {
   "id": "bravo-flattering-showman",
@@ -6629,7 +6846,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 4
+  "poolCompiled": 6
  },
  "dorinthea": {
   "id": "dorinthea",

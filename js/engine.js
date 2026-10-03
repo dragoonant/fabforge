@@ -91,12 +91,14 @@
     const from = zoneArr(s, c);
     if (from) { const i = from.indexOf(iid); if (i >= 0) from.splice(i, 1); }
     const prev = c.zone;
+    if (c.rbBase && zone !== 'stack' && zone !== 'chain') { c.id = c.rbBase; delete c.rbBase; }   // [runeblades] CR 9.2.3: a split-card is one side only while it is on the stack; anywhere else it is the whole card
     if (FAB.cards[c.id].kind === 'token' && zone !== 'arena') zone = 'gone';   // a token leaving the arena ceases to exist
     c.zone = zone;
-    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; } }
+    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; delete c.fused; } }   // [runeblades] c.fused: Fusion was paid (CR 8.3.17a)
     c.faceUp = !o.faceDown;
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
+    if (zone === 'arena' && prev !== 'arena') FAB.rbEnter(s, iid);   // [runeblades] "enters the arena with N counters" and the enter event
     if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });
     if (zone === 'arena' && prev !== 'arena') emit(s, { t: 'br_enterArena', iid: iid, ctrl: c.owner });   // [brutes] "When this enters the arena" (Rites of Earthlore, Draw a Crowd)
     if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"   // "When this leaves the arena" (CR 6.6)
@@ -532,8 +534,8 @@
   // abIdx: the index of an activated ability on that card; omitted, the cost of playing the card.
   const isActionSrc = (d, ab) => ab ? ab.type === 'action' : d.kind === 'action';
   const costRedFits = (d, e) => (!e.f.aa || isAttackDef(d)) && (!e.f.klass || e.f.klass.every(k => d.types.includes(k)));
-  FAB.costOf = function (s, iid, abIdx) {
-    const c = I(s, iid), d = FAB.cards[c.id], ab = abIdx == null ? null : d.ab[abIdx];
+  FAB.costOf = function (s, iid, abIdx, as) {                       // [runeblades] `as`: the side of a split-card being considered (CR 5.1.2c)
+    const c = I(s, iid), d = FAB.cards[as || c.id], ab = abIdx == null ? null : d.ab[abIdx];
     // [shadow] CR 8.3.27: a rune-gated card is played without paying its {r} cost (in the banished zone: if it could be rune gated; on the stack: if it was)
     const gated = !ab && d.kw.runeGate && (c.zone === 'banish' ? FAB.banishWay(s, iid) === 'rune' : c.mods.some(m => m.gate === 'rune'));
     const n = ab ? (ab.cost.r || 0) : gated ? 0 : (d.cost || 0);
@@ -546,6 +548,7 @@
       if (e.k === 'costRed' && !ab && costRedFits(d, e)) red += e.n;                              // Seismic Surge
     }
     for (const f of FAB.costMods) red += f(s, iid, abIdx);                                        // [mech] "this costs {r} less to play" printed on the card
+    red += FAB.rbCostRed(s, c.owner, d, ab);                                                      // [runeblades] "This costs {r} less to play for each Runechant you control"
     return Math.max(0, n + tax - red);
   };
   // Once the cost is paid, the effects that applied to it are used up.
@@ -584,9 +587,11 @@
   };
   // [shadow] CR 5.1.3c: alternative costs. key -> { can(s, who, iid), pay(x, who, iid) -> true when the alternative was declared and paid }; js/ops-*.js register them.
   FAB.altCosts = {};
-  const canPlay = FAB.canPlay = function (s, who, iid) {
-    const c = I(s, iid), d = FAB.cards[c.id];
+  const canPlay = FAB.canPlay = function (s, who, iid, as) {       // [runeblades] `as`: a side of a split-card (CR 5.1.2c); omitted, the card may be played if any side may
+    const c = I(s, iid), d = FAB.cards[as || c.id];
     if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal' && !(c.zone === 'banish' && FAB.banishWay(s, iid)))) return false;
+    const split = d.ab.find(a => a.k === 'rb_split');
+    if (split && !as) return split.variants.some(v => canPlay(s, who, iid, v));
     const link = activeLink(s);
     switch (d.kind) {
       case 'action': if (!actionTiming(s, who, isAttackDef(d))) return false; break;
@@ -608,7 +613,7 @@
     }
     const extra = d.ab.filter(a => a.k === 'addCost' && a.cost.discardRandom).length;
     if (d.ab.some(a => a.k === 'altCost' && FAB.altCosts[a.alt].can(s, who, iid))) return true;   // [shadow] CR 5.1.3c
-    return canPay(s, who, FAB.costOf(s, iid), iid, extra);
+    return canPay(s, who, FAB.costOf(s, iid, null, as), iid, extra);
   };
   // [shadow] effect-costs beyond the core ones (CR 5.1.9): ab.cost[key] is handled by FAB.costExt[key] = { can(s, who, iid, val), pay(x, who, iid, val) }.
   FAB.costExt = {};
@@ -663,6 +668,7 @@
     if (canPlay(s, who, iid)) return null;
     const c = I(s, iid), d = FAB.cards[c.id], link = activeLink(s);
     if (d.kind === 'block') return 'A block card cannot be played; it can only defend.';
+    if (d.ab.some(a => a.k === 'rb_split')) return 'Neither side of this split card can be played right now.';   // [runeblades]
     if (s.priority !== who) return 'You do not have priority.';
     if (d.kind === 'action') {
       if (who !== s.tp) return 'Actions can only be played on your own turn.';
@@ -710,6 +716,7 @@
     for (const e of s.effects) {
       if (e.k === 'next' && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f)) {
         L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src, ...(e.cp ? { cp: e.cp } : {}), ...(e.hitOps ? { hitOps: e.hitOps } : {}) });   // extras carried onto the attack: cp, hitOps
+        if (e.grantFused && I(s, L.iid).fused) L.mods.push({ p: 0, grant: e.grantFused, src: e.src });   // [runeblades] "If it's fused, it gets go again" (CR 8.3.17a)
         log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
       } else keep.push(e);
     }
@@ -730,11 +737,16 @@
 
   FAB.playHooks = [];       // [shadow] (s, L, c, d) => void, run for every card played; js/ops-*.js register
   EXEC.play = function (x) {
-    const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], p = P(s, who);
+    const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), p = P(s, who);
+    let d = FAB.cards[c.id];
     const fromArsenal = c.zone === 'arsenal';
     const way = c.zone === 'banish' ? FAB.banishWay(s, iid) : null;                          // [shadow] how a card from the banished zone is allowed to be played (CR 5.1.3d)
-    const L = { lid: s.lid++, kind: 'card', ctrl: who, iid: iid, isAttack: isAttackDef(d), mods: [], tgt: null };
+    let side = null;
+    const split = d.ab.find(a => a.k === 'rb_split');                                       // [runeblades] CR 5.1.2c: a split-card is announced as one of its sides (both, with meld)
+    if (split) side = ask(x, { who: who, kind: 'rb_side', src: iid, opts: split.variants.filter(v => canPlay(s, who, iid, v)).map(v => ({ id: v })), cancel: true });
+    const L = { lid: s.lid++, kind: 'card', ctrl: who, iid: iid, isAttack: isAttackDef(split ? FAB.cards[side] : d), mods: [], tgt: null };
     move(s, iid, 'stack');                                                                  // CR 5.1.2 announce
+    if (split) { c.rbBase = c.id; c.id = side; d = FAB.cards[side]; }                       // [runeblades] CR 9.2.3: for the rest of its time on the stack it has only that side
     c.fromArsenal = fromArsenal;
     if (way) c.mods.push({ gate: way });                                                    // [shadow] a marker that lives exactly as long as the card is on the stack/chain
     let extra = 0;                                                                          // CR 5.1.3b: optional additional costs are declared first
@@ -747,6 +759,7 @@
     if (d.kw.boost) FAB.me_boost(x, L, c, d);                                               // [mech] CR 8.3.9: boost is an optional additional cost
     for (const ab of d.ab) if (ab.k === 'fusion') FAB.fuse(x, who, iid, ab);                // [elemguard] CR 8.3.17: the optional reveal is declared with the other additional costs
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.opt && ab.cost.discard6) FAB.br_beatChest(x, who, iid);   // [brutes] CR 8.3.33 Beat Chest: an optional additional cost, declared with the others
+    for (const ab of d.ab) if (ab.k === 'rb_fusion') FAB.rbFuse(x, who, iid, ab);          // [runeblades] CR 8.3.17: Fusion is an optional additional cost, declared with the other costs (CR 5.1.3b)
     const res = d.ab.find(a => a.k === 'res');
     let tgt = res ? res.tgt : null;
     if (res && res.modes) {                                                                 // CR 5.1.4a, 1.7.5a: modes are declared as the card is played
@@ -778,6 +791,7 @@
     if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
+    FAB.rbPlayed(s, who, iid, d);                                                           // [runeblades] this turn's plays are remembered ("if you've played a Lightning card this turn") and announced to any player's triggers
     setPriority(s, who);                                                                    // CR 5.1.10
   };
 
@@ -852,6 +866,11 @@
         } else move(s, L.iid, 'grave');
       } else {
         const res = d.ab.find(a => a.k === 'res');
+        if (d.rbMeld && !L.rbFirst) {                                                       // [runeblades] CR 5.3.4d: a melded layer's first resolution generates only the right side's effects, then stops; it stays on the stack
+          FAB.runOps(X, d.rbMeld.right); L.rbFirst = true; s.stack.push(L);
+          if (s.flow === 'action' && s.sub !== 'begin' && !s.closing && s.winner == null) setPriority(s, s.tp);
+          return;
+        }
         if (res) FAB.runOps(X, res.modes ? res.modes[L.mode].ops : res.ops);
         if (d.kw.goAgain || c.mods.some(m => m.grant === 'goAgain')) P(s, L.ctrl).ap++;   // [shadow] + go again granted to this card as it was played (Chane)
         if (c.zone === 'stack') move(s, L.iid, d.types.includes('Aura') || d.types.includes('Item') ? 'arena' : 'grave');

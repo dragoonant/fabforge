@@ -1,1 +1,12 @@
-{}
+{
+  "briar-pt-yokohama": {
+    "rule": "Briar's list from the Pro Tour: Yokohama (2nd). Star Fall, Helm of Might and Magic, Garland of Spring, Swiftstrike Bracers and Blade Beckoner Boots start equipped. The default leaves Flourish (a replacement effect on any power gain, not yet implemented), two Ravenous Rabble and two Scar for a Scar in the sideboard.",
+    "loadout": ["star-fall", "helm-of-might-and-magic", "garland-of-spring", "swiftstrike-bracers", "blade-beckoner-boots"],
+    "cut": [["flourish-yel", 2], ["ravenous-rabble-red", 2], ["scar-for-a-scar-red", 2]]
+  },
+  "florian-pt-yokohama": {
+    "rule": "Florian's list from the Pro Tour: Yokohama (5th). Scepter of Pain, Garland of Spring, Nullrune Gloves and Well Grounded start equipped. The default leaves two Sift, a Sigil of Silphidae and two Harvest Season in the sideboard.",
+    "loadout": ["scepter-of-pain", "garland-of-spring", "nullrune-gloves", "well-grounded"],
+    "cut": [["sift-blu", 2], ["sigil-of-silphidae-blu", 1], ["harvest-season-red", 2]]
+  }
+}
