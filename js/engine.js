@@ -265,6 +265,26 @@
     }
     return n;
   };
+  // [shadow] The life doors. Losing life for a reason other than damage is not damage (CR 8.5.3d, 8.5.12b): nothing prevents it, no damage event fires, it is not a hit.
+  FAB.loseLife = function (s, who, n, src) {
+    const p = P(s, who);
+    p.life -= n;
+    log(s, 'sh_lifeLoss', { who: who, n: n, c: src != null ? I(s, src).id : null, life: p.life });
+    if (p.life <= 0 && s.winner == null) {                                   // CR 4.5.3a
+      s.winner = P(s, 1 - who).life <= 0 ? 'draw' : 1 - who;
+      log(s, 'win', { who: s.winner });
+    }
+    return n;
+  };
+  // Gaining life. A permanent saying "If a hero has more {h} than each other hero, they can't gain {h}" (Reaping Blade) is a rule on {k:'rule', rule:'sh_noGainLeader'}.
+  FAB.gainLife = function (s, who, n) {
+    const p = P(s, who), other = P(s, 1 - who);
+    const barred = s.players.some(q => [q.hero].concat(q.weapons, q.equip, q.arena).some(i => FAB.cards[I(s, i).id].ab.some(a => a.k === 'rule' && a.rule === 'sh_noGainLeader')));
+    if (barred && p.life > other.life) { log(s, 'sh_noGain', { who: who, n: n }); return 0; }
+    p.life += n;
+    log(s, 'life', { who: who, n: n, life: p.life });
+    return n;
+  };
 
   // -------------------------------------------------------------------------------------------
   // Triggers (CR 6.6). A triggered effect becomes a layer on the stack; nothing resolves inline.
@@ -291,14 +311,15 @@
     const seen = new Set();
     const scan = iid => {
       if (seen.has(iid)) return; seen.add(iid);
-      const ab = FAB.cards[I(s, iid).id].ab, inHand = I(s, iid).zone === 'hand';
-      for (let i = 0; i < ab.length; i++) if (ab[i].k === 'trig' && (ab[i].zone === 'hand') === inHand && trigMatch(s, ab[i], iid, ev)) {   // hidden triggers (Heave) work only in hand
+      const ab = FAB.cards[I(s, iid).id].ab, inHand = I(s, iid).zone === 'hand', inBan = I(s, iid).zone === 'banish';
+      if (inBan && !I(s, iid).faceUp) return;                                           // [shadow] CR 5.4.7a: a while-static (Blood Debt) is not functional on a private card
+      for (let i = 0; i < ab.length; i++) if (ab[i].k === 'trig' && (ab[i].zone === 'hand') === inHand && (ab[i].zone === 'banish') === inBan && trigMatch(s, ab[i], iid, ev)) {   // hidden triggers (Heave) work only in hand; [shadow] zone:'banish' only in the banished zone
         s.trigs.push({ iid: iid, ab: i, ctrl: I(s, iid).owner, ev: ev, linkN: s.chain && s.chain.links.length ? s.chain.links.length - 1 : null });
       }
     };
     for (const seat of [s.tp, 1 - s.tp]) {
       const p = P(s, seat);
-      scan(p.hero); p.weapons.forEach(scan); p.equip.forEach(scan); p.arena.slice().forEach(scan); p.hand.slice().forEach(scan);
+      scan(p.hero); p.weapons.forEach(scan); p.equip.forEach(scan); p.arena.slice().forEach(scan); p.hand.slice().forEach(scan); p.banish.slice().forEach(scan);   // [shadow] Blood Debt works in the banished zone
     }
     if (s.chain) for (const l of s.chain.links) { if (!l.weapon && I(s, l.iid).zone === 'chain') scan(l.iid); l.defs.forEach(e => { if (I(s, e.iid).zone === 'chain') scan(e.iid); }); }
     for (const L of s.stack) if (L.kind === 'card') scan(L.iid);
@@ -427,6 +448,7 @@
     setPriority(s, s.tp);
   }
   function finishClose(s) {                                                                // CR 7.7.5-7.7.7
+    emit(s, { t: 'sh_chainClose' });                                                       // [shadow] "When the combat chain closes": the attacks are still on the chain
     for (const link of s.chain.links) {
       if (!link.weapon && I(s, link.iid).zone === 'chain') move(s, link.iid, 'grave');
       for (const e of link.defs) {
@@ -484,8 +506,11 @@
   const costRedFits = (d, e) => (!e.f.aa || isAttackDef(d)) && (!e.f.klass || e.f.klass.every(k => d.types.includes(k)));
   FAB.costOf = function (s, iid, abIdx) {
     const c = I(s, iid), d = FAB.cards[c.id], ab = abIdx == null ? null : d.ab[abIdx];
-    const n = ab ? (ab.cost.r || 0) : (d.cost || 0);
+    // [shadow] CR 8.3.27: a rune-gated card is played without paying its {r} cost (in the banished zone: if it could be rune gated; on the stack: if it was)
+    const gated = !ab && d.kw.runeGate && (c.zone === 'banish' ? FAB.banishWay(s, iid) === 'rune' : c.mods.some(m => m.gate === 'rune'));
+    const n = ab ? (ab.cost.r || 0) : gated ? 0 : (d.cost || 0);
     let tax = 0, red = 0;
+    if (!ab) for (const a of d.ab) if (a.k === 'selfCostRed') red += FAB.num({ s: s, ctrl: c.owner, iid: iid, flags: {} }, a.n);   // [shadow] "This costs {r} less to play for each ..."
     for (const e of s.effects) {
       if (e.who !== c.owner) continue;
       if (e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) tax += e.n;                 // Cartilage Crush
@@ -516,9 +541,21 @@
     if (r && !(D(s, link.iid).power <= r.n)) return false;
     return true;
   }
+  // [shadow] CR 5.1.1a, 5.1.2b, 8.3.27: a card in the banished zone may be played when a play-static ability says so, and only while it is public (CR 5.4.4).
+  // 'rune' = Rune Gate (as many Runechants as its cost; its {r} cost is not paid); 'banish' = "You may play this from your banished zone".
+  // (No card in the pool has both; if one did, the player would declare which rule applies, CR 5.1.3d.)
+  FAB.banishWay = function (s, iid) {
+    const c = I(s, iid), d = FAB.cards[c.id];
+    if (c.zone !== 'banish' || !c.faceUp) return null;
+    if (d.kw.runeGate && P(s, c.owner).arena.filter(i => I(s, i).id === 'runechant').length >= (d.cost || 0)) return 'rune';
+    if (d.kw.playBanished) return 'banish';
+    return null;
+  };
+  // [shadow] CR 5.1.3c: alternative costs. key -> { can(s, who, iid), pay(x, who, iid) -> true when the alternative was declared and paid }; js/ops-*.js register them.
+  FAB.altCosts = {};
   const canPlay = FAB.canPlay = function (s, who, iid) {
     const c = I(s, iid), d = FAB.cards[c.id];
-    if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal')) return false;
+    if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal' && !(c.zone === 'banish' && FAB.banishWay(s, iid)))) return false;
     const link = activeLink(s);
     switch (d.kind) {
       case 'action': if (!actionTiming(s, who, isAttackDef(d))) return false; break;
@@ -539,8 +576,11 @@
       if (ab.k === 'res' && ab.modes && !ab.modes.some(m => legalTarget(s, link, m.tgt))) return false;
     }
     const extra = d.ab.filter(a => a.k === 'addCost' && a.cost.discardRandom).length;
+    if (d.ab.some(a => a.k === 'altCost' && FAB.altCosts[a.alt].can(s, who, iid))) return true;   // [shadow] CR 5.1.3c
     return canPay(s, who, FAB.costOf(s, iid), iid, extra);
   };
+  // [shadow] effect-costs beyond the core ones (CR 5.1.9): ab.cost[key] is handled by FAB.costExt[key] = { can(s, who, iid, val), pay(x, who, iid, val) }.
+  FAB.costExt = {};
   const canAct = FAB.canAct = function (s, who, iid, i) {
     const c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[i];
     if (c.owner !== who || ab.k !== 'act') return false;
@@ -549,6 +589,8 @@
     if (zone === 'hand' && c.zone !== 'hand') return false;
     if (zone === 'chain' && c.zone !== 'chain') return false;
     if (ab.type === 'action' && !actionTiming(s, who, !!ab.attack)) return false;
+    if (ab.type === 'ar') { const l = activeLink(s); if (!(l && s.chain.step === 'reaction' && l.ctrl === who)) return false; }   // [shadow] an attack reaction ability: CR 7.4.2a
+    for (const k in ab.cost) if (FAB.costExt[k] && !FAB.costExt[k].can(s, who, iid, ab.cost[k])) return false;                  // [shadow]
     if (ab.opt) { const used = c.acts || 0, extra = c.extra || 0; if (used >= 1 + extra) return false; }                // CR 5.2.3
     if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
     if (ab.cond && !FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, ab.cond)) return false;
@@ -566,7 +608,7 @@
     }
     if (s.priority == null) throw new Error('nobody holds priority and nothing is pending');
     const who = s.priority, p = P(s, who), out = [];
-    for (const iid of p.hand.concat(p.arsenal)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });
+    for (const iid of p.hand.concat(p.arsenal, p.banish)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });   // [shadow] + the banished zone (CR 5.1.1a)
     const srcs = [p.hero].concat(p.weapons, p.equip, p.arena, p.hand);
     if (s.chain) for (const l of s.chain.links) for (const e of l.defs) if (I(s, e.iid).owner === who && I(s, e.iid).zone === 'chain') srcs.push(e.iid);
     for (const iid of srcs) {
@@ -635,7 +677,7 @@
     const keep = [];
     for (const e of s.effects) {
       if (e.k === 'next' && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f)) {
-        L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src });
+        L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src, ...(e.hitOps ? { hitOps: e.hitOps } : {}) });   // [shadow] a granted "When this hits, ..."
         log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
       } else keep.push(e);
     }
@@ -654,12 +696,15 @@
   }
   function openChain(s) { if (!s.chain) s.chain = { links: [], queue: [], step: 'layer' }; else s.chain.step = 'layer'; }   // CR 7.0.2a
 
+  FAB.playHooks = [];       // [shadow] (s, L, c, d) => void, run for every card played; js/ops-*.js register
   EXEC.play = function (x) {
     const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], p = P(s, who);
     const fromArsenal = c.zone === 'arsenal';
+    const way = c.zone === 'banish' ? FAB.banishWay(s, iid) : null;                          // [shadow] how a card from the banished zone is allowed to be played (CR 5.1.3d)
     const L = { lid: s.lid++, kind: 'card', ctrl: who, iid: iid, isAttack: isAttackDef(d), mods: [], tgt: null };
     move(s, iid, 'stack');                                                                  // CR 5.1.2 announce
     c.fromArsenal = fromArsenal;
+    if (way) c.mods.push({ gate: way });                                                    // [shadow] a marker that lives exactly as long as the card is on the stack/chain
     let extra = 0;                                                                          // CR 5.1.3b: optional additional costs are declared first
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.opt && canPay(s, who, FAB.costOf(s, iid) + extra + ab.cost.r, null, 0)) {
       if (ask(x, { who: who, kind: 'may', what: 'optCost', src: iid, cost: ab.cost.r, opts: [{ id: 'yes' }, { id: 'no' }], cancel: true }) === 'yes') {
@@ -681,7 +726,8 @@
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
     if (d.kind === 'action') p.ap -= 1;                                                     // CR 5.1.6b
-    payRes(x, who, FAB.costOf(s, iid) + extra, iid);                                        // CR 5.1.7
+    // [shadow] CR 5.1.3c: a declared alternative cost replaces the asset-cost (Soul Reaping)
+    if (!d.ab.some(a => a.k === 'altCost' && FAB.altCosts[a.alt].pay(x, who, iid))) payRes(x, who, FAB.costOf(s, iid) + extra, iid);   // CR 5.1.7
     spendCostFx(s, who, d, null);
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.cost.discardRandom) {               // CR 5.1.9 effect-costs
       if (!p.hand.length) throw new Illegal('no card to discard');
@@ -690,7 +736,9 @@
     }
     s.stack.push(L);
     p.h.played++;
-    log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : 'hand' });
+    log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : way ? 'banish' : 'hand' });
+    if (way) log(s, 'sh_gate', { who: who, c: d.id, way: way });                            // [shadow] said in words by js/text-shadow.js
+    for (const f of FAB.playHooks) f(s, L, c, d);                                           // [shadow] continuous effects that attach to the card as it is played (CR 5.1.2a)
     if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
@@ -716,6 +764,7 @@
     log(s, 'activate', { who: who, c: d.id, attack: !!ab.attack });
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
+    for (const k in ab.cost) if (FAB.costExt[k]) FAB.costExt[k].pay(x, who, iid, ab.cost[k]);   // [shadow] effect-costs (CR 5.1.9)
     s.stack.push(L);
     if (L.isAttack) { applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }
     setPriority(s, who);
@@ -748,6 +797,8 @@
     } else {
       log(s, 'resolve', { who: L.ctrl, c: d.id });
       if (d.kind === 'dr') {                                                                // CR 7.4.2d, 8.1.3b
+        const dres = d.ab.find(a => a.k === 'res');                                         // [shadow] a defense reaction's printed effects resolve before it defends (CR 7.4.2d)
+        if (dres) FAB.runOps(X, dres.ops);
         const link = activeLink(s);
         if (link && s.chain.step === 'reaction' && canDefendWith(s, link, L.iid, !c.fromArsenal, false)) {
           const from = c.fromArsenal ? 'arsenal' : 'hand';
@@ -760,10 +811,13 @@
       } else {
         const res = d.ab.find(a => a.k === 'res');
         if (res) FAB.runOps(X, res.modes ? res.modes[L.mode].ops : res.ops);
-        if (d.kw.goAgain) P(s, L.ctrl).ap++;
+        if (d.kw.goAgain || c.mods.some(m => m.grant === 'goAgain')) P(s, L.ctrl).ap++;   // [shadow] + go again granted to this card as it was played (Chane)
         if (c.zone === 'stack') move(s, L.iid, d.types.includes('Aura') || d.types.includes('Item') ? 'arena' : 'grave');
         if (c.zone === 'arena' && d.kw.suspense) {                                          // CR 8.3.42: enters with 2 suspense counters
           c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
+        }
+        if (c.zone === 'arena' && d.kw.verse) {                                             // [shadow] "This enters the arena with N verse counters" (applied as it enters, like Suspense)
+          c.counters.verse = d.kw.verse; log(s, 'sh_counter', { who: c.owner, c: c.id, k: 'verse', n: d.kw.verse, left: d.kw.verse });
         }
       }
     }

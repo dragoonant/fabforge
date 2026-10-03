@@ -10,7 +10,7 @@
   const D = (s, iid) => FAB.cards[s.cards[iid].id];
 
   // Weights. A card in hand is worth about what it blocks; life is worth more when it is short.
-  const W = { blockHigh: 1.5, blockMid: 1.25, card: 3.0, arsenal: 2.6, equipDef: 0.7, token: 1.2, counter: 1.0, lowLife: 8, lowLifeExtra: 0.7, next: 0.6 };
+  const W = { shackle: 2.5, bloodDebt: 2.5, blockHigh: 1.5, blockMid: 1.25, card: 3.0, arsenal: 2.6, equipDef: 0.7, token: 1.2, counter: 1.0, lowLife: 8, lowLifeExtra: 0.7, next: 0.6 };
   FAB.aiWeights = W;
 
   function lifeScore(l) { return l + (l < W.lowLife ? -(W.lowLife - l) * W.lowLifeExtra : 0); }
@@ -22,6 +22,8 @@
       let x = lifeScore(p.life) + p.hand.length * W.card + p.arsenal.length * W.arsenal + p.arena.length * W.token;
       for (const iid of p.equip) x += FAB.defenseOf(s, iid, null) * W.equipDef;
       for (const iid of p.weapons) x += (s.cards[iid].counters.p || 0) * W.counter;
+      for (const iid of p.banish) if (s.cards[iid].faceUp && FAB.cards[s.cards[iid].id].kw.bloodDebt) x -= W.bloodDebt;   // [shadow] a face-up blood debt card costs life every end phase until it is played
+      for (const iid of p.arena) if (s.cards[iid].id === 'soul-shackle') x -= W.shackle;   // [shadow] it is a token (counted above) that banishes a card from the deck every turn: not a gain
       v += sign * x;
     }
     for (const e of s.effects) if (e.k === 'next') v += (e.ctrl === me ? 1 : -1) * W.next;

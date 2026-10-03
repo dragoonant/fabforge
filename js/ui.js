@@ -65,7 +65,10 @@
       if (q.cancel) btns.push({ a: { type: 'cancel' }, label: 'Cancel', cls: 'ghost' });
     } else {
       for (const a of FAB.legalActions(s)) {
-        if (a.type === 'play') add(a.iid, a, 'Play ' + FAB.cards[s.cards[a.iid].id].name + ' (costs ' + FAB.costOf(s, a.iid) + ')');
+        if (a.type === 'play') {
+          add(a.iid, a, 'Play ' + FAB.cards[s.cards[a.iid].id].name + (s.cards[a.iid].zone === 'banish' ? ' from your banished zone' : '') + ' (costs ' + FAB.costOf(s, a.iid) + ')');
+          if (s.cards[a.iid].zone === 'banish' && !tray.includes(a.iid)) tray.push(a.iid);     // [shadow] a banished card is playable from the prompt tray as well as from the banished viewer
+        }
         else if (a.type === 'act') { const d = FAB.cards[s.cards[a.iid].id], ab = d.ab[a.ab]; add(a.iid, a, (ab.attack ? 'Attack with ' + d.name : 'Use ' + d.name + '’s ability') + ' (costs ' + FAB.costOf(s, a.iid, a.ab) + ')'); }
         else if (a.type === 'pass') btns.push({ a: a, label: T.passLabel(s), cls: 'primary' });
       }
@@ -179,13 +182,13 @@
     return `<div class="log"><div class="loghead">Log <span>turn ${s.turn}</span></div><div class="loglines" id="loglines">${h}</div></div>`;
   }
 
-  function modalHTML(s) {
+  function modalHTML(s, am) {
     if (!ui.modal) return '';
     const [zone, seatS] = ui.modal.split(':'), seat = +seatS, p = s.players[seat];
     const ids = zone === 'grave' ? p.grave : p.banish;
     const shown = ids.filter(i => s.cards[i].faceUp), hidden = ids.length - shown.length;
     return `<div class="modal" data-ui="closemodal"><div class="mbox"><div class="mtitle">${T.who(s, seat, ui.human) === 'You' ? 'Your' : T.who(s, seat, ui.human) + '’s'} ${zone === 'grave' ? 'graveyard' : 'banished zone'} — ${ids.length} card${ids.length === 1 ? '' : 's'}${hidden ? ` (${hidden} face-down)` : ''}</div>
-      <div class="mcards">${shown.map(i => face(s, s.cards[i].id, { iid: i })).join('') || '<div class="empty">nothing to see</div>'}</div><button class="btn" data-ui="closemodal">Close</button></div></div>`;
+      <div class="mcards">${shown.map(i => face(s, s.cards[i].id, { iid: i, acts: am.m[i] })).join('') || '<div class="empty">nothing to see</div>'}</div><button class="btn" data-ui="closemodal">Close</button></div></div>`;
   }
 
   function render() {
@@ -206,7 +209,7 @@
         ${logHTML(s)}
       </div>
       ${ui.spot ? `<div class="spot">${face(s, ui.spot.id, { cls: 'big' })}<div class="spotlbl">${esc(ui.spot.label)}</div></div>` : ''}
-      ${modalHTML(s)}
+      ${modalHTML(s, am)}
       ${ui.menu ? `<div class="cmenu" style="left:${ui.menu.x}px;top:${ui.menu.y}px">${ui.menu.items.map((it, i) => `<button class="btn" data-menu="${i}">${esc(it.label)}</button>`).join('')}<button class="btn ghost" data-menu="-1">Never mind</button></div>` : ''}
       <div id="zoom" class="zoom"></div>
     </div>`;
@@ -273,7 +276,7 @@
     const u = t.closest('[data-ui]');
     if (u) {
       const k = u.getAttribute('data-ui');
-      if (k === 'closemodal') { if (t === u || t.tagName === 'BUTTON') { ui.modal = null; render(); } return; }
+      if (k === 'closemodal') { if (t === u || t.tagName === 'BUTTON') { ui.modal = null; render(); return; } if (!t.closest('[data-acts]')) return; ui.modal = null; }   // [shadow] a playable banished card inside the viewer can be clicked
       if (k === 'again') return FAB.main.start(ui.setup, true);
       if (k === 'menu') return FAB.main.menu();
       if (k === 'howto') return FAB.main.howto();

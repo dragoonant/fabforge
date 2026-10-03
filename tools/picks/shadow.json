@@ -1,1 +1,7 @@
-{}
+{
+  "chane-bh-hong-kong": {
+    "rule": "Chane's list from Battle Hardened: Hong Kong (1st). The default 40 leaves the two Pummel, both Right Behind You, the Sift and the Timesnap Potion in the sideboard: generic cards that do nothing for the Runechant, banish and rune gate plan. The Nullrune pieces, the Blade Beckoner pieces and the second pair of arms/legs stay in the sideboard too (one piece per slot).",
+    "loadout": ["reaping-blade", "ebon-fold", "bloodtorn-bodice", "runehold-release", "sutcliffes-suede-hides"],
+    "cut": [["pummel-red", 2], ["right-behind-you-blu", 2], ["sift-blu", 1], ["timesnap-potion-blu", 1]]
+  }
+}
