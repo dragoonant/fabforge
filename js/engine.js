@@ -214,6 +214,10 @@
   // The one damage door (CR 8.5.3). Prevention is applied here and nowhere else.
   // Extension registries: js/ops-*.js add to these; the core never needs editing for a new trigger kind.
   FAB.aiPolicy = {};                 // question kind -> (s, q, helpers) => option id; read by js/ai.js
+  // [wizards] registries read by canPlay / EXEC.play / canAct / EXEC.act. Empty unless an extension file fills them.
+  FAB.asInstant = [];                // (s, who, iid) => true when a rule lets this non-attack action card be played as though it were an instant (CR 8.1.1d)
+  FAB.playHooks = [];                // (s, L, d, c) called as a card is put on the stack, after its costs are paid
+  FAB.costHooks = {};                // cost key on an activated ability -> { can(s, who, iid, ab), pay(x, who, iid, ab, L) }
   FAB.trigMatchers = {
     toGrave: (s, ab, iid, ev) => ev.iid === iid,
     playAttack: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner,
@@ -249,6 +253,7 @@
     for (const e of s.effects) {
       if (e.k !== 'prevent' || e.who !== o.to || e.n <= 0 || n <= 0) continue;
       if (e.srcIid != null && e.srcIid !== o.src) continue;
+      if (e.kind && e.kind !== o.kind) continue;                                   // [wizards] Dampen: "prevent the next X arcane damage"
       const k = Math.min(n, e.n); n -= k; e.n -= k;
       log(s, 'prevent', { who: o.to, n: k, c: I(s, e.by).id });
     }
@@ -516,12 +521,18 @@
     if (r && !(D(s, link.iid).power <= r.n)) return false;
     return true;
   }
+  // [wizards] "you may play this as though it were an instant": a non-attack action card that a rule lets be played at instant speed (CR 8.1.1d).
+  const instantPlay = (s, who, iid) => {
+    const d = D(s, iid);
+    return d.kind === 'action' && !isAttackDef(d) && FAB.asInstant.some(f => f(s, who, iid));
+  };
   const canPlay = FAB.canPlay = function (s, who, iid) {
     const c = I(s, iid), d = FAB.cards[c.id];
-    if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal')) return false;
+    const inst = instantPlay(s, who, iid);
+    if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal' && !(c.zone === 'banish' && inst))) return false;   // [wizards] a banished card is playable only by a rule that says so
     const link = activeLink(s);
     switch (d.kind) {
-      case 'action': if (!actionTiming(s, who, isAttackDef(d))) return false; break;
+      case 'action': if (!inst && !actionTiming(s, who, isAttackDef(d))) return false; break;
       case 'instant': break;
       case 'ar': if (!(link && s.chain.step === 'reaction' && link.ctrl === who)) return false; break;                 // CR 7.4.2a
       case 'dr':                                                                                                       // CR 7.4.2b-c
@@ -551,6 +562,7 @@
     if (ab.type === 'action' && !actionTiming(s, who, !!ab.attack)) return false;
     if (ab.opt) { const used = c.acts || 0, extra = c.extra || 0; if (used >= 1 + extra) return false; }                // CR 5.2.3
     if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
+    for (const k in ab.cost) if (FAB.costHooks[k] && !FAB.costHooks[k].can(s, who, iid, ab)) return false;            // [wizards] extra activation costs
     if (ab.cond && !FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, ab.cond)) return false;
     return canPay(s, who, FAB.costOf(s, iid, i), ab.cost.discardSelf ? iid : null, ab.cost.discard || 0);
   };
@@ -566,7 +578,7 @@
     }
     if (s.priority == null) throw new Error('nobody holds priority and nothing is pending');
     const who = s.priority, p = P(s, who), out = [];
-    for (const iid of p.hand.concat(p.arsenal)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });
+    for (const iid of p.hand.concat(p.arsenal, p.banish)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });   // [wizards] banished cards may be playable
     const srcs = [p.hero].concat(p.weapons, p.equip, p.arena, p.hand);
     if (s.chain) for (const l of s.chain.links) for (const e of l.defs) if (I(s, e.iid).owner === who && I(s, e.iid).zone === 'chain') srcs.push(e.iid);
     for (const iid of srcs) {
@@ -656,8 +668,10 @@
 
   EXEC.play = function (x) {
     const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], p = P(s, who);
-    const fromArsenal = c.zone === 'arsenal';
+    const fromArsenal = c.zone === 'arsenal', fromBanish = c.zone === 'banish';
     const L = { lid: s.lid++, kind: 'card', ctrl: who, iid: iid, isAttack: isAttackDef(d), mods: [], tgt: null };
+    let asInst = false;                                                                     // [wizards] CR 8.1.1d: played as though it were an instant, so no action point is spent
+    if (instantPlay(s, who, iid)) asInst = fromBanish || !actionTiming(s, who, false) || ask(x, { who: who, kind: 'wz_instant', src: iid, opts: [{ id: 'yes' }, { id: 'no' }], cancel: true }) === 'yes';
     move(s, iid, 'stack');                                                                  // CR 5.1.2 announce
     c.fromArsenal = fromArsenal;
     let extra = 0;                                                                          // CR 5.1.3b: optional additional costs are declared first
@@ -680,7 +694,7 @@
       const link = activeLink(s);
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
-    if (d.kind === 'action') p.ap -= 1;                                                     // CR 5.1.6b
+    if (d.kind === 'action' && !asInst) p.ap -= 1;                                          // CR 5.1.6b
     payRes(x, who, FAB.costOf(s, iid) + extra, iid);                                        // CR 5.1.7
     spendCostFx(s, who, d, null);
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.cost.discardRandom) {               // CR 5.1.9 effect-costs
@@ -690,7 +704,8 @@
     }
     s.stack.push(L);
     p.h.played++;
-    log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : 'hand' });
+    log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : fromBanish ? 'banish' : 'hand', inst: asInst });
+    for (const f of FAB.playHooks) f(s, L, d, c);                                           // [wizards]
     if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
@@ -712,6 +727,7 @@
       if (!opts.length) throw new Illegal('no card to discard');
       discard(s, ask(x, { who: who, kind: 'discardCost', src: iid, opts: opts, cancel: true }), false);
     }
+    for (const k in ab.cost) if (FAB.costHooks[k]) FAB.costHooks[k].pay(x, who, iid, ab, L);   // [wizards] extra activation costs, paid with the rest
     c.acts = (c.acts || 0) + 1;
     log(s, 'activate', { who: who, c: d.id, attack: !!ab.attack });
     if (ab.cost.discardSelf) discard(s, iid, false);
@@ -748,6 +764,7 @@
     } else {
       log(s, 'resolve', { who: L.ctrl, c: d.id });
       if (d.kind === 'dr') {                                                                // CR 7.4.2d, 8.1.3b
+        { const res = d.ab.find(a => a.k === 'res'); if (res) FAB.runOps(X, res.ops); }   // [wizards] a defense reaction's own effect resolves too (Absorb in Aether)
         const link = activeLink(s);
         if (link && s.chain.step === 'reaction' && canDefendWith(s, link, L.iid, !c.fromArsenal, false)) {
           const from = c.fromArsenal ? 'arsenal' : 'hand';
@@ -760,7 +777,7 @@
       } else {
         const res = d.ab.find(a => a.k === 'res');
         if (res) FAB.runOps(X, res.modes ? res.modes[L.mode].ops : res.ops);
-        if (d.kw.goAgain) P(s, L.ctrl).ap++;
+        if (d.kw.goAgain || L.goAgain) P(s, L.ctrl).ap++;                                    // [wizards] L.goAgain: "this gets go again" on a non-attack card
         if (c.zone === 'stack') move(s, L.iid, d.types.includes('Aura') || d.types.includes('Item') ? 'arena' : 'grave');
         if (c.zone === 'arena' && d.kw.suspense) {                                          // CR 8.3.42: enters with 2 suspense counters
           c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
