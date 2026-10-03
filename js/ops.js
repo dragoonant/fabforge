@@ -296,7 +296,9 @@
       const s = x.s;
       const opts = op.tgt === 'opp' ? [{ id: 1 - x.ctrl }] : [{ id: 1 - x.ctrl }, { id: x.ctrl }];
       const to = FAB.ask(x, { who: x.ctrl, kind: 'arcaneTarget', src: x.iid, n: op.n, opts: opts });
-      const dealt = FAB.dealDamage(s, { to: to, n: FAB.num(x, op.n), src: x.iid, kind: 'arcane', x: x });
+      let n = FAB.num(x, op.n);
+      if (n > 0) for (const f of FAB.arcaneMods) n = f(x, n, op);                              // [wizards] Amp and its relatives (CR 8.5.47); 0 damage cannot be modified
+      const dealt = FAB.dealDamage(s, { to: to, n: n, src: x.iid, kind: 'arcane', x: x });
       x.flags.dealt = dealt; x.flags.hero = to;
     },
     lookTop(x) {                         // "look at the top card of your deck" (CR 8.5.11): only its owner sees it
@@ -356,6 +358,7 @@
     spellvoid: (s, q) => (q.dmg >= 2 ? 'yes' : 'no'),
   });
   FAB.ops = OPS;
+  FAB.arcaneMods = [];               // [wizards] (x, n, op) => n: replacement effects on the amount of an arcane damage event; extension files push here
   FAB.runOps = function (x, ops) {
     for (const op of ops) {
       const f = OPS[op.o];

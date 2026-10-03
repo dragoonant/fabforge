@@ -563,7 +563,120 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Chanon Puttaree",
   "date": "09 Apr 2026",
-  "poolCompiled": 21
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "aether-icevein-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "arctic-incarceration-red",
+    "n": 1
+   },
+   {
+    "id": "chest-puff-red",
+    "n": 1
+   },
+   {
+    "id": "emeritus-scolding-red",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 2
+   },
+   {
+    "id": "ice-bolt-red",
+    "n": 2
+   },
+   {
+    "id": "save-the-thought-red",
+    "n": 1
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "voltic-bolt-red",
+    "n": 2
+   },
+   {
+    "id": "wounded-bull-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-twining-blu",
+    "n": 2
+   },
+   {
+    "id": "arctic-incarceration-blu",
+    "n": 2
+   },
+   {
+    "id": "emeritus-scolding-blu",
+    "n": 2
+   },
+   {
+    "id": "frosting-blu",
+    "n": 2
+   },
+   {
+    "id": "ice-bolt-blu",
+    "n": 2
+   },
+   {
+    "id": "open-the-flood-gates-blu",
+    "n": 2
+   },
+   {
+    "id": "photon-splicing-blu",
+    "n": 2
+   },
+   {
+    "id": "stir-the-aetherwinds-blu",
+    "n": 2
+   },
+   {
+    "id": "timesnap-potion-blu",
+    "n": 1
+   },
+   {
+    "id": "voltic-bolt-blu",
+    "n": 2
+   },
+   {
+    "id": "winters-bite-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "frost-spike-blu",
+    "n": 1
+   },
+   {
+    "id": "look-tuff-red",
+    "n": 2
+   },
+   {
+    "id": "chest-puff-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "crucible-of-aetherweave",
+   "nullrune-hood",
+   "spellfire-cloak",
+   "nullrune-gloves",
+   "aetherstorm-wellingtons"
+  ],
+  "rule": "Iyslander's list from the first Pro Tour, Yokohama, with the staff, Nullrune Hood, Spellfire Cloak, Nullrune Gloves and Aetherstorm Wellingtons equipped. Frost Spike is left in the sideboard because its text does not say whose exposed equipment zone receives the Frostbite, so it is not implemented; Look Tuff and one Chest Puff are cut with it to reach exactly 40.",
+  "registered": true
  },
  "enigma-calling-bangkok": {
   "id": "enigma-calling-bangkok",
@@ -1915,7 +2028,116 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Evan Herndon",
   "date": "09 Apr 2026",
-  "poolCompiled": 13
+  "poolCompiled": 34,
+  "deck": [
+   {
+    "id": "absorb-in-aether-red",
+    "n": 2
+   },
+   {
+    "id": "aether-quickening-red",
+    "n": 2
+   },
+   {
+    "id": "cindering-foresight-red",
+    "n": 2
+   },
+   {
+    "id": "emeritus-scolding-red",
+    "n": 2
+   },
+   {
+    "id": "painful-premonition-red",
+    "n": 2
+   },
+   {
+    "id": "photon-splicing-red",
+    "n": 2
+   },
+   {
+    "id": "rousing-aether-red",
+    "n": 2
+   },
+   {
+    "id": "scalding-rain-red",
+    "n": 2
+   },
+   {
+    "id": "snapback-red",
+    "n": 2
+   },
+   {
+    "id": "stir-the-aetherwinds-red",
+    "n": 1
+   },
+   {
+    "id": "voltic-bolt-red",
+    "n": 2
+   },
+   {
+    "id": "emeritus-scolding-yel",
+    "n": 2
+   },
+   {
+    "id": "aether-quickening-blu",
+    "n": 2
+   },
+   {
+    "id": "arcane-twining-blu",
+    "n": 2
+   },
+   {
+    "id": "chorus-of-the-amphitheater-blu",
+    "n": 2
+   },
+   {
+    "id": "emeritus-scolding-blu",
+    "n": 2
+   },
+   {
+    "id": "overflow-the-aetherwell-blu",
+    "n": 1
+   },
+   {
+    "id": "photon-splicing-blu",
+    "n": 2
+   },
+   {
+    "id": "rousing-aether-blu",
+    "n": 2
+   },
+   {
+    "id": "scalding-rain-blu",
+    "n": 2
+   },
+   {
+    "id": "voltic-bolt-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 2
+   },
+   {
+    "id": "energy-potion-blu",
+    "n": 2
+   },
+   {
+    "id": "overflow-the-aetherwell-blu",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "crucible-of-aetherweave",
+   "talismanic-lens",
+   "spellfire-cloak",
+   "hold-focus",
+   "aetherstorm-wellingtons"
+  ],
+  "rule": "Kano's list from the first Pro Tour, Yokohama, with the staff, Talismanic Lens, Spellfire Cloak, Hold Focus and Aetherstorm Wellingtons equipped. The sideboard keeps Fyendal's Fighting Spirit, Energy Potion and one Overflow the Aetherwell to reach exactly 40.",
+  "registered": true
  },
  "chane-bh-hong-kong": {
   "id": "chane-bh-hong-kong",
@@ -2602,7 +2824,124 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Kevin Murphy",
   "date": "30 Aug 2026",
-  "poolCompiled": 17
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "arc-ramp-red",
+    "n": 1
+   },
+   {
+    "id": "cloud-cover-red",
+    "n": 2
+   },
+   {
+    "id": "comet-collision-red",
+    "n": 2
+   },
+   {
+    "id": "comet-storm-shock-red",
+    "n": 2
+   },
+   {
+    "id": "core-reaction-red",
+    "n": 2
+   },
+   {
+    "id": "cosmic-flare-red",
+    "n": 1
+   },
+   {
+    "id": "electrostatic-discharge-red",
+    "n": 2
+   },
+   {
+    "id": "entwine-lightning-red",
+    "n": 2
+   },
+   {
+    "id": "flash-bolt-red",
+    "n": 2
+   },
+   {
+    "id": "flittering-charge-red",
+    "n": 2
+   },
+   {
+    "id": "flittering-forcefield-red",
+    "n": 1
+   },
+   {
+    "id": "lightning-press-red",
+    "n": 2
+   },
+   {
+    "id": "lightning-surge-red",
+    "n": 2
+   },
+   {
+    "id": "meteoric-impact-red",
+    "n": 2
+   },
+   {
+    "id": "second-strike-red",
+    "n": 2
+   },
+   {
+    "id": "strike-twice-red",
+    "n": 2
+   },
+   {
+    "id": "voltic-veil-red",
+    "n": 2
+   },
+   {
+    "id": "constella-contemplation-yel",
+    "n": 2
+   },
+   {
+    "id": "constella-uplift-yel",
+    "n": 2
+   },
+   {
+    "id": "sigil-of-lightning-blu",
+    "n": 1
+   },
+   {
+    "id": "starlight-road-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "ravenous-rabble-red",
+    "n": 2
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "snatch-red",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "volzar-meteor-storm",
+   "voltic-vanguard",
+   "spellfire-cloak",
+   "constella-waves",
+   "twinkle-toes"
+  ],
+  "rule": "Oscilio's list from Sunday Showdown: Kansas City 2026, with Volzar, Voltic Vanguard, Spellfire Cloak, Constella Waves and Twinkle Toes equipped. The sideboard keeps the generic attacks (Ravenous Rabble, Scar for a Scar, Snatch and Fyendal's Fighting Spirit) to reach exactly 40.",
+  "registered": true
  },
  "dorinthea-calling-london": {
   "id": "dorinthea-calling-london",
@@ -4257,7 +4596,140 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Ryo Takashima",
   "date": "11 Jul 2026",
-  "poolCompiled": 17
+  "poolCompiled": 38,
+  "deck": [
+   {
+    "id": "absorb-in-aether-red",
+    "n": 2
+   },
+   {
+    "id": "aethersling-red",
+    "n": 1
+   },
+   {
+    "id": "aether-spindle-red",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "cindering-foresight-red",
+    "n": 2
+   },
+   {
+    "id": "dampen-red",
+    "n": 1
+   },
+   {
+    "id": "emeritus-scolding-red",
+    "n": 2
+   },
+   {
+    "id": "nucleus-aetherbolt-red",
+    "n": 2
+   },
+   {
+    "id": "reverberate-red",
+    "n": 1
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 1
+   },
+   {
+    "id": "snapback-red",
+    "n": 2
+   },
+   {
+    "id": "turn-to-mindfire-red",
+    "n": 2
+   },
+   {
+    "id": "voltic-bolt-red",
+    "n": 1
+   },
+   {
+    "id": "whisper-of-the-oracle-red",
+    "n": 2
+   },
+   {
+    "id": "emeritus-scolding-yel",
+    "n": 2
+   },
+   {
+    "id": "aether-quickening-blu",
+    "n": 1
+   },
+   {
+    "id": "aether-spindle-blu",
+    "n": 2
+   },
+   {
+    "id": "arcane-twining-blu",
+    "n": 2
+   },
+   {
+    "id": "emeritus-scolding-blu",
+    "n": 2
+   },
+   {
+    "id": "open-the-flood-gates-blu",
+    "n": 1
+   },
+   {
+    "id": "photon-splicing-blu",
+    "n": 2
+   },
+   {
+    "id": "reverberate-blu",
+    "n": 1
+   },
+   {
+    "id": "voltic-bolt-blu",
+    "n": 2
+   },
+   {
+    "id": "whisper-of-the-oracle-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 2
+   },
+   {
+    "id": "ravenous-rabble-red",
+    "n": 1
+   },
+   {
+    "id": "snatch-red",
+    "n": 1
+   },
+   {
+    "id": "wounded-bull-red",
+    "n": 1
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 1
+   },
+   {
+    "id": "on-the-horizon-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "crucible-of-aetherweave",
+   "talismanic-lens",
+   "spellfire-cloak",
+   "unyielding-grip",
+   "aetherstorm-wellingtons"
+  ],
+  "rule": "Blaze's list from Sunday Showdown: Shinjuku 2026, with the staff, Talismanic Lens, Spellfire Cloak, Unyielding Grip and Aetherstorm Wellingtons equipped. The sideboard keeps the generic attacks (Fyendal's Fighting Spirit, Ravenous Rabble, Snatch, Wounded Bull, one Scar for a Scar) and On the Horizon to reach exactly 40.",
+  "registered": true
  },
  "benji-the-piercing-wind-showdown-kansas-city": {
   "id": "benji-the-piercing-wind-showdown-kansas-city",
@@ -6214,7 +6686,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 16
+  "poolCompiled": 28
  },
  "kayo": {
   "id": "kayo",
@@ -7683,7 +8155,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 15
+  "poolCompiled": 32
  },
  "boltyn": {
   "id": "boltyn",
@@ -8382,6 +8854,6 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 7
+  "poolCompiled": 8
  }
 };

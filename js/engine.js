@@ -101,7 +101,8 @@
     if (zone === 'arena' && prev !== 'arena') FAB.rbEnter(s, iid);   // [runeblades] "enters the arena with N counters" and the enter event
     if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });
     if (zone === 'arena' && prev !== 'arena') emit(s, { t: 'br_enterArena', iid: iid, ctrl: c.owner });   // [brutes] "When this enters the arena" (Rites of Earthlore, Draw a Crowd)
-    if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"   // "When this leaves the arena" (CR 6.6)
+    if (zone === 'grave' && prev !== 'grave' && FAB.cards[c.id].types.includes('Instant')) { const h = P(s, c.owner).h; h.instGrave = (h.instGrave || 0) + 1; }   // [wizards] CR 8.4.21 Starfall: instants put into your graveyard this turn
+    if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"
     return prev;
   };
   function draw(s, who, n) {
@@ -227,6 +228,7 @@
     if (f.aa && (weapon || !isAttackDef(d))) return false;
     if (f.costMin != null && !(d.cost != null && d.cost >= f.costMin)) return false;
     if (f.fromArsenal && !I(s, iid).fromArsenal) return false;                          // [brutes] "you play from arsenal" (Craterhoof)
+    if (f.costMax != null && !(d.cost != null && d.cost <= f.costMax)) return false;                // [wizards] "with cost 1 or less"
     return true;
   };
 
@@ -236,6 +238,8 @@
   FAB.costMods = [];                 // [mech] (s, iid, abIdx) => number of {r} the cost is reduced by
   FAB.arcaneHooks = [];              // [mech] (x, o, n, iid, def) => n: extra prevention inside the arcane damage door
   FAB.aiPolicy = {};                 // question kind -> (s, q, helpers) => option id; read by js/ai.js
+  // [wizards] read by canPlay / EXEC.play. Empty unless an extension file fills it.
+  FAB.asInstant = [];                // (s, who, iid) => true when a rule lets this non-attack action card be played as though it were an instant (CR 8.1.1d)
   FAB.trigMatchers = {
     toGrave: (s, ab, iid, ev) => ev.iid === iid,
     playAttack: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner,
@@ -274,7 +278,9 @@
       if (e.srcIid != null && e.srcIid !== o.src) continue;
       // [elemguard] Brush Off: "The next time you would be dealt N or less damage this turn, prevent it." Only an event of that size uses it up (CR 6.6.3).
       if (e.upTo != null) { if (n > e.upTo) continue; e.n = 0; log(s, 'prevent', { who: o.to, n: n, c: I(s, e.by).id }); n = 0; continue; }
+      if (e.kind && e.kind !== o.kind) continue;                                   // [wizards] Dampen: "prevent the next X arcane damage"
       const k = Math.min(n, e.n); n -= k; e.n -= k;
+      if (e.once) e.n = 0;                                                         // [wizards] Cloud Cover: "the next time you would be dealt damage, prevent N of that damage"
       log(s, 'prevent', { who: o.to, n: k, c: I(s, e.by).id });
     }
     if (n <= 0) return 0;
@@ -576,24 +582,30 @@
   }
   // [shadow] CR 5.1.1a, 5.1.2b, 8.3.27: a card in the banished zone may be played when a play-static ability says so, and only while it is public (CR 5.4.4).
   // 'rune' = Rune Gate (as many Runechants as its cost; its {r} cost is not paid); 'banish' = "You may play this from your banished zone".
+  // 'wz' = [wizards] "banish it ... you may play it this turn as though it were an instant" (Kano, Blaze, Reverberate): an effect names this very card.
   // (No card in the pool has both; if one did, the player would declare which rule applies, CR 5.1.3d.)
   FAB.banishWay = function (s, iid) {
     const c = I(s, iid), d = FAB.cards[c.id];
     if (c.zone !== 'banish' || !c.faceUp) return null;
     if (d.kw.runeGate && P(s, c.owner).arena.filter(i => I(s, i).id === 'runechant').length >= (d.cost || 0)) return 'rune';
     if (d.kw.playBanished) return 'banish';
+    if (s.effects.some(e => e.k === 'wz_bplay' && e.iid === iid && e.who === c.owner)) return 'wz';
     return null;
   };
   // [shadow] CR 5.1.3c: alternative costs. key -> { can(s, who, iid), pay(x, who, iid) -> true when the alternative was declared and paid }; js/ops-*.js register them.
   FAB.altCosts = {};
+  // [wizards] "you may play this as though it were an instant": a non-attack action card that a rule lets be played at instant speed (CR 8.1.1d). `d` is the side being considered.
+  const instantPlay = (s, who, iid, d) => d.kind === 'action' && !isAttackDef(d) && FAB.asInstant.some(f => f(s, who, iid));
   const canPlay = FAB.canPlay = function (s, who, iid, as) {       // [runeblades] `as`: a side of a split-card (CR 5.1.2c); omitted, the card may be played if any side may
     const c = I(s, iid), d = FAB.cards[as || c.id];
     if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal' && !(c.zone === 'banish' && FAB.banishWay(s, iid)))) return false;
     const split = d.ab.find(a => a.k === 'rb_split');
     if (split && !as) return split.variants.some(v => canPlay(s, who, iid, v));
+    const inst = instantPlay(s, who, iid, d);
+
     const link = activeLink(s);
     switch (d.kind) {
-      case 'action': if (!actionTiming(s, who, isAttackDef(d))) return false; break;
+      case 'action': if (!inst && !actionTiming(s, who, isAttackDef(d))) return false; break;
       case 'instant': break;
       case 'ar': if (!(link && s.chain.step === 'reaction' && link.ctrl === who)) return false; break;                 // CR 7.4.2a
       case 'dr':                                                                                                       // CR 7.4.2b-c
@@ -614,7 +626,7 @@
     if (d.ab.some(a => a.k === 'altCost' && FAB.altCosts[a.alt].can(s, who, iid))) return true;   // [shadow] CR 5.1.3c
     return canPay(s, who, FAB.costOf(s, iid, null, as), iid, extra);
   };
-  // [shadow] effect-costs beyond the core ones (CR 5.1.9): ab.cost[key] is handled by FAB.costExt[key] = { can(s, who, iid, val), pay(x, who, iid, val) }.
+  // [shadow] effect-costs beyond the core ones (CR 5.1.9): ab.cost[key] is handled by FAB.costExt[key] = { can(s, who, iid, val, ab), pay(x, who, iid, val, L, ab) } (L: the activation layer being built).
   FAB.costExt = {};
   const canAct = FAB.canAct = function (s, who, iid, i) {
     const c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[i];
@@ -625,7 +637,7 @@
     if (zone === 'chain' && c.zone !== 'chain') return false;
     if (ab.type === 'action' && !actionTiming(s, who, !!ab.attack)) return false;
     if (ab.type === 'ar') { const link = activeLink(s); if (!(link && s.chain.step === 'reaction' && link.ctrl === who)) return false; if (ab.tgt && !legalTarget(s, link, ab.tgt)) return false; }   // [warriors] an activated attack reaction (CR 7.4.2a), e.g. Prized Galea
-    for (const k in ab.cost) if (FAB.costExt[k] && !FAB.costExt[k].can(s, who, iid, ab.cost[k])) return false;                  // [shadow]
+    for (const k in ab.cost) if (FAB.costExt[k] && !FAB.costExt[k].can(s, who, iid, ab.cost[k], ab)) return false;                  // [shadow]
     if (ab.opt) { const used = c.acts || 0, extra = c.extra || 0; if (used >= 1 + extra) return false; }                // CR 5.2.3
     if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
     if (!FAB.me_canPayExtra(s, iid, ab.cost)) return false;                                                            // [mech]
@@ -744,6 +756,9 @@
     const split = d.ab.find(a => a.k === 'rb_split');                                       // [runeblades] CR 5.1.2c: a split-card is announced as one of its sides (both, with meld)
     if (split) side = ask(x, { who: who, kind: 'rb_side', src: iid, opts: split.variants.filter(v => canPlay(s, who, iid, v)).map(v => ({ id: v })), cancel: true });
     const L = { lid: s.lid++, kind: 'card', ctrl: who, iid: iid, isAttack: isAttackDef(split ? FAB.cards[side] : d), mods: [], tgt: null };
+    let asInst = false;                                                                     // [wizards] CR 8.1.1d: played as though it were an instant, so no action point is spent
+    if (instantPlay(s, who, iid, split ? FAB.cards[side] : d)) asInst = c.zone === 'banish' || !actionTiming(s, who, false) || ask(x, { who: who, kind: 'wz_instant', src: iid, opts: [{ id: 'yes' }, { id: 'no' }], cancel: true }) === 'yes';
+
     move(s, iid, 'stack');                                                                  // CR 5.1.2 announce
     if (split) { c.rbBase = c.id; c.id = side; d = FAB.cards[side]; }                       // [runeblades] CR 9.2.3: for the rest of its time on the stack it has only that side
     c.fromArsenal = fromArsenal;
@@ -771,9 +786,12 @@
       const link = activeLink(s);
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
-    if (d.kind === 'action') p.ap -= 1;                                                     // CR 5.1.6b
+    if (d.kind === 'action' && !asInst) p.ap -= 1;                                          // CR 5.1.6b ([wizards] not when it is played as though it were an instant)
     // [shadow] CR 5.1.3c: a declared alternative cost replaces the asset-cost (Soul Reaping)
+    const pz0 = p.pitch.length;
     if (!d.ab.some(a => a.k === 'altCost' && FAB.altCosts[a.alt].pay(x, who, iid))) payRes(x, who, FAB.costOf(s, iid) + extra, iid);   // CR 5.1.7
+    L.pitched = p.pitch.slice(pz0);                                                         // [wizards] "if a Lightning card was pitched to play this" (Bond, CR 8.4.15)
+
     spendCostFx(s, who, d, null);
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.cost.discardRandom) {               // CR 5.1.9 effect-costs
       if (!p.hand.length) throw new Illegal('no card to discard');
@@ -782,9 +800,9 @@
     }
     s.stack.push(L);
     p.h.played++;
-    log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : way ? 'banish' : 'hand' });
+    log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : way ? 'banish' : 'hand', inst: asInst });
     emit(s, { t: 'eg_use', ctrl: who });                                                    // [elemguard] "When you play a card or activate an ability" (Frostbite)
-    if (way) log(s, 'sh_gate', { who: who, c: d.id, way: way });                            // [shadow] said in words by js/text-shadow.js
+    if (way === 'rune' || way === 'banish') log(s, 'sh_gate', { who: who, c: d.id, way: way });   // [shadow] said in words by js/text-shadow.js ([wizards] 'wz' is said by the play line)
     for (const f of FAB.playHooks) f(s, L, c, d);                                           // [shadow] continuous effects that attach to the card as it is played (CR 5.1.2a)
     if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
@@ -817,7 +835,7 @@
     emit(s, { t: 'eg_use', ctrl: who });                                                    // [elemguard] "When you play a card or activate an ability" (Frostbite)
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
-    for (const k in ab.cost) if (FAB.costExt[k]) FAB.costExt[k].pay(x, who, iid, ab.cost[k]);   // [shadow] effect-costs (CR 5.1.9)
+    for (const k in ab.cost) if (FAB.costExt[k]) FAB.costExt[k].pay(x, who, iid, ab.cost[k], L, ab);   // [shadow] effect-costs (CR 5.1.9)
     s.stack.push(L);
     if (L.isAttack) { applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }
     setPriority(s, who);
@@ -870,7 +888,7 @@
           return;
         }
         if (res) FAB.runOps(X, res.modes ? res.modes[L.mode].ops : res.ops);
-        if (d.kw.goAgain || c.mods.some(m => m.grant === 'goAgain')) P(s, L.ctrl).ap++;   // [shadow] + go again granted to this card as it was played (Chane)
+        if (d.kw.goAgain || c.mods.some(m => m.grant === 'goAgain')) P(s, L.ctrl).ap++;   // [shadow] + go again granted to this card as it was played (Chane; [wizards] a non-attack action's "gets go again")
         if (c.zone === 'stack') move(s, L.iid, d.types.includes('Aura') || d.types.includes('Item') ? 'arena' : 'grave');
         if (c.zone === 'arena' && d.kw.suspense) {                                          // CR 8.3.42: enters with 2 suspense counters
           c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
