@@ -7,7 +7,7 @@
 
   Object.assign(T.lines, {
     rb_counter: (s, e, v) => e.enters
-      ? `${tag(e.c)} enters the arena with ${plural(e.n, e.k + ' counter')}.`
+      ? `${tag(e.c)} enters the arena with ${plural(e.n, (e.k === 'p' ? '+1 power' : e.k) + ' counter')}.`   // [mystics] k 'p': a +1 power counter
       : `${tag(e.c)} loses a ${e.k} counter (${plural(e.left, e.k + ' counter')} left).`,
     rb_fuse: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'reveal', 'reveals')} ${list(e.cs)} from ${e.who === v ? 'your' : 'their'} hand: ${tag(e.c)} is fused.`,
     rb_banish: (s, e, v) => e.why === 'decompose'

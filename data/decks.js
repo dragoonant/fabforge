@@ -178,7 +178,113 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Amos Norris",
   "date": "21 Jun 2026",
-  "poolCompiled": 8
+  "poolCompiled": 33,
+  "deck": [
+   {
+    "id": "astral-etchings-red",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 2
+   },
+   {
+    "id": "herald-of-protection-red",
+    "n": 2
+   },
+   {
+    "id": "herald-of-ravages-red",
+    "n": 2
+   },
+   {
+    "id": "shimmering-specter-red",
+    "n": 2
+   },
+   {
+    "id": "spears-of-surreality-red",
+    "n": 2
+   },
+   {
+    "id": "wartune-herald-red",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-yel",
+    "n": 2
+   },
+   {
+    "id": "merciful-retribution-yel",
+    "n": 2
+   },
+   {
+    "id": "celestial-resolve-blu",
+    "n": 2
+   },
+   {
+    "id": "clear-conscience-blu",
+    "n": 2
+   },
+   {
+    "id": "herald-of-protection-blu",
+    "n": 2
+   },
+   {
+    "id": "herald-of-ravages-blu",
+    "n": 2
+   },
+   {
+    "id": "herald-of-rebirth-blu",
+    "n": 2
+   },
+   {
+    "id": "herald-of-triumph-blu",
+    "n": 2
+   },
+   {
+    "id": "passing-mirage-blu",
+    "n": 2
+   },
+   {
+    "id": "pierce-reality-blu",
+    "n": 2
+   },
+   {
+    "id": "shimmering-specter-blu",
+    "n": 2
+   },
+   {
+    "id": "spears-of-surreality-blu",
+    "n": 2
+   },
+   {
+    "id": "wartune-herald-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "pummel-red",
+    "n": 2
+   },
+   {
+    "id": "unmovable-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "iris-of-reality",
+   "silken-shroud",
+   "nullrune-robe",
+   "wave-of-reality",
+   "silken-slippers"
+  ],
+  "rule": "Prism's list from the World Championship Qualifier in New Zealand (1st). Its pool is cut to 40 by leaving the two Arcane Polarity, the two Pummel and the two Unmovable in the sideboard. Iris of Reality makes Prism's Illusionist auras attack. Dream Weavers and Silent Stilettos stay in the sideboard.",
+  "grave": [],
+  "registered": true
  },
  "ira-crimson-haze-pt-yokohama": {
   "id": "ira-crimson-haze-pt-yokohama",
@@ -995,7 +1101,117 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Colin Li",
   "date": "08 Aug 2026",
-  "poolCompiled": 11
+  "poolCompiled": 34,
+  "deck": [
+   {
+    "id": "astral-etchings-red",
+    "n": 2
+   },
+   {
+    "id": "clear-conscience-red",
+    "n": 2
+   },
+   {
+    "id": "essence-of-ancestry-body-red",
+    "n": 2
+   },
+   {
+    "id": "moon-chakra-red",
+    "n": 2
+   },
+   {
+    "id": "on-the-horizon-red",
+    "n": 2
+   },
+   {
+    "id": "solitary-companion-red",
+    "n": 2
+   },
+   {
+    "id": "spectral-manifestations-red",
+    "n": 2
+   },
+   {
+    "id": "waning-vengeance-red",
+    "n": 2
+   },
+   {
+    "id": "waxing-specter-red",
+    "n": 2
+   },
+   {
+    "id": "springboard-somersault-yel",
+    "n": 2
+   },
+   {
+    "id": "big-blue-sky-blu",
+    "n": 2
+   },
+   {
+    "id": "clear-conscience-blu",
+    "n": 2
+   },
+   {
+    "id": "enigma-chimera-blu",
+    "n": 2
+   },
+   {
+    "id": "essence-of-ancestry-mind-blu",
+    "n": 2
+   },
+   {
+    "id": "fluid-motion-blu",
+    "n": 2
+   },
+   {
+    "id": "homage-to-ancestors-blu",
+    "n": 1
+   },
+   {
+    "id": "manifest-muscle-blu",
+    "n": 1
+   },
+   {
+    "id": "pass-over-blu",
+    "n": 1
+   },
+   {
+    "id": "preserve-tradition-blu",
+    "n": 1
+   },
+   {
+    "id": "second-tenet-of-chi-tide-blu",
+    "n": 2
+   },
+   {
+    "id": "second-tenet-of-chi-wind-blu",
+    "n": 2
+   },
+   {
+    "id": "spears-of-surreality-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "oasis-respite-red",
+    "n": 2
+   },
+   {
+    "id": "test-of-strength-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "cosmo-scroll-of-ancestral-tapestry",
+   "nullrune-hood",
+   "blade-beckoner-plating",
+   "nullrune-gloves",
+   "silent-stilettos"
+  ],
+  "rule": "Enigma's list from Calling: Bangkok (2nd). Its 55-card pool is cut to 40 by leaving the two Oasis Respite and the two Test of Strength in the sideboard. Cosmo, Scroll of Ancestral Tapestry makes Enigma's Spectral Shields and wards attack. Skycrest Keikoi and Uphold Tradition (both cloaked) are not implemented and stay in the sideboard.",
+  "grave": [],
+  "registered": true
  },
  "valda-brightaxe-calling-shanghai": {
   "id": "valda-brightaxe-calling-shanghai",
@@ -5775,7 +5991,122 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Taotao Chu",
   "date": "14 Feb 2026",
-  "poolCompiled": 8
+  "poolCompiled": 37,
+  "deck": [
+   {
+    "id": "art-of-desire-body-red",
+    "n": 2
+   },
+   {
+    "id": "double-trouble-red",
+    "n": 2
+   },
+   {
+    "id": "excessive-bloodloss-red",
+    "n": 2
+   },
+   {
+    "id": "hiss-red",
+    "n": 2
+   },
+   {
+    "id": "inertia-trap-red",
+    "n": 2
+   },
+   {
+    "id": "intimate-inducement-red",
+    "n": 2
+   },
+   {
+    "id": "mark-of-the-black-widow-red",
+    "n": 1
+   },
+   {
+    "id": "on-the-horizon-red",
+    "n": 1
+   },
+   {
+    "id": "plunder-the-poor-red",
+    "n": 2
+   },
+   {
+    "id": "unmovable-red",
+    "n": 1
+   },
+   {
+    "id": "venomous-bite-red",
+    "n": 2
+   },
+   {
+    "id": "intimate-inducement-yel",
+    "n": 2
+   },
+   {
+    "id": "art-of-desire-mind-blu",
+    "n": 2
+   },
+   {
+    "id": "bonds-of-attraction-blu",
+    "n": 2
+   },
+   {
+    "id": "double-trouble-blu",
+    "n": 2
+   },
+   {
+    "id": "excessive-bloodloss-blu",
+    "n": 2
+   },
+   {
+    "id": "hiss-blu",
+    "n": 1
+   },
+   {
+    "id": "intimate-inducement-blu",
+    "n": 2
+   },
+   {
+    "id": "mark-of-the-black-widow-blu",
+    "n": 2
+   },
+   {
+    "id": "pass-over-blu",
+    "n": 1
+   },
+   {
+    "id": "path-well-traveled-blu",
+    "n": 1
+   },
+   {
+    "id": "pick-to-pieces-blu",
+    "n": 2
+   },
+   {
+    "id": "serpents-kiss-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "oasis-respite-red",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "beckoning-mistblade",
+   "spiders-bite",
+   "prey-spotters",
+   "nullrune-robe",
+   "arousing-wave",
+   "stalkers-steps"
+  ],
+  "rule": "Nuu's list from Calling: San Diego (5th). Its 55-card pool is cut to 40 by leaving the two Arcane Polarity and the two Oasis Respite in the sideboard. Nuu starts with two daggers, Beckoning Mistblade and Spider's Bite; Mark of the Huntsman, Arcane Lantern, Undertow Stilettos, Unflinching Foothold and Blade Beckoner Plating stay in the sideboard.",
+  "grave": [],
+  "registered": true
  },
  "oldhim-pt-yokohama": {
   "id": "oldhim-pt-yokohama",
@@ -7513,7 +7844,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 4
+  "poolCompiled": 14
  },
  "azalea": {
   "id": "azalea",
@@ -8170,7 +8501,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 13
+  "poolCompiled": 31
  },
  "fai": {
   "id": "fai",
@@ -8703,7 +9034,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 8
+  "poolCompiled": 9
  },
  "lyath-goldmane": {
   "id": "lyath-goldmane",
@@ -9050,7 +9381,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 2
+  "poolCompiled": 20
  },
  "viserai-between-worlds": {
   "id": "viserai-between-worlds",

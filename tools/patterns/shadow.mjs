@@ -22,7 +22,6 @@ export const EFFECTS = [
   [/^[Tt]he next attack action card you rune gate this turn gets \+(\d+)\{p\}$/, m => ({ o: 'sh_gateBuff', p: +m[1] })],
   // ---- reactions ----
   [/^[Dd]eal (\d+) arcane damage to the attacking hero$/, m => ({ o: 'sh_arcaneAtk', n: +m[1] })],
-  [/^Target attack action card gets go again$/, () => ({ o: 'sh_arGoAgain' })],
   // ---- Right Behind You ----
   [/^this gets \+(\d+)\{d\} and look at the top card of your deck$/, m => [{ o: 'defBuff', n: +m[1] }, { o: 'lookTop' }]],
   [/^You may put it on the bottom$/, () => ({ o: 'sh_topToBottom' })],
@@ -83,8 +82,9 @@ export const LINES = [
     if ((mm = body.match(/^(.*?)\.? Go again$/))) { ab.goAgain = true; body = mm[1]; }
     for (const [txt, f] of ACTCONDS) if ((mm = body.match(new RegExp('^(.*?)\\. Activate this only ' + txt + '$')))) { Object.assign(ab, f(mm)); body = mm[1]; break; }
     const ops = cost ? h.parseBody(body, why) : null;
-    // "Target attack action card": the ability can only be activated while there is one to target (CR 5.2.1).
-    if (ops && ops.some(o => o.o === 'sh_arGoAgain')) ab.cond = { c: 'sh_all', of: [ab.cond, { c: 'sh_chainAA' }].filter(Boolean) };
+    // "Target attack action card gets go again": the target is declared before paying, so the ability can only be activated while there is one to target (CR 5.1.4, 5.2.1). [mystics] the same shape serves Nuu's "Target attack with stealth".
+    const tg = ops && ops.find(o => o.o === 'buff' && o.tgt);
+    if (tg) ab.tgt = tg.tgt;
     if (!(cost && ops)) { why.length = 0; return false; }      // not understood here: leave the line for another group's handler
     ab.ops = ops; ctx.out.ab.push(ab);
     return true;

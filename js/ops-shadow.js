@@ -20,7 +20,6 @@
     sh_myTurn: x => x.s.tp === x.ctrl,                                                                      // Arcane Cussing: "during your turn"
     // Sutcliffe's Suede Hides: a non-attack action card played this turn (every play is logged with its turn)
     sh_nonAttackPlayed: x => x.s.log.some(e => e.t === 'play' && e.turn === x.s.turn && e.who === x.ctrl && FAB.cards[e.c].kind === 'action' && !isAA(FAB.cards[e.c])),
-    sh_chainAA: x => { const l = FAB.activeLink(x.s); return !!l && !l.weapon && isAA(D(x.s, l.iid)); },     // "Target attack action card": there must be one
     sh_all: (x, c) => c.of.every(k => FAB.cond(x, k)),
     sh_atkSoul: x => !!x.link && soulCount(x.s, x.link.tgt) >= 1,                                           // Soul Reaping
     sh_arcaneDealt: x => (P(x.s, x.ctrl).h.arcaneDealt || 0) > 0,                                           // Sigil of Suffering: "If you've dealt arcane damage this turn"
@@ -77,14 +76,6 @@
       const link = FAB.activeLink(x.s);
       if (!link) return;
       x.flags.dealt = FAB.dealDamage(x.s, { to: link.ctrl, n: op.n, src: x.iid, kind: 'arcane', x: x });
-    },
-    sh_arGoAgain(x) {                                                                                         // Sutcliffe's Suede Hides: the target is the attack action card on this chain link
-      const s = x.s, link = FAB.activeLink(s);
-      if (!link || link.weapon || !isAA(D(s, link.iid))) return;
-      FAB.ask(x, { who: x.ctrl, kind: 'target', src: x.iid, opts: [{ id: link.n, iid: link.iid }] });
-      if (link.mods.some(m => m.grant === 'goAgain')) return;                                                  // CR 8.3.5c
-      link.mods.push({ p: 0, grant: 'goAgain', src: x.iid });
-      FAB.log(s, 'buff', { who: x.ctrl, c: I(s, x.iid).id, to: I(s, link.iid).id, p: 0, grant: 'goAgain', piercing: 0 });
     },
   });
 

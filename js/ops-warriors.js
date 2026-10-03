@@ -20,7 +20,7 @@
   Object.assign(FAB.ops, {
     wa_dmgAttacker(x, op) {                // Steelblade Shunt: "deal 1 damage to the attacking hero"
       if (!x.link) return;
-      FAB.dealDamage(x.s, { to: x.link.ctrl, n: op.n, src: x.iid, kind: 'gen' });
+      FAB.dealDamage(x.s, { to: x.link.ctrl, n: op.n, src: x.iid, kind: 'gen', x: x });   // [mystics] x: so Ward can be asked
     },
     wa_weaponCounter(x, op) {              // Display of Craftsmanship: "put a +1{p} counter on it" — the weapon, not the reaction
       const link = FAB.activeLink(x.s);

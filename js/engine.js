@@ -17,8 +17,11 @@
   const I = FAB.inst = (s, iid) => s.cards[iid];
   const D = FAB.def = (s, iid) => FAB.cards[s.cards[iid].id];
   const P = (s, seat) => s.players[seat];
+  const ctrlOf = (s, iid) => { const c = s.cards[iid]; return c.ctrl != null ? c.ctrl : c.owner; };   // [mystics] a card played from the other hero's banished zone is controlled by the player who played it while it is on the stack or the chain
   const log = FAB.log = function (s, t, d) { s.log.push(Object.assign({ t: t, turn: s.turn }, d)); };
   const isAttackDef = d => d.kind === 'action' && d.types.includes('Attack');
+  // [mystics] extension points for rules the other registries have no table for (ward, abilities granted to permanents, state read at attack time, an attack defended, an ability activated).
+  FAB.hooks = { damage: [], grantedActs: [], attackBegin: [], attackGrants: [], activate: [], defend: [] };
   const freshHist = () => ({ attacks: 0, weaponAttacks: 0, weaponHits: 0, disc6: 0, disc6Action: 0, pitched6: 0, dmg: 0, played: 0 });
 
   function Ask(q) { this.ask = q; }
@@ -43,7 +46,7 @@
     for (let seat = 0; seat < 2; seat++) {
       const deck = FAB.decks[setup.decks[seat]];
       if (!deck || !deck.registered) throw new Error('deck is not registered: ' + setup.decks[seat]);
-      const p = { seat: seat, deckId: deck.id, hero: null, life: 0, hand: [], deck: [], grave: [], banish: [], pitch: [], arsenal: [], arena: [], equip: [], weapons: [], res: 0, ap: 0, h: freshHist() };
+      const p = { seat: seat, deckId: deck.id, hero: null, life: 0, hand: [], deck: [], grave: [], banish: [], pitch: [], arsenal: [], arena: [], equip: [], weapons: [], res: 0, chi: 0, soul: [], ap: 0, h: freshHist() };
       s.players.push(p);
       const mk = (id, zone) => {
         const d = FAB.cards[id];
@@ -87,6 +90,7 @@
       case 'hand': return p.hand; case 'deck': return p.deck; case 'grave': return p.grave;
       case 'banish': return p.banish; case 'pitch': return p.pitch; case 'arsenal': return p.arsenal;
       case 'arena': return p.arena; case 'equip': return p.equip; case 'weapon': return p.weapons;
+      case 'soul': return p.soul;                                                       // [mystics] CR 3.11.5
       default: return null;
     }
   }
@@ -101,11 +105,13 @@
     if (zone === 'grave' && FAB.cards[c.id].kw.ephemeral) { zone = 'gone'; log(s, 'nj_ephemeral', { who: c.owner, c: c.id }); }   // [ninjas] CR 8.3.21 Ephemeral: instead of the graveyard, remove it from the game
     c.zone = zone;
     if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; delete c.destroyAtClose; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; delete c.fused; delete c.playTurn; delete c.costLess; } }   // [runeblades] c.fused: Fusion was paid (CR 8.3.17a)
+    if (zone !== 'stack' && zone !== 'chain') delete c.ctrl;                                // [mystics] a card played from the other hero's banished zone is controlled by its player only while it is on the stack or the chain
     c.faceUp = !o.faceDown;
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
     if (zone === 'arena' && prev !== 'arena') FAB.rbEnter(s, iid);   // [runeblades] "enters the arena with N counters" and the enter event
     if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });
+    if (prev === 'chain' && zone !== 'chain') emit(s, { t: 'my_leaveChain', iid: iid, ctrl: c.owner });   // [mystics] "While this is attacking or defending, when this leaves the arena" (the combat chain is in the arena)
     if (zone === 'arena' && prev !== 'arena') emit(s, { t: 'br_enterArena', iid: iid, ctrl: c.owner });   // [brutes] "When this enters the arena" (Rites of Earthlore, Draw a Crowd)
     if (zone === 'grave' && prev !== 'grave' && FAB.cards[c.id].types.includes('Instant')) { const h = P(s, c.owner).h; h.instGrave = (h.instGrave || 0) + 1; }   // [wizards] CR 8.4.21 Starfall: instants put into your graveyard this turn
     if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"
@@ -120,7 +126,10 @@
   const destroy = FAB.destroy = function (s, iid) {
     const c = I(s, iid); if (c.zone === 'grave' || c.zone === 'gone') return;
     log(s, 'destroy', { who: c.owner, c: c.id });
+    const from = c.zone;
     move(s, iid, 'grave');
+    if (s.chain) for (const l of s.chain.links) if (!l.resolved) l.defs = l.defs.filter(e => e.iid !== iid);   // [mystics] a destroyed card no longer defends
+    emit(s, { t: 'my_destroyed', iid: iid, ctrl: c.owner, from: from });   // [mystics] "When this is destroyed", "Whenever an aura ... you control is destroyed"
   };
   const discard = FAB.discard = function (s, iid, random) {
     const c = I(s, iid); const pw = FAB.powerOf(s, iid); const p = P(s, c.owner);
@@ -149,6 +158,7 @@
       P(s, who).arena.push(iid);
       log(s, 'token', { who: who, c: id });
     }
+    if (n >= 1) P(s, who).h.created = (P(s, who).h.created || 0) + 1;   // [mystics] "If you've created a card this turn": one creation event
     return iid;
   };
 
@@ -188,7 +198,7 @@
     const gain = v => (nog && v > 0) ? 0 : v;
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
     // [mech] a card whose {p} is computed ("this card's {p} is equal to ...") names it in a basePower ability; a static {p} may be a { v: name } variable
-    let p = (d.power != null ? d.power : FAB.num(x, d.ab.find(a => a.k === 'basePower').p)) + gain(c.counters.p || 0);
+    let p = (d.power != null ? d.power : link.base != null ? link.base : FAB.num(x, d.ab.find(a => a.k === 'basePower').p)) + gain(c.counters.p || 0);   // [mystics] link.base: an aura that is a weapon has the base {p} the granting effect gives it
     for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(FAB.num(x, ab.p));
     const me = P(s, link.ctrl);                                                        // "Your first attack each turn gets +1{p}": a continuous effect of a permanent
     for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1) && FAB.cond(x, ab.cond) && (!ab.nth || link.seq === ab.nth)) p += gain(ab.p);   // [ninjas] ab.nth: Ira's second attack; [mech] a permanent's attackStatic may carry a condition on the attack
@@ -205,6 +215,7 @@
     if (d.kw[kw] && !link.weapon) return true;
     if (link.mods.some(m => m.grant === kw)) return true;
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
+    if (FAB.hooks.attackGrants.some(f => f(s, link, kw))) return true;        // [mystics] "Your aura attacks with ... get go again"
     return d.ab.some(ab => ab.k === 'static' && ab.grant === kw && FAB.cond(x, ab.cond));
   };
   FAB.defenseOf = function (s, iid, link) {
@@ -213,7 +224,7 @@
     let v = d.def - (c.counters.d || 0);
     for (const m of c.mods) if (m.d) v += m.d;
     const x = { s: s, ctrl: c.owner, iid: iid, link: link, flags: {} };
-    for (const ab of d.ab) if (ab.k === 'static' && ab.d && FAB.cond(x, ab.cond)) v += ab.d;
+    for (const ab of d.ab) if (ab.k === 'static' && ab.d && FAB.cond(x, ab.cond)) v += FAB.num(x, ab.d);   // [mystics] ab.d may be { v: name } ("+1{d} for each blue card you've pitched")
     for (const f of FAB.defenseMods) v += f(s, iid, link);                                      // [mech] effects of other cards on this one's {d}
     // [elemguard] Embodiment of Earth: "Non-attack action cards you control get +1{d} while defending." A link means a defending context.
     if (link && d.kind === 'action' && !isAttackDef(d)) for (const t of P(s, c.owner).arena) for (const a of FAB.cards[I(s, t).id].ab) if (a.k === 'defStatic' && a.nonAttackAction) v += a.d;
@@ -236,6 +247,8 @@
     if (f.fromArsenal && !I(s, iid).fromArsenal) return false;                          // [brutes] "you play from arsenal" (Craterhoof)
     if (f.costMax != null && !(d.cost != null && d.cost <= f.costMax)) return false;                // [wizards] "with cost 1 or less"
     if (f.name && d.name !== f.name) return false;                                       // [ninjas] "the next Crouching Tiger"
+    if (f.pitch != null && d.pitch !== f.pitch) return false;                                   // [mystics] "your next blue attack"
+    if (f.kw && !d.kw[f.kw]) return false;                                                       // [mystics] "target attack with stealth"
     return true;
   };
 
@@ -249,7 +262,7 @@
   FAB.asInstant = [];                // (s, who, iid) => true when a rule lets this non-attack action card be played as though it were an instant (CR 8.1.1d)
   FAB.trigMatchers = {
     toGrave: (s, ab, iid, ev) => ev.iid === iid,
-    playAttack: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner,
+    playAttack: (s, ab, iid, ev) => ev.ctrl === ctrlOf(s, iid),
     damaged: (s, ab, iid, ev) => ev.who === I(s, iid).owner,
   };
   // CR 8.3.8 Arcane Barrier and CR 8.3.15 Spellvoid: asked inside the damage door, once per card per event.
@@ -281,15 +294,18 @@
     let n = o.n;
     if (o.kind === 'arcane') { if (!o.x) throw new Error('arcane damage needs the invocation (o.x) so prevention can be asked'); n = arcanePrevention(s, o, n); }
     for (const e of s.effects) {
+      if (o.unp) break;                                                                    // [mystics] damage that can't be prevented
       if (e.k !== 'prevent' || e.who !== o.to || e.n <= 0 || n <= 0) continue;
       if (e.srcIid != null && e.srcIid !== o.src) continue;
       // [elemguard] Brush Off: "The next time you would be dealt N or less damage this turn, prevent it." Only an event of that size uses it up (CR 6.6.3).
       if (e.upTo != null) { if (n > e.upTo) continue; e.n = 0; log(s, 'prevent', { who: o.to, n: n, c: I(s, e.by).id }); n = 0; continue; }
+      if (e.color != null && !(o.src != null && D(s, o.src).pitch === e.color)) continue;   // [mystics] "dealt damage by a red source" (Moon Chakra)
       if (e.kind && e.kind !== o.kind) continue;                                   // [wizards] Dampen: "prevent the next X arcane damage"
       const k = Math.min(n, e.n); n -= k; e.n -= k;
       if (e.once) e.n = 0;                                                         // [wizards] Cloud Cover: "the next time you would be dealt damage, prevent N of that damage"
       log(s, 'prevent', { who: o.to, n: k, c: I(s, e.by).id });
     }
+    for (const f of FAB.hooks.damage) { if (n > 0 && !o.unp) n = f(s, o, n); }   // [mystics] Ward (CR 8.3.20): optional, asked, last; so o.x is needed
     if (n <= 0) return 0;
     const p = P(s, o.to);
     p.life -= n;
@@ -329,7 +345,7 @@
   // -------------------------------------------------------------------------------------------
   function trigMatch(s, ab, iid, ev) {
     if (ab.on !== ev.t) return false;
-    const c = I(s, iid), own = c.owner, p = P(s, own);
+    const c = I(s, iid), own = ctrlOf(s, iid), p = P(s, own);   // [mystics] ctrlOf: a card played from the other hero's banished zone is its player's while it is on the stack or the chain
     if (ab.tcond && !FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, link: activeLink(s) || ev.link || null, flags: {} }, ab.tcond)) return false;   // [brutes] a condition on the trigger itself (an intervening "if", or "to a Guardian hero")
     switch (ev.t) {
       case 'attack': case 'played': case 'selfRandDisc': case 'clashWin': return ev.iid === iid;
@@ -353,7 +369,7 @@
       const ab = FAB.cards[I(s, iid).id].ab, inHand = I(s, iid).zone === 'hand', inBan = I(s, iid).zone === 'banish';
       if (inBan && !I(s, iid).faceUp) return;                                           // [shadow] CR 5.4.7a: a while-static (Blood Debt) is not functional on a private card
       for (let i = 0; i < ab.length; i++) if (ab[i].k === 'trig' && (ab[i].zone === 'hand') === inHand && (ev.iid === iid || (ab[i].zone === 'banish') === inBan) && trigMatch(s, ab[i], iid, ev)) {   // hidden triggers (Heave) work only in hand; [shadow] zone:'banish' only in the banished zone
-        s.trigs.push({ iid: iid, ab: i, ctrl: I(s, iid).owner, ev: ev, linkN: s.chain && s.chain.links.length ? s.chain.links.length - 1 : null });
+        s.trigs.push({ iid: iid, ab: i, ctrl: ctrlOf(s, iid), ev: ev, linkN: s.chain && s.chain.links.length ? s.chain.links.length - 1 : null });
       }
     };
     for (const seat of [s.tp, 1 - s.tp]) {
@@ -389,7 +405,7 @@
       switch (s.chain.step) {
         case 'attack': s.todo.push({ t: 'defend', answers: [] }); return;                  // CR 7.2.5
         case 'defend': s.chain.step = 'reaction'; setPriority(s, s.tp); return;           // CR 7.3.4
-        case 'reaction': damageStep(s); return;                                            // CR 7.4.3
+        case 'reaction': s.todo.push({ t: 'damageStep', answers: [] }); return;            // CR 7.4.3   [mystics] an invocation, so prevention that asks (Ward, CR 8.3.20) can ask
         case 'damage': resolutionStep(s); return;                                          // CR 7.5.4
         case 'resolution': s.closing = true; log(s, 'chainClose', {}); emit(s, { t: 'br_chainClose' }); return;   // CR 7.6.4; [brutes] CR 7.7.3: "the combat chain closes" triggers
         default: throw new Error('both passed in step ' + s.chain.step);
@@ -431,7 +447,7 @@
           s.sub = 3; return;
         default: {
           { const me = P(s, tp); for (const iid of [me.hero].concat(me.weapons, me.equip, me.arena)) delete I(s, iid).tapped; }   // CR 4.4.3d
-          for (const p of s.players) { p.ap = 0; p.res = 0; }                              // CR 4.4.3e
+          for (const p of s.players) { p.ap = 0; p.res = 0; p.chi = 0; }                              // CR 4.4.3e
           draw(s, tp, Math.max(0, FAB.intellect(s, tp) - P(s, tp).hand.length));           // CR 4.4.3f
           if (s.firstTurn) draw(s, 1 - tp, Math.max(0, FAB.intellect(s, 1 - tp) - P(s, 1 - tp).hand.length));
           s.firstTurn = false;
@@ -450,38 +466,25 @@
   // -------------------------------------------------------------------------------------------
   function beginAttackStep(s) {                                                            // CR 7.2
     const L = s.chain.queue.shift();
-    const link = { n: s.chain.links.length, iid: L.iid, weapon: L.kind === 'act', ctrl: L.ctrl, tgt: 1 - L.ctrl, mods: L.mods, defs: [], hit: false, dmg: 0, handDef: false, resolved: false, costDisc6: !!L.costDisc6 };
+    const srcGone = L.kind === 'act' && L.base != null && I(s, L.iid).zone !== 'arena';    // [mystics] CR 1.4.3c: an aura's attack-proxy ceases to exist with the aura
+    if (L.atkTgt != null || srcGone) {                                                     // [mystics] CR 7.2.2c: the attack-target (a Spectra permanent, CR 8.3.14) no longer exists, so the attack is cleared from the queue
+      if (L.atkTgt != null && !srcGone && I(s, L.atkTgt).zone === 'arena') throw new Error('an attack-target with spectra survived being targeted');
+      log(s, 'my_attackCleared', { who: L.ctrl, c: I(s, L.iid).id });
+      if (L.kind === 'card') move(s, L.iid, 'grave');
+      if (s.chain.queue.length) { beginAttackStep(s); return; }                            // CR 7.2.2c: the next attack in the queue
+      s.closing = true; log(s, 'chainClose', {});                                          // CR 7.7.2b
+      return;
+    }
+    const link = { n: s.chain.links.length, iid: L.iid, weapon: L.kind === 'act', ctrl: L.ctrl, tgt: 1 - L.ctrl, mods: L.mods, defs: [], hit: false, dmg: 0, handDef: false, resolved: false, costDisc6: !!L.costDisc6, base: L.base };
     if (!link.weapon) move(s, L.iid, 'chain');
     s.chain.links.push(link);
     s.chain.step = 'attack';
     const p = P(s, L.ctrl); p.h.attacks++; if (link.weapon) p.h.weaponAttacks++;
     link.seq = p.h.attacks;                                                                // "your first attack each turn"
+    for (const f of FAB.hooks.attackBegin) f(s, link);                                     // [mystics]
     log(s, 'attack', { who: L.ctrl, c: I(s, L.iid).id, power: FAB.attackPower(s, link), link: link.n });
     emit(s, { t: 'attack', iid: L.iid, ctrl: L.ctrl });
     setPriority(s, s.tp);
-  }
-  function damageStep(s) {                                                                 // CR 7.5
-    const link = activeLink(s);
-    const pw = FAB.attackPower(s, link), df = FAB.linkDefense(s, link);
-    const dmg = Math.max(0, pw - df);
-    s.chain.step = 'damage';
-    log(s, 'clashOfArms', { who: link.ctrl, c: I(s, link.iid).id, power: pw, def: df, dmg: dmg });
-    if (dmg > 0) {
-      const dealt = dealDamage(s, { to: link.tgt, n: dmg, src: link.iid, kind: 'p' });
-      if (dealt > 0) {                                                                     // CR 7.5.5: a hit-event
-        link.hit = true; link.dmg = dealt;
-        if (P(s, link.tgt).marked) { P(s, link.tgt).marked = false; log(s, 'nj_unmark', { who: link.tgt }); }   // [ninjas] CR 9.3.3: a marked hero hit by an opponent's source is no longer marked
-        const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
-        emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
-        emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
-        emit(s, { t: 'me_hit', iid: link.iid, ctrl: link.ctrl, n: dealt, weapon: link.weapon });   // [mech] "When a Mechanologist attack action card you control hits a hero"
-        if (!link.weapon && isAttackDef(D(s, link.iid))) { const hh = P(s, link.ctrl).h; hh.aaHits = (hh.aaHits || 0) + 1; emit(s, { t: 'nj_aaHit', ctrl: link.ctrl, iid: link.iid, n: dealt, first: hh.aaHits === 1 }); }   // [ninjas] Benji: the first time an attack action card you control hits each turn
-        if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
-        for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
-        for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
-      }
-    }
-    if (s.winner == null) setPriority(s, s.tp);
   }
   function resolutionStep(s) {                                                             // CR 7.6
     const link = activeLink(s);
@@ -524,26 +527,44 @@
     const d = D(s, iid), p = P(s, who);
     const pw = FAB.powerOf(s, iid);
     move(s, iid, 'pitch');
-    p.res += d.pitch;
+    if (d.chi) p.chi += d.pitch; else p.res += d.pitch;                                       // [mystics] CR 1.13.5a: pitching a card with a chi value gains chi points
     if (pw != null && pw >= 6) p.h.pitched6++;
     log(s, 'pitch', { who: who, c: d.id, n: d.pitch });
   }
   // o.cancel === false: the payment is part of a resolving effect, so there is nothing to back out of. o.excl: a card that may not pay for itself.
   const payRes = FAB.payRes = function (x, who, n, forIid, label, o) {
     const s = x.s, p = P(s, who);
-    while (p.res < n) {
+    if (o && o.chi) {                                                                         // [mystics] CR 1.14.2c: a chi cost is paid with chi points only
+      while (p.chi < n) {
+        const opts = p.hand.filter(i => i !== (o && o.excl) && D(s, i).chi && D(s, i).pitch > 0).map(i => ({ id: i, iid: i }));
+        if (!opts.length) throw new Illegal('cannot pay');
+        const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.chi, cost: n, chi: true, opts: opts, cancel: !(o && o.cancel === false) });
+        pitchCard(s, who, a);
+      }
+      p.chi -= n;
+      return;
+    }
+    while (p.res + p.chi < n) {                                                               // [mystics] CR 1.14.2d: chi points may pay a resource cost
       const opts = p.hand.filter(i => i !== (o && o.excl) && D(s, i).pitch > 0).map(i => ({ id: i, iid: i }));
       if (!opts.length) throw new Illegal('cannot pay');
-      const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.res, cost: n, opts: opts, cancel: !(o && o.cancel === false) });
+      const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.res - p.chi, cost: n, opts: opts, cancel: !(o && o.cancel === false) });
       pitchCard(s, who, a);
     }
-    p.res -= n;
+    const useChi = Math.min(p.chi, n);                                                        // CR 1.14.2d: all chi points are used before any resource points
+    p.chi -= useChi; p.res -= n - useChi;
+  };
+  // [mystics] Can this many chi points be paid, pitching chi cards from hand?
+  FAB.canPayChi = function (s, who, n, exclIid) {
+    const p = P(s, who);
+    let pool = p.chi;
+    for (const i of p.hand) if (i !== exclIid && D(s, i).chi) pool += D(s, i).pitch;
+    return pool >= n;
   };
   const canPay = FAB.canPay = function (s, who, r, exclIid, extraCards) {
     const p = P(s, who);
     const others = p.hand.filter(i => i !== exclIid);
     const pitches = others.map(i => D(s, i).pitch).sort((a, b) => b - a);
-    let pool = p.res, k = 0;
+    let pool = p.res + p.chi, k = 0;                                                          // [mystics] chi points pay resource costs too
     while (pool < r && k < pitches.length && pitches[k] > 0) pool += pitches[k++];
     return pool >= r && k + (extraCards || 0) <= others.length;
   };
@@ -551,8 +572,11 @@
   // abIdx: the index of an activated ability on that card; omitted, the cost of playing the card.
   const isActionSrc = (d, ab) => ab ? ab.type === 'action' : d.kind === 'action';
   const costRedFits = (d, e) => (!e.f.aa || isAttackDef(d)) && (!e.f.klass || e.f.klass.every(k => d.types.includes(k)));
+  // [mystics] An ability index of 1000 or more names an ability a continuous effect grants to this permanent (an aura that is a weapon), in the order FAB.hooks.grantedActs gives them.
+  const abOf = FAB.abOf = function (s, iid, i) { return i >= 1000 ? grantedOf(s, iid)[i - 1000] : D(s, iid).ab[i]; };
+  const grantedOf = FAB.grantedOf = function (s, iid) { const out = []; for (const f of FAB.hooks.grantedActs) out.push.apply(out, f(s, iid)); return out; };
   FAB.costOf = function (s, iid, abIdx, as) {                       // [runeblades] `as`: the side of a split-card being considered (CR 5.1.2c)
-    const c = I(s, iid), d = FAB.cards[as || c.id], ab = abIdx == null ? null : d.ab[abIdx];
+    const c = I(s, iid), d = FAB.cards[as || c.id], ab = abIdx == null ? null : abOf(s, iid, abIdx);
     // [shadow] CR 8.3.27: a rune-gated card is played without paying its {r} cost (in the banished zone: if it could be rune gated; on the stack: if it was)
     const gated = !ab && d.kw.runeGate && (c.zone === 'banish' ? FAB.banishWay(s, iid) === 'rune' : c.mods.some(m => m.gate === 'rune'));
     let n = ab ? (ab.cost.r || 0) : gated ? 0 : (d.cost || 0);
@@ -608,6 +632,7 @@
     if (d.kw.playBanished) return 'banish';
     if (c.playTurn === s.turn) return 'nj';                                                 // [ninjas] 'nj' = a created Crouching Tiger, or a card banished by Rising Resentment: the effect names the turn it may be played (the card carries playTurn)
     if (s.effects.some(e => e.k === 'wz_bplay' && e.iid === iid && e.who === c.owner)) return 'wz';
+    if (d.pitch === 3 && s.effects.some(e => e.k === 'my_playBanished' && e.from === c.owner)) return 'my';   // [mystics] 'my' = Nuu: "you may play blue cards from that hero's banished zone without paying their {r} cost"; the card is the OTHER hero's, so canPlay checks who the effect is for
     return null;
   };
   // [shadow] CR 5.1.3c: alternative costs. key -> { can(s, who, iid), pay(x, who, iid) -> true when the alternative was declared and paid }; js/ops-*.js register them.
@@ -616,7 +641,8 @@
   const instantPlay = (s, who, iid, d) => d.kind === 'action' && !isAttackDef(d) && FAB.asInstant.some(f => f(s, who, iid));
   const canPlay = FAB.canPlay = function (s, who, iid, as) {       // [runeblades] `as`: a side of a split-card (CR 5.1.2c); omitted, the card may be played if any side may
     const c = I(s, iid), d = FAB.cards[as || c.id];
-    if (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal' && !(c.zone === 'banish' && FAB.banishWay(s, iid)))) return false;
+    const way = c.zone === 'banish' ? FAB.banishWay(s, iid) : null;
+    if (way === 'my' ? (c.owner === who || !s.effects.some(e => e.k === 'my_playBanished' && e.who === who && e.from === c.owner)) : (c.owner !== who || (c.zone !== 'hand' && c.zone !== 'arsenal' && !way))) return false;   // [mystics] 'my': a card in the other hero's banished zone, playable only by the player the effect names
     const split = d.ab.find(a => a.k === 'rb_split');
     if (split && !as) return split.variants.some(v => canPlay(s, who, iid, v));
     const inst = instantPlay(s, who, iid, d);
@@ -647,7 +673,7 @@
   // [shadow] effect-costs beyond the core ones (CR 5.1.9): ab.cost[key] is handled by FAB.costExt[key] = { can(s, who, iid, val, ab), pay(x, who, iid, val, L, ab) } (L: the activation layer being built).
   FAB.costExt = {};
   const canAct = FAB.canAct = function (s, who, iid, i) {
-    const c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[i];
+    const c = I(s, iid), d = FAB.cards[c.id], ab = abOf(s, iid, i);
     if (c.owner !== who || ab.k !== 'act') return false;
     const zone = ab.zone || 'arena';
     if (zone === 'arena' && !['hero', 'weapon', 'equip', 'arena'].includes(c.zone)) return false;
@@ -660,6 +686,7 @@
     if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
     if (!FAB.me_canPayExtra(s, iid, ab.cost)) return false;                                                            // [mech]
     if (ab.cond && !FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, ab.cond)) return false;
+    if (ab.cost.c && !FAB.canPayChi(s, who, ab.cost.c, null)) return false;                                            // [mystics] CR 1.14.2c
     return canPay(s, who, FAB.costOf(s, iid, i), ab.cost.discardSelf ? iid : null, ab.cost.discard || 0);
   };
 
@@ -674,12 +701,14 @@
     }
     if (s.priority == null) throw new Error('nobody holds priority and nothing is pending');
     const who = s.priority, p = P(s, who), out = [];
-    for (const iid of p.hand.concat(p.arsenal, p.banish)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });   // [shadow] + the banished zone (CR 5.1.1a)
+    for (const iid of p.hand.concat(p.arsenal, p.banish, P(s, 1 - who).banish)) if (canPlay(s, who, iid)) out.push({ type: 'play', iid: iid });   // [shadow] + the banished zone (CR 5.1.1a); [mystics] + the other hero's banished zone (canPlay says whether an effect lets you play from it)
     const srcs = [p.hero].concat(p.weapons, p.equip, p.arena, p.hand);
     if (s.chain) for (const l of s.chain.links) for (const e of l.defs) if (I(s, e.iid).owner === who && I(s, e.iid).zone === 'chain') srcs.push(e.iid);
     for (const iid of srcs) {
       const ab = D(s, iid).ab;
       for (let i = 0; i < ab.length; i++) if (ab[i].k === 'act' && canAct(s, who, iid, i)) out.push({ type: 'act', iid: iid, ab: i });
+      const gr = grantedOf(s, iid);                                                       // [mystics] abilities a continuous effect grants (Cosmo, Iris of Reality)
+      for (let j = 0; j < gr.length; j++) if (canAct(s, who, iid, 1000 + j)) out.push({ type: 'act', iid: iid, ab: 1000 + j });
     }
     out.push({ type: 'pass' });
     return out;
@@ -769,6 +798,13 @@
   function openChain(s) { if (!s.chain) s.chain = { links: [], queue: [], step: 'layer' }; else s.chain.step = 'layer'; }   // CR 7.0.2a
 
   FAB.playHooks = [];       // [shadow] (s, L, c, d) => void, run for every card played; js/ops-*.js register
+  // [mystics] CR 1.4.5 / 8.3.14: an attack may target a permanent with Spectra instead of the hero. Asked only when there is such a permanent to choose.
+  function declareAttackTarget(x, who, srcIid) {
+    const s = x.s, sp = P(s, 1 - who).arena.filter(i => FAB.cards[I(s, i).id].kw.spectra);
+    if (!sp.length) return null;
+    const a = ask(x, { who: who, kind: 'my_attackTarget', src: srcIid, opts: [{ id: 'hero' }].concat(sp.map(i => ({ id: i, iid: i }))), cancel: true });
+    return a === 'hero' ? null : a;
+  }
   EXEC.play = function (x) {
     const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), p = P(s, who);
     let d = FAB.cards[c.id];
@@ -785,6 +821,7 @@
     if (split) { c.rbBase = c.id; c.id = side; d = FAB.cards[side]; }                       // [runeblades] CR 9.2.3: for the rest of its time on the stack it has only that side
     c.fromArsenal = fromArsenal;
     if (way) c.mods.push({ gate: way });                                                    // [shadow] a marker that lives exactly as long as the card is on the stack/chain
+    if (c.owner !== who) c.ctrl = who;                                                      // [mystics] played from the other hero's banished zone: it is under the player's control, and goes to its owner's graveyard
     let extra = 0;                                                                          // CR 5.1.3b: optional additional costs are declared first
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.opt && canPay(s, who, FAB.costOf(s, iid) + extra + ab.cost.r, null, 0)) {
       if (ask(x, { who: who, kind: 'may', what: 'optCost', src: iid, cost: ab.cost.r, opts: [{ id: 'yes' }, { id: 'no' }], cancel: true }) === 'yes') {
@@ -808,6 +845,7 @@
       const link = activeLink(s);
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
+    if (L.isAttack) L.atkTgt = declareAttackTarget(x, who, iid);                            // [mystics] CR 1.4.5: the attack-target
     if (d.kind === 'action' && !asInst) p.ap -= 1;                                          // CR 5.1.6b ([wizards] not when it is played as though it were an instant)
     // [shadow] CR 5.1.3c: a declared alternative cost replaces the asset-cost (Soul Reaping)
     const pz0 = p.pitch.length;
@@ -830,7 +868,9 @@
     log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : way ? 'banish' : 'hand', inst: asInst });
     emit(s, { t: 'eg_use', ctrl: who });                                                    // [elemguard] "When you play a card or activate an ability" (Frostbite)
     if (way === 'rune' || way === 'banish') log(s, 'sh_gate', { who: who, c: d.id, way: way });   // [shadow] said in words by js/text-shadow.js ([wizards] 'wz' is said by the play line)
+    if (way === 'my') log(s, 'my_playFromBanish', { who: who, c: d.id, of: c.owner });          // [mystics] Nuu: played from the other hero's banished zone without paying its {r} cost
     for (const f of FAB.playHooks) f(s, L, c, d);                                           // [shadow] continuous effects that attach to the card as it is played (CR 5.1.2a)
+    if (L.atkTgt != null) emit(s, { t: 'my_targeted', iid: L.atkTgt, ctrl: who });          // [mystics] CR 8.3.14b: Spectra triggers when it becomes the target of an attack
     if (L.isAttack) { if (L.drac) L.mods.push({ p: 0, grant: null, drac: true, src: iid }); applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
@@ -839,8 +879,9 @@
   };
 
   EXEC.act = function (x) {
-    const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[x.inv.ab], p = P(s, who);
-    const L = { lid: s.lid++, kind: 'act', ctrl: who, iid: iid, ab: x.inv.ab, isAttack: !!ab.attack, mods: [], cid: d.id };
+    const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], ab = abOf(s, iid, x.inv.ab), p = P(s, who);
+    const L = { lid: s.lid++, kind: 'act', ctrl: who, iid: iid, ab: x.inv.ab, isAttack: !!ab.attack, mods: [], cid: d.id, base: ab.base };   // [mystics] ab.base: base {p} of an aura attack
+    if (L.isAttack) L.atkTgt = declareAttackTarget(x, who, iid);                            // [mystics] CR 1.4.5: the attack-target
     if (ab.tgt) { const link = activeLink(s); L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true }); }   // [warriors] CR 5.1.4: an activated ability declares its target before paying
     if (ab.type === 'action') p.ap -= 1;
     if (ab.cost.tap) {                                                                      // CR 8.5.55: tapping is a cost
@@ -849,6 +890,7 @@
     }
     FAB.me_payExtra(s, iid, ab.cost);                                                       // [mech] counter costs ("remove a steam counter from this")
     const pitched0 = p.pitch.length;
+    if (ab.cost.c) payRes(x, who, ab.cost.c, iid, 'ability', { chi: true });                // [mystics] CR 1.14.2a: chi points are paid first
     payRes(x, who, FAB.costOf(s, iid, x.inv.ab), iid, 'ability');
     L.pitched = p.pitch.slice(pitched0);                                                    // [elemguard] "If an Earth card is pitched this way" (Oldhim): the cards pitched to pay this ability
     spendCostFx(s, who, d, ab);
@@ -866,6 +908,8 @@
     for (const k in ab.cost) if (FAB.costExt[k]) FAB.costExt[k].pay(x, who, iid, ab.cost[k], L, ab);   // [shadow] effect-costs (CR 5.1.9)
     s.stack.push(L);
     if (L.isAttack) { if (ab.goAgain) L.mods.push({ p: 0, grant: 'goAgain', src: iid }); applyNext(s, L, true); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: true }); }   // [ninjas] CR 8.3.5: "Attack. Go again" gives the attack go again (it was never applied)
+    if (L.atkTgt != null) emit(s, { t: 'my_targeted', iid: L.atkTgt, ctrl: who });          // [mystics] CR 8.3.14b
+    for (const f of FAB.hooks.activate) f(s, iid, who, ab);                                 // [mystics] "played or activated an attack reaction this chain link"
     setPriority(s, who);
   };
 
@@ -890,7 +934,7 @@
       }
       if (go) FAB.runOps(X, ab.ops);
     } else if (L.kind === 'act') {
-      const ab = FAB.cards[L.cid].ab[L.ab];
+      const ab = abOf(s, L.iid, L.ab);
       FAB.runOps(X, ab.ops);
       if (ab.goAgain) P(s, L.ctrl).ap++;                                                    // CR 8.3.5a
     } else {
@@ -907,6 +951,8 @@
           log(s, 'defend', { who: L.ctrl, cs: [d.id], link: link.n });
           emit(s, { t: 'defend', iids: [L.iid], anyHand: from === 'hand', who: L.ctrl });
           emit(s, { t: 'wa_defended', iid: link.iid, ctrl: link.ctrl, iids: [L.iid], weapon: link.weapon });   // [warriors] "when this attack is defended" (Decimator Great Axe)
+          for (const f of FAB.hooks.defend) f(s, link, [L.iid], L.ctrl);                  // [mystics] effects that wait for the next defend (Spider's Bite)
+          emit(s, { t: 'my_defended', iid: link.iid, iids: [L.iid], who: L.ctrl });       // [mystics] the attack was defended: Phantasm, Fragment (CR 8.3.13, 8.3.43)
         } else move(s, L.iid, 'grave');
       } else {
         const res = d.ab.find(a => a.k === 'res');
@@ -917,7 +963,11 @@
         }
         if (res) FAB.runOps(X, res.modes ? res.modes[L.mode].ops : res.ops);
         if (d.kw.goAgain || c.mods.some(m => m.grant === 'goAgain')) P(s, L.ctrl).ap++;   // [shadow] + go again granted to this card as it was played (Chane; [wizards] a non-attack action's "gets go again")
-        if (c.zone === 'stack') move(s, L.iid, d.types.includes('Aura') || d.types.includes('Item') ? 'arena' : 'grave');
+        if (c.zone === 'stack') {
+          const perm = d.types.includes('Aura') || d.types.includes('Item');
+          if (perm && c.ctrl != null) c.owner = c.ctrl;                                     // [mystics] a permanent played from the other hero's banished zone enters under its player's control; this engine has one seat per card, so it becomes theirs (DEVIATIONS: owner)
+          move(s, L.iid, perm ? 'arena' : 'grave');
+        }
         if (c.zone === 'arena' && d.kw.suspense) {                                          // CR 8.3.42: enters with 2 suspense counters
           c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
         }
@@ -927,7 +977,43 @@
     if (s.flow === 'action' && s.sub !== 'begin' && !s.closing && s.winner == null) setPriority(s, s.tp);         // CR 1.11 (not before the action phase has begun, CR 4.3.3)
   };
 
-  function defendOptions(s, link, who, chosen) {                                            // CR 7.3.2a-b
+  // [mystics] CR 7.2.2d, 7.7.2c: the active attack ceased to exist before damage. The next attack in the queue begins, or the combat chain closes.
+  FAB.attackCeased = function (s, link) {
+    log(s, 'my_attackCleared', { who: link.ctrl, c: I(s, link.iid).id });
+    link.resolved = true;
+    if (s.chain.queue.length) beginAttackStep(s);
+    else { s.closing = true; log(s, 'chainClose', {}); }
+  };
+  EXEC.damageStep = function (x) {                                                        // CR 7.5   [mystics] was a plain function; an invocation so Ward can ask (CR 8.3.20)
+    const s = x.s, link = activeLink(s);
+    if (link.weapon && link.base != null && I(s, link.iid).zone !== 'arena') {              // [mystics] CR 7.2.2d, 1.4.3c: an aura's attack ceases to exist with the aura; before damage the next attack in the queue begins, or the chain closes
+      FAB.attackCeased(s, link);
+      return;
+    }
+    const pw = FAB.attackPower(s, link), df = FAB.linkDefense(s, link);
+    const dmg = Math.max(0, pw - df);
+    s.chain.step = 'damage';
+    log(s, 'clashOfArms', { who: link.ctrl, c: I(s, link.iid).id, power: pw, def: df, dmg: dmg });
+    if (dmg > 0) {
+      const dealt = dealDamage(s, { to: link.tgt, n: dmg, src: link.iid, kind: 'p', x: x, unp: FAB.attackHas(s, link, 'unpreventable') });   // [mystics] unp: "damage that would be dealt by this can't be prevented"
+      if (dealt > 0) {                                                                     // CR 7.5.5: a hit-event
+        link.markedHit = !!P(s, link.tgt).marked;                                         // [mystics] "When this hits a marked hero" reads the mark before the hit removes it
+        link.hit = true; link.dmg = dealt;
+        if (P(s, link.tgt).marked) { P(s, link.tgt).marked = false; log(s, 'nj_unmark', { who: link.tgt }); }   // [ninjas] CR 9.3.3: a marked hero hit by an opponent's source is no longer marked
+        const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
+        emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
+        emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
+        emit(s, { t: 'me_hit', iid: link.iid, ctrl: link.ctrl, n: dealt, weapon: link.weapon });   // [mech] "When a Mechanologist attack action card you control hits a hero"
+        if (!link.weapon && isAttackDef(D(s, link.iid))) { const hh = P(s, link.ctrl).h; hh.aaHits = (hh.aaHits || 0) + 1; emit(s, { t: 'nj_aaHit', ctrl: link.ctrl, iid: link.iid, n: dealt, first: hh.aaHits === 1 }); }   // [ninjas] Benji: the first time an attack action card you control hits each turn
+        if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
+        for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
+        for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
+      }
+    }
+    if (s.winner == null) setPriority(s, s.tp);
+  };
+
+  function defendOptions(s, link, who, chosen) {                                          // CR 7.3.2a-b
     const p = P(s, who), out = [];
     const handChosen = chosen.filter(i => I(s, i).zone === 'hand').length;
     for (const iid of p.hand) {
@@ -967,6 +1053,8 @@
     log(s, 'defend', { who: who, cs: chosen.map(i => I(s, i).id), link: link.n });
     if (chosen.length) emit(s, { t: 'defend', iids: chosen, anyHand: anyHand, who: who });
     if (chosen.length) emit(s, { t: 'wa_defended', iid: link.iid, ctrl: link.ctrl, iids: chosen, weapon: link.weapon });   // [warriors] "when this attack is defended" (Decimator Great Axe)
+    if (chosen.length) for (const f of FAB.hooks.defend) f(s, link, chosen, who);            // [mystics] effects that wait for the next defend (Spider's Bite)
+    if (chosen.length) emit(s, { t: 'my_defended', iid: link.iid, iids: chosen, who: who });   // [mystics] Phantasm, Fragment (CR 8.3.13, 8.3.43)
     s.chain.step = 'defend';
     setPriority(s, s.tp);                                                                   // CR 7.3.3
   };

@@ -174,7 +174,7 @@
       const a = FAB.ask(x, { who: x.ctrl, kind: 'nj_poke', src: x.iid, opts: daggers.map(i => ({ id: i, iid: i })).concat([{ id: 'no' }]) });
       if (a === 'no') return;
       const to = x.link ? x.link.tgt : 1 - x.ctrl;
-      const dealt = FAB.dealDamage(s, { to: to, n: 1, src: a, kind: 'gen' });
+      const dealt = FAB.dealDamage(s, { to: to, n: 1, src: a, kind: 'gen', x: x });   // [mystics] x: so Ward can be asked
       if (dealt > 0) {                                                                       // "the dagger has hit" (CR 7.5.5): hit events for the dagger
         const c = I(s, a); c.hitsTurn = (c.hitsTurn || 0) + 1; me.h.weaponHits++;
         if (P(s, to).marked) { P(s, to).marked = false; FAB.log(s, 'nj_unmark', { who: to }); }                 // CR 9.3.3
@@ -232,7 +232,7 @@
 
   Object.assign(FAB.trigMatchers, {
     nj_aaHit: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner && ev.first,
-    nj_linkResolve: (s, ab, iid, ev) => ev.iid === iid,
+    nj_linkResolve: (s, ab, iid, ev) => ab.mine ? ev.ctrl === I(s, iid).owner : ev.iid === iid,   // [mystics] ab.mine: any of your chain links (Nuu: "Your attacks with stealth get ...")
   });
 
   // Life of the Party: "You may discard or destroy a card you control named Crazy Brew rather than pay this card's {r} cost. If you do, choose all modes, otherwise choose 1 at random."

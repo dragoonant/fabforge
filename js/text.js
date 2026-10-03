@@ -95,7 +95,13 @@
   const cardOf = (s, iid) => tag(s.cards[iid].id);
   const PROMPTS = {
     first: () => ({ title: 'You won the roll', body: 'Choose who takes the first turn. The first player may attack on turn one, and both players draw back up at the end of it.', labels: { me: 'I go first', opp: 'Opponent goes first' } }),
-    pitch: (s, q) => ({ title: `Pitch to pay for ${q.label === 'heave' ? 'heaving ' + cardOf(s, q.src) : q.label ? cardOf(s, q.src) + '’s ability' : cardOf(s, q.src)}`, body: `It costs <b>${q.cost}</b>. You have <b>${s.players[q.who].res}</b> in your pool, so you need <b>${q.need}</b> more. Click a card in your hand to pitch it; it returns to the bottom of your deck at end of turn.`, labels: {} }),
+    // [mystics] chi points (CR 1.13.5) are paid first and pay resource costs too; a chi cost (q.chi) takes chi points only
+    pitch: (s, q) => {
+      const p = s.players[q.who], ch = p.chi || 0;
+      const what = q.label === 'heave' ? 'heaving ' + cardOf(s, q.src) : q.label ? cardOf(s, q.src) + '’s ability' : cardOf(s, q.src);
+      if (q.chi) return { title: `Pitch to pay chi for ${what}`, body: `It costs <b>${q.cost}</b> chi. You have <b>${ch}</b> chi in your pool, so you need <b>${q.need}</b> more. Only cards with a chi value (such as Inner Chi) can be pitched for chi; click one in your hand to pitch it.`, labels: {} };
+      return { title: `Pitch to pay for ${what}`, body: `It costs <b>${q.cost}</b>. You have <b>${p.res}</b> resource${ch ? ' and <b>' + ch + '</b> chi (chi pays resource costs, and is used first)' : ''} in your pool, so you need <b>${q.need}</b> more. Click a card in your hand to pitch it; it returns to the bottom of your deck at end of turn.`, labels: {} };
+    },
     target: (s, q) => ({ title: `Choose the target for ${cardOf(s, q.src)}`, body: FAB.cards[s.cards[q.src].id].text, labels: {} }),
     defend: (s, q) => {
       const pv = FAB.blockPreview(s);

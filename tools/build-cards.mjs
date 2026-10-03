@@ -378,6 +378,7 @@ function toCard(c) {
     kw: comp.kw, ab: comp.ab,
   };
   if (comp.un.length) card.un = comp.un;
+  if (T.includes('Chi')) card.chi = true;                       // [mystics] CR 1.12.4f: a card with a chi value; pitching it gains chi points
   return card;
 }
 
@@ -435,6 +436,10 @@ for (const f of fs.readdirSync(S('decks')).filter(f => (/^silver-age-.*\.html$/.
 const want = new Set(); for (const d of Object.values(decks)) for (const p of d.pool) want.add(p.id);
 for (const [id, c] of byId) if (c.types.includes('Token') && !c.types.includes('Hero')) want.add(id);   // every token: an effect may create any of them
 for (const id of EXTRA_CARDS) { if (!byId.has(id)) problems.push('extra card not in dataset: ' + id); else want.add(id); }   // [ninjas]
+// [mystics] CR 9.1.5: a transcend-card's back face (Inner Chi) must be in the pack for any list that can transcend.
+if ([...want].some(id => byId.has(id) && /transcend\b/.test(byId.get(id).functional_text_plain || '')) && byId.has('inner-chi-blu')) want.add('inner-chi-blu');
+// [mystics] Cards that other cards create in a hand: the pack needs them too.
+for (const name of ['Fang Strike', 'Slither']) if ([...want].some(id => byId.has(id) && (byId.get(id).functional_text_plain || '').includes(name)) && byId.has(slug(name))) want.add(slug(name));
 const cards = {};
 for (const id of [...want].sort()) if (byId.has(id)) cards[id] = toCard(byId.get(id));
 
@@ -455,6 +460,7 @@ for (const d of Object.values(decks)) {
   const bad = [...d.deck.map(p => p.id), ...d.loadout, d.hero].filter(id => !cards[id] || cards[id].un);
   if (total !== 40) problems.push(`${d.id}: default deck has ${total} cards, needs exactly 40 (TRP 7.4)`);
   if (d.deck.some(p => p.n > 2)) problems.push(`${d.id}: more than 2 copies of a card (TRP 7.4)`);
+  for (const p of d.deck) if (p.n > 1 && cards[p.id] && cards[p.id].ab.some(a => a.k === 'meta' && a.rule === 'legendary')) problems.push(`${d.id}: more than 1 copy of ${p.id}, which is Legendary (CR 8.3.6)`);   // [mystics]
   for (const id of pk.loadout) if (!d.pool.some(p => p.id === id)) problems.push(`${d.id}: loadout card not in pool: ${id}`);
   if (bad.length) problems.push(`${d.id}: not registered, uncompiled: ${[...new Set(bad)].join(', ')}`);
   else if (total === 40) { d.registered = true; registered.push(d.id); }
@@ -489,4 +495,4 @@ if (args.includes('--queue')) {
   console.log('\nFAILING SHAPES, largest first');
   for (const [k, e] of [...shapes].sort((a, b) => b[1].n - a[1].n).slice(0, 60)) console.log(`  ${String(e.n).padStart(3)}  ${k.slice(0, 150)}   [${e.ex}]`);
 }
-if (problems.some(p => /default deck|more than 2|not in pool/.test(p))) process.exit(1);
+if (problems.some(p => /default deck|more than [0-9]|not in pool/.test(p))) process.exit(1);

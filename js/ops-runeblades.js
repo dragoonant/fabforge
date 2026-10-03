@@ -46,7 +46,7 @@
   // "enters the arena with N counters", and the enter event (called from FAB.move)
   FAB.rbEnter = function (s, iid) {
     const c = I(s, iid), d = FAB.cards[c.id];
-    for (const ab of d.ab) if (ab.k === 'rb_enter') {
+    for (const ab of d.ab) if (ab.k === 'rb_enter' && (!ab.cond || FAB.cond({ s: s, ctrl: c.owner, iid: iid, link: null, flags: {} }, ab.cond))) {   // [mystics] ab.cond: "If you've pitched a blue card this turn, this enters the arena with a +1{p} counter"
       c.counters[ab.counter] = ab.n;
       FAB.log(s, 'rb_counter', { who: c.owner, c: c.id, k: ab.counter, n: ab.n, left: ab.n, enters: true });
     }
