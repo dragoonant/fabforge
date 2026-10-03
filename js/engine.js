@@ -90,10 +90,11 @@
     const prev = c.zone;
     if (FAB.cards[c.id].kind === 'token' && zone !== 'arena') zone = 'gone';   // a token leaving the arena ceases to exist
     c.zone = zone;
-    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; if (zone !== 'stack') delete c.fromArsenal; }
+    if (!(prev === 'stack' && zone === 'chain')) { c.mods = []; c.counters = {}; delete c.onLink; delete c.tapped; if (zone !== 'stack') { delete c.fromArsenal; delete c.addPaid; } }
     c.faceUp = !o.faceDown;
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
+    if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });   // "When this leaves the arena" (CR 6.6)
     return prev;
   };
   function draw(s, who, n) {
@@ -134,13 +135,16 @@
   // Numbers. One door each: power, defense, keywords, damage. The UI reads these and derives
   // nothing itself.
   // -------------------------------------------------------------------------------------------
+  // Chokeslam: while the effect lasts, attack action cards its victim controls can't gain {p} (continuous, so it is read here and nowhere else).
+  const noGainP = (s, seat) => s.flow === 'action' && s.effects.some(e => e.k === 'noGainP' && e.who === seat && e.turn === s.turn);
   const heroRule = (s, seat, rule) => D(s, P(s, seat).hero).ab.some(a => a.k === 'heroStatic' && a.rule === rule);
   // A card's {p} as the rules see it away from the combat chain.
   FAB.powerOf = function (s, iid) {
     const c = I(s, iid), d = FAB.cards[c.id];
     if (d.power == null) return null;
-    let p = d.power + (c.counters.p || 0);
-    if (c.zone !== 'chain' && isAttackDef(d) && heroRule(s, c.owner, 'aaPlus1OffChain')) p += 1;
+    const nog = isAttackDef(d) && noGainP(s, c.owner);
+    let p = d.power + (nog ? Math.min(0, c.counters.p || 0) : (c.counters.p || 0));
+    if (c.zone !== 'chain' && isAttackDef(d) && heroRule(s, c.owner, 'aaPlus1OffChain') && !nog) p += 1;
     return p;
   };
   const activeLink = FAB.activeLink = function (s) {
@@ -159,13 +163,17 @@
   };
   FAB.attackPower = function (s, link) {
     const c = I(s, link.iid), d = FAB.cards[c.id];
-    let p = d.power + (c.counters.p || 0);
+    const nog = !link.weapon && isAttackDef(d) && noGainP(s, link.ctrl);
+    const gain = v => (nog && v > 0) ? 0 : v;
+    let p = d.power + gain(c.counters.p || 0);
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
-    for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += ab.p;
+    for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(ab.p);
+    const me = P(s, link.ctrl);                                                        // "Your first attack each turn gets +1{p}": a continuous effect of a permanent
+    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1)) p += gain(ab.p);
     let pierce = 0;
-    for (const m of link.mods) { if (m.p) p += m.p; if (m.piercing) pierce += m.piercing; }
+    for (const m of link.mods) { if (m.p) p += gain(m.p); if (m.piercing) pierce += m.piercing; }
     if (d.kw.piercing) pierce += d.kw.piercing;
-    if (pierce && link.defs.some(e => FAB.cards[I(s, e.iid).id].kind === 'equipment')) p += pierce;   // CR 8.3.23
+    if (pierce && link.defs.some(e => FAB.cards[I(s, e.iid).id].kind === 'equipment')) p += gain(pierce);   // CR 8.3.23
     return Math.max(0, p);
   };
   FAB.attackHas = function (s, link, kw) {
@@ -196,6 +204,8 @@
     if (f.sub && !f.sub.some(t => d.types.includes(t))) return false;
     if (f.klass && !f.klass.some(t => d.types.includes(t))) return false;
     if (f.baseMax != null && !(d.power <= f.baseMax)) return false;
+    if (f.aa && (weapon || !isAttackDef(d))) return false;
+    if (f.costMin != null && !(d.cost != null && d.cost >= f.costMin)) return false;
     return true;
   };
 
@@ -233,6 +243,10 @@
       case 'startTurn': case 'endPhase': return ev.tp === own;
       case 'weaponHit': return ev.ctrl === own && (!ab.first || p.h.weaponHits === 1);
       case 'randDisc6': return ev.who === own;
+      case 'crush': return ev.iid === iid && ev.n >= ab.n;                                  // CR 8.4.2a
+      case 'leaveArena': return ev.iid === iid;
+      case 'beginAction': return ev.tp === own;
+      case 'playAura': return ev.ctrl === own;
       case 'disc6': return ev.who === own && s.flow === 'action' && s.tp === own && (!ab.first || p.h.disc6Action === 1);
       default: return false;
     }
@@ -241,14 +255,14 @@
     const seen = new Set();
     const scan = iid => {
       if (seen.has(iid)) return; seen.add(iid);
-      const ab = FAB.cards[I(s, iid).id].ab;
-      for (let i = 0; i < ab.length; i++) if (ab[i].k === 'trig' && trigMatch(s, ab[i], iid, ev)) {
+      const ab = FAB.cards[I(s, iid).id].ab, inHand = I(s, iid).zone === 'hand';
+      for (let i = 0; i < ab.length; i++) if (ab[i].k === 'trig' && (ab[i].zone === 'hand') === inHand && trigMatch(s, ab[i], iid, ev)) {   // hidden triggers (Heave) work only in hand
         s.trigs.push({ iid: iid, ab: i, ctrl: I(s, iid).owner, ev: ev, linkN: s.chain && s.chain.links.length ? s.chain.links.length - 1 : null });
       }
     };
     for (const seat of [s.tp, 1 - s.tp]) {
       const p = P(s, seat);
-      scan(p.hero); p.weapons.forEach(scan); p.equip.forEach(scan); p.arena.slice().forEach(scan);
+      scan(p.hero); p.weapons.forEach(scan); p.equip.forEach(scan); p.arena.slice().forEach(scan); p.hand.slice().forEach(scan);
     }
     if (s.chain) for (const l of s.chain.links) { if (!l.weapon && I(s, l.iid).zone === 'chain') scan(l.iid); l.defs.forEach(e => { if (I(s, e.iid).zone === 'chain') scan(e.iid); }); }
     for (const L of s.stack) if (L.kind === 'card') scan(L.iid);
@@ -291,6 +305,7 @@
   function stepFlow(s) {
     const tp = s.tp;
     if (s.closing) { finishClose(s); return; }
+    if (s.flow === 'action' && s.sub === 'begin') { s.sub = 0; setPriority(s, tp); return; }  // CR 4.3.3: only now does the turn-player gain priority
     if (s.flow === 'start') {
       if (s.sub === 0) {                                                                   // CR 4.2.2
         s.players.forEach(p => { p.h = freshHist(); });
@@ -298,9 +313,9 @@
         emit(s, { t: 'startTurn', tp: tp });
         s.sub = 1; return;
       }
-      s.flow = 'action'; s.sub = 0;                                                        // CR 4.3
-      P(s, tp).ap = 1;
-      setPriority(s, tp);
+      s.flow = 'action'; s.sub = 'begin';                                                  // CR 4.3.1: "at the beginning of your action phase" triggers
+      emit(s, { t: 'beginAction', tp: tp });
+      P(s, tp).ap = 1;                                                                     // CR 4.3.2
       return;
     }
     if (s.flow === 'end') {
@@ -318,11 +333,12 @@
           s.todo.push({ t: 'pitchOrder', who: tp, answers: [] }, { t: 'pitchOrder', who: 1 - tp, answers: [] });
           s.sub = 3; return;
         default: {
+          { const me = P(s, tp); for (const iid of [me.hero].concat(me.weapons, me.equip, me.arena)) delete I(s, iid).tapped; }   // CR 4.4.3d
           for (const p of s.players) { p.ap = 0; p.res = 0; }                              // CR 4.4.3e
           draw(s, tp, Math.max(0, FAB.intellect(s, tp) - P(s, tp).hand.length));           // CR 4.4.3f
           if (s.firstTurn) draw(s, 1 - tp, Math.max(0, FAB.intellect(s, 1 - tp) - P(s, 1 - tp).hand.length));
           s.firstTurn = false;
-          s.effects = s.effects.filter(e => e.dur !== 'turn');                             // CR 4.4.4
+          s.effects = s.effects.filter(e => e.dur !== 'turn' && !(e.turn != null && e.turn <= s.turn));   // CR 4.4.4; "during their next turn" effects end with that turn
           for (const k in s.cards) { const c = s.cards[k]; c.mods = c.mods.filter(m => m.dur !== 'turn'); delete c.hitsTurn; delete c.acts; delete c.extra; }
           s.tp = 1 - tp; s.turn++; s.flow = 'start'; s.sub = 0;
           return;
@@ -342,6 +358,7 @@
     s.chain.links.push(link);
     s.chain.step = 'attack';
     const p = P(s, L.ctrl); p.h.attacks++; if (link.weapon) p.h.weaponAttacks++;
+    link.seq = p.h.attacks;                                                                // "your first attack each turn"
     log(s, 'attack', { who: L.ctrl, c: I(s, L.iid).id, power: FAB.attackPower(s, link), link: link.n });
     emit(s, { t: 'attack', iid: L.iid, ctrl: L.ctrl });
     setPriority(s, s.tp);
@@ -357,8 +374,10 @@
       if (dealt > 0) {                                                                     // CR 7.5.5: a hit-event
         link.hit = true; link.dmg = dealt;
         const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
+        emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
         emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
         if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
+        for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
         for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
       }
     }
@@ -404,25 +423,47 @@
     if (pw != null && pw >= 6) p.h.pitched6++;
     log(s, 'pitch', { who: who, c: d.id, n: d.pitch });
   }
-  function payRes(x, who, n, forIid, label) {
+  // o.cancel === false: the payment is part of a resolving effect, so there is nothing to back out of. o.excl: a card that may not pay for itself.
+  const payRes = FAB.payRes = function (x, who, n, forIid, label, o) {
     const s = x.s, p = P(s, who);
     while (p.res < n) {
-      const opts = p.hand.filter(i => D(s, i).pitch > 0).map(i => ({ id: i, iid: i }));
+      const opts = p.hand.filter(i => i !== (o && o.excl) && D(s, i).pitch > 0).map(i => ({ id: i, iid: i }));
       if (!opts.length) throw new Illegal('cannot pay');
-      const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.res, cost: n, opts: opts, cancel: true });
+      const a = ask(x, { who: who, kind: 'pitch', src: forIid, label: label || null, need: n - p.res, cost: n, opts: opts, cancel: !(o && o.cancel === false) });
       pitchCard(s, who, a);
     }
     p.res -= n;
-  }
-  function canPay(s, who, r, exclIid, extraCards) {
+  };
+  const canPay = FAB.canPay = function (s, who, r, exclIid, extraCards) {
     const p = P(s, who);
     const others = p.hand.filter(i => i !== exclIid);
     const pitches = others.map(i => D(s, i).pitch).sort((a, b) => b - a);
     let pool = p.res, k = 0;
     while (pool < r && k < pitches.length && pitches[k] > 0) pool += pitches[k++];
     return pool >= r && k + (extraCards || 0) <= others.length;
+  };
+  // The one cost door (CR 5.1.6a): the starting cost, then increases, then reductions, never below zero.
+  // abIdx: the index of an activated ability on that card; omitted, the cost of playing the card.
+  const isActionSrc = (d, ab) => ab ? ab.type === 'action' : d.kind === 'action';
+  const costRedFits = (d, e) => (!e.f.aa || isAttackDef(d)) && (!e.f.klass || e.f.klass.every(k => d.types.includes(k)));
+  FAB.costOf = function (s, iid, abIdx) {
+    const c = I(s, iid), d = FAB.cards[c.id], ab = abIdx == null ? null : d.ab[abIdx];
+    const n = ab ? (ab.cost.r || 0) : (d.cost || 0);
+    let tax = 0, red = 0;
+    for (const e of s.effects) {
+      if (e.who !== c.owner) continue;
+      if (e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) tax += e.n;                 // Cartilage Crush
+      if (e.k === 'costRed' && !ab && costRedFits(d, e)) red += e.n;                              // Seismic Surge
+    }
+    return Math.max(0, n + tax - red);
+  };
+  // Once the cost is paid, the effects that applied to it are used up.
+  function spendCostFx(s, who, d, ab) {
+    s.effects = s.effects.filter(e => !(e.who === who && ((e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) || (e.k === 'costRed' && !ab && costRedFits(d, e)))));
   }
-  FAB.costOf = function (s, iid) { return D(s, iid).cost || 0; };
+  const legalTarget = (s, link, tgt) => !!(link && s.chain.step !== 'layer' && FAB.matchAttack(s, link.iid, link.weapon, tgt));
+  // Crush the Weak: an effect that stops a card being played.
+  const barred = (s, who, d) => d.kind === 'action' && isAttackDef(d) && s.flow === 'action' && d.power != null && s.effects.some(e => e.k === 'noPlayAA' && e.who === who && e.turn === s.turn && d.power <= e.max);
 
   // -------------------------------------------------------------------------------------------
   // What may be played or activated (CR 5.1, 5.2, 7.0.1a, 7.4.2, 8.1)
@@ -454,10 +495,12 @@
         break;
       default: return false;                                                                                           // CR 8.1.12a: a block card cannot be played
     }
+    if (barred(s, who, d)) return false;
     const x = { s: s, ctrl: who, iid: iid, link: link, flags: {} };
     for (const ab of d.ab) {
       if (ab.k === 'playIf' && !FAB.cond(x, ab.cond)) return false;
-      if (ab.k === 'res' && ab.tgt && !(link && s.chain.step !== 'layer' && FAB.matchAttack(s, link.iid, link.weapon, ab.tgt))) return false;
+      if (ab.k === 'res' && ab.tgt && !legalTarget(s, link, ab.tgt)) return false;
+      if (ab.k === 'res' && ab.modes && !ab.modes.some(m => legalTarget(s, link, m.tgt))) return false;
     }
     const extra = d.ab.filter(a => a.k === 'addCost' && a.cost.discardRandom).length;
     return canPay(s, who, FAB.costOf(s, iid), iid, extra);
@@ -471,8 +514,9 @@
     if (zone === 'chain' && c.zone !== 'chain') return false;
     if (ab.type === 'action' && !actionTiming(s, who, !!ab.attack)) return false;
     if (ab.opt) { const used = c.acts || 0, extra = c.extra || 0; if (used >= 1 + extra) return false; }                // CR 5.2.3
+    if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
     if (ab.cond && !FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, ab.cond)) return false;
-    return canPay(s, who, ab.cost.r || 0, ab.cost.discardSelf ? iid : null, ab.cost.discard || 0);
+    return canPay(s, who, FAB.costOf(s, iid, i), ab.cost.discardSelf ? iid : null, ab.cost.discard || 0);
   };
 
   FAB.legalActions = function (s) {
@@ -523,10 +567,12 @@
       if (D(s, link.iid).ab.some(a => a.k === 'rule' && a.rule === 'noDefReact')) return 'Defense reactions cannot be played this chain link.';
       if (!canDefendWith(s, link, iid, c.zone === 'hand', false)) return 'This cannot defend that attack.';
     }
+    if (barred(s, who, d)) return 'An effect stops you playing attack action cards with that little base power this action phase.';
     const x = { s: s, ctrl: who, iid: iid, link: link, flags: {} };
     for (const ab of d.ab) {
       if (ab.k === 'playIf' && !FAB.cond(x, ab.cond)) return 'Its play condition is not met.';
-      if (ab.k === 'res' && ab.tgt && !(link && s.chain.step !== 'layer' && FAB.matchAttack(s, link.iid, link.weapon, ab.tgt))) return 'There is no legal target for it.';
+      if (ab.k === 'res' && ab.tgt && !legalTarget(s, link, ab.tgt)) return 'There is no legal target for it.';
+      if (ab.k === 'res' && ab.modes && !ab.modes.some(m => legalTarget(s, link, m.tgt))) return 'There is no legal target for any of its modes.';
     }
     return 'You cannot pay for it.';
   };
@@ -552,9 +598,20 @@
   function applyNext(s, L, weapon) {       // CR 5.1.2a: "your next attack" effects attach as the attack is announced
     const keep = [];
     for (const e of s.effects) {
-      if (e.k === 'next' && e.ctrl === L.ctrl && FAB.matchAttack(s, L.iid, weapon, e.f)) {
+      if (e.k === 'next' && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f)) {
         L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src });
         log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
+      } else keep.push(e);
+    }
+    s.effects = keep;
+  }
+  // Bravo: "it gets +2{p} and dominate this turn" belongs to that card, and applies when it is played as an attack.
+  function applyCardBuffs(s, L, c) {
+    const keep = [];
+    for (const e of s.effects) {
+      if (e.k === 'cardBuff' && e.iid === L.iid && c.fromArsenal) {
+        L.mods.push({ p: e.p || 0, grant: e.grant || null, src: e.src });
+        log(s, 'buff', { who: L.ctrl, c: I(s, e.src).id, to: c.id, p: e.p || 0, grant: e.grant || null, piercing: 0 });
       } else keep.push(e);
     }
     s.effects = keep;
@@ -567,13 +624,29 @@
     const L = { lid: s.lid++, kind: 'card', ctrl: who, iid: iid, isAttack: isAttackDef(d), mods: [], tgt: null };
     move(s, iid, 'stack');                                                                  // CR 5.1.2 announce
     c.fromArsenal = fromArsenal;
+    let extra = 0;                                                                          // CR 5.1.3b: optional additional costs are declared first
+    for (const ab of d.ab) if (ab.k === 'addCost' && ab.opt && canPay(s, who, FAB.costOf(s, iid) + extra + ab.cost.r, null, 0)) {
+      if (ask(x, { who: who, kind: 'may', what: 'optCost', src: iid, cost: ab.cost.r, opts: [{ id: 'yes' }, { id: 'no' }], cancel: true }) === 'yes') {
+        extra += ab.cost.r; c.addPaid = true;
+        log(s, 'optCost', { who: who, c: d.id, n: ab.cost.r });
+      }
+    }
     const res = d.ab.find(a => a.k === 'res');
-    if (res && res.tgt) {                                                                   // CR 5.1.4 declare targets
+    let tgt = res ? res.tgt : null;
+    if (res && res.modes) {                                                                 // CR 5.1.4a, 1.7.5a: modes are declared as the card is played
+      const link = activeLink(s);
+      const opts = res.modes.map((m, i) => ({ id: i })).filter(o => legalTarget(s, link, res.modes[o.id].tgt));
+      L.mode = ask(x, { who: who, kind: 'mode', src: iid, opts: opts, cancel: true });
+      tgt = res.modes[L.mode].tgt;
+      log(s, 'mode', { who: who, c: d.id, text: res.modes[L.mode].text });
+    }
+    if (tgt) {                                                                              // CR 5.1.4 declare targets
       const link = activeLink(s);
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
     if (d.kind === 'action') p.ap -= 1;                                                     // CR 5.1.6b
-    payRes(x, who, FAB.costOf(s, iid), iid);                                                // CR 5.1.7
+    payRes(x, who, FAB.costOf(s, iid) + extra, iid);                                        // CR 5.1.7
+    spendCostFx(s, who, d, null);
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.cost.discardRandom) {               // CR 5.1.9 effect-costs
       if (!p.hand.length) throw new Illegal('no card to discard');
       const pw = discard(s, p.hand[FAB.randInt(s, p.hand.length)], true);
@@ -582,8 +655,9 @@
     s.stack.push(L);
     p.h.played++;
     log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : 'hand' });
-    if (L.isAttack) { applyNext(s, L, false); openChain(s); }
+    if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
+    if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
     setPriority(s, who);                                                                    // CR 5.1.10
   };
 
@@ -591,7 +665,12 @@
     const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[x.inv.ab], p = P(s, who);
     const L = { lid: s.lid++, kind: 'act', ctrl: who, iid: iid, ab: x.inv.ab, isAttack: !!ab.attack, mods: [], cid: d.id };
     if (ab.type === 'action') p.ap -= 1;
-    payRes(x, who, ab.cost.r || 0, iid, 'ability');
+    if (ab.cost.tap) {                                                                      // CR 8.5.55: tapping is a cost
+      if (c.tapped) throw new Illegal('already tapped');
+      c.tapped = true; log(s, 'tap', { who: who, c: d.id });
+    }
+    payRes(x, who, FAB.costOf(s, iid, x.inv.ab), iid, 'ability');
+    spendCostFx(s, who, d, ab);
     if (ab.cost.discard) {
       const opts = p.hand.filter(i => i !== iid).map(i => ({ id: i, iid: i }));
       if (!opts.length) throw new Illegal('no card to discard');
@@ -614,7 +693,13 @@
       const ab = L.inl || d.ab[L.ab];
       log(s, 'trigger', { who: L.ctrl, c: L.inl ? I(s, L.inl.src).id : d.id, on: (L.ev && L.ev.t) || null });
       let go = true;
-      if (ab.may === 'destroySelf') {
+      if (ab.may && ab.may.tap) {                                                           // Magmatic Carapace: tap it and pay, or nothing happens
+        if (c.zone !== 'equip' || c.tapped || !canPay(s, L.ctrl, ab.may.r, null, 0)) go = false;   // CR 8.5.55a: a tapped permanent cannot be tapped again
+        else if (ask(X, { who: L.ctrl, kind: 'may', src: L.iid, what: 'tapPay', cost: ab.may.r, opts: [{ id: 'yes' }, { id: 'no' }] }) === 'yes') {
+          c.tapped = true; log(s, 'tap', { who: L.ctrl, c: c.id });
+          payRes(X, L.ctrl, ab.may.r, L.iid, 'ability', { cancel: false });
+        } else go = false;
+      } else if (ab.may === 'destroySelf') {
         if (c.zone === 'grave' || c.zone === 'gone') go = false;
         else if (ask(X, { who: L.ctrl, kind: 'may', src: L.iid, what: 'destroySelf', opts: [{ id: 'yes' }, { id: 'no' }] }) === 'yes') destroy(s, L.iid);
         else go = false;
@@ -638,12 +723,15 @@
         } else move(s, L.iid, 'grave');
       } else {
         const res = d.ab.find(a => a.k === 'res');
-        if (res) FAB.runOps(X, res.ops);
+        if (res) FAB.runOps(X, res.modes ? res.modes[L.mode].ops : res.ops);
         if (d.kw.goAgain) P(s, L.ctrl).ap++;
         if (c.zone === 'stack') move(s, L.iid, d.types.includes('Aura') || d.types.includes('Item') ? 'arena' : 'grave');
+        if (c.zone === 'arena' && d.kw.suspense) {                                          // CR 8.3.42: enters with 2 suspense counters
+          c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
+        }
       }
     }
-    if (s.flow === 'action' && !s.closing && s.winner == null) setPriority(s, s.tp);         // CR 1.11
+    if (s.flow === 'action' && s.sub !== 'begin' && !s.closing && s.winner == null) setPriority(s, s.tp);         // CR 1.11 (not before the action phase has begun, CR 4.3.3)
   };
 
   function defendOptions(s, link, who, chosen) {                                            // CR 7.3.2a-b

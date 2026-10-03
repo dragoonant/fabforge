@@ -24,6 +24,7 @@ a { color: var(--gold); }
 .card .st.pw { left: .2em; background: #b5342c; border-radius: .3em .9em .3em .9em; }
 .card .st.df { right: .2em; background: #4b5a70; border-radius: .9em .3em .9em .3em; border: .1em solid #cfd6e4; }
 .card .badge { position: absolute; left: 50%; transform: translateX(-50%); top: 36%; padding: .1em .45em; border-radius: 1em; font-weight: 800; font-size: .95em; background: #000c; border: 1px solid #fff5; white-space: nowrap; }
+.card .badge.bt { color: #ffd98a; top: 64%; font-size: .75em; } .card .badge.bc { color: #9fd0ff; top: 50%; font-size: .75em; }
 .card .badge.bp { color: var(--good); } .card .badge.bd { color: var(--bad); top: 50%; } .card .badge.bl { color: var(--gold); top: 22%; font-size: .75em; }
 .card .ctag { position: absolute; top: 2.2em; left: 0; right: 0; text-align: center; font-size: .72em; background: #000b; color: var(--gold); padding: .1em; }
 .card.sm { --cw: 58px; }
@@ -43,7 +44,7 @@ a { color: var(--gold); }
 .herobox { position: relative; height: 122px; border-radius: 9px; overflow: hidden; border: 2px solid #5a6072; background: #000; }
 .side.active .herobox { border-color: var(--gold); }
 .portrait { position: absolute; inset: 0; background-size: cover; background-position: center 18%; opacity: .8; }
-.hname { position: absolute; top: 0; left: 0; right: 0; padding: 3px 7px; font-weight: 700; background: linear-gradient(#000c, transparent); }
+.hname { position: absolute; top: 0; left: 0; right: 0; padding: 3px 7px; font-weight: 700; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(#000c, transparent); }
 .hname .you { font-size: 11px; color: var(--gold); border: 1px solid var(--gold); border-radius: 8px; padding: 0 5px; margin-left: 4px; }
 .life { position: absolute; left: 8px; bottom: 26px; font-size: 40px; font-weight: 800; line-height: 1; text-shadow: 0 2px 6px #000, 0 0 12px #000; color: #fff; }
 .life::after { content: " ♥"; font-size: 18px; color: var(--red); }
@@ -135,3 +136,9 @@ a { color: var(--gold); }
 
 @media (max-height: 860px) { :root { --cw: 70px; } .hand .card { --cw: 96px; } .hand { min-height: calc(96px * 1.4 + 8px); } .herobox { height: 104px; } .life { font-size: 32px; } }
 @media (max-height: 720px) { :root { --cw: 60px; } .hand .card { --cw: 84px; } .hand { min-height: calc(84px * 1.4 + 8px); } }
+
+/* ---------- feedback ---------- */
+.life.hurt { animation: hurt .7s ease-out; }
+@keyframes hurt { 0% { color: #ff3b2f; transform: scale(1.5); } 100% { color: #fff; transform: scale(1); } }
+.dmgfly { position: absolute; left: 60px; top: -6px; font-size: 26px; color: #ff5a4e; animation: fly 1.1s ease-out forwards; text-shadow: 0 2px 4px #000; }
+@keyframes fly { from { opacity: 1; transform: translateY(8px); } to { opacity: 0; transform: translateY(-34px); } }

@@ -20,6 +20,8 @@
       if (c.counters.p) badges += `<div class="badge bp">+${c.counters.p}</div>`;
       if (c.counters.d) badges += `<div class="badge bd">−${c.counters.d}</div>`;
       if (c.onLink != null) badges += `<div class="badge bl">defending</div>`;
+      if (c.tapped) badges += `<div class="badge bt">tapped</div>`;
+      for (const k in c.counters) if (k !== 'p' && k !== 'd' && c.counters[k]) badges += `<div class="badge bc">${c.counters[k]} ${k}</div>`;
     }
     const attrs = [`data-cid="${id}"`];
     if (o.iid != null) attrs.push(`data-iid="${o.iid}"`);
@@ -55,8 +57,8 @@
       if (q.cancel) btns.push({ a: { type: 'cancel' }, label: 'Cancel', cls: 'ghost' });
     } else {
       for (const a of FAB.legalActions(s)) {
-        if (a.type === 'play') add(a.iid, a, 'Play ' + FAB.cards[s.cards[a.iid].id].name);
-        else if (a.type === 'act') { const d = FAB.cards[s.cards[a.iid].id], ab = d.ab[a.ab]; add(a.iid, a, ab.attack ? 'Attack with ' + d.name + ' (costs ' + (ab.cost.r || 0) + ')' : 'Use ' + d.name + '’s ability'); }
+        if (a.type === 'play') add(a.iid, a, 'Play ' + FAB.cards[s.cards[a.iid].id].name + ' (costs ' + FAB.costOf(s, a.iid) + ')');
+        else if (a.type === 'act') { const d = FAB.cards[s.cards[a.iid].id], ab = d.ab[a.ab]; add(a.iid, a, (ab.attack ? 'Attack with ' + d.name : 'Use ' + d.name + '’s ability') + ' (costs ' + FAB.costOf(s, a.iid, a.ab) + ')'); }
         else if (a.type === 'pass') btns.push({ a: a, label: T.passLabel(s), cls: 'primary' });
       }
     }
@@ -88,19 +90,19 @@
       <div class="herobox" data-cid="${hero.id}">
         <div class="portrait" style="background-image:${FAB.art.css(hero.id)}"></div>
         <div class="hname">${esc(hero.name)}${mine ? ' <span class="you">you</span>' : ''}</div>
-        <div class="life" title="Life">${Math.max(0, p.life)}</div>
+        <div class="life ${ui.hurt && ui.hurt[seat] ? 'hurt' : ''}" title="Life">${Math.max(0, p.life)}${ui.hurt && ui.hurt[seat] ? `<span class="dmgfly">−${ui.hurt[seat]}</span>` : ''}</div>
         <div class="chips"><span class="chip ap" title="Action points">${p.ap} AP</span><span class="chip res" title="Resource points in the pool">${p.res} res</span><span class="chip" title="Intellect: you draw up to this many cards at the end of your turn">int ${FAB.intellect(s, seat)}</span></div>
         ${am.m[p.hero] ? `<div class="heroact" data-acts='${JSON.stringify(am.m[p.hero])}'>Hero ability</div>` : ''}
       </div>
       <div class="gear">${weapons}${gear}</div>
       <div class="perms"><div class="zl">Permanents</div><div class="row">${perms}</div></div>
       <div class="zones">
+        ${mine ? '' : `<div class="zone"><div class="zl">Hand ${p.hand.length}</div><div class="row backs">${p.hand.map(() => back(null, 'sm')).join('')}</div></div>`}
         <div class="zone"><div class="zl">Arsenal</div>${ars}</div>
         <div class="zone"><div class="zl">Pitch</div><div class="row pitchrow">${pitch}</div></div>
         <div class="zone pile"><div class="zl">Deck</div>${p.deck.length ? back(p.deck.length) : '<div class="empty">0</div>'}</div>
         <div class="zone pile click" data-view="grave:${seat}"><div class="zl">Graveyard ${p.grave.length}</div>${grave}</div>
         <div class="zone pile click" data-view="banish:${seat}"><div class="zl">Banished ${p.banish.length}</div>${faceDownBanished ? back(faceDownBanished, 'sm') : ''}</div>
-        ${mine ? '' : `<div class="zone"><div class="zl">Hand ${p.hand.length}</div><div class="row backs">${p.hand.map(() => back(null, 'sm')).join('')}</div></div>`}
       </div>
     </div>`;
   }
@@ -201,6 +203,7 @@
     </div>`;
     const ll = document.getElementById('loglines');
     if (ll && atBottom) ll.scrollTop = ll.scrollHeight;
+    ui.hurt = null;                                   // shown once, not on every repaint
   }
   ui.render = render;
 
@@ -301,6 +304,8 @@
     try { ui.s = FAB.apply(ui.s, a); }
     catch (err) { FAB.main.crash(err); return; }
     const fresh = ui.s.log.slice(before);
+    ui.hurt = [0, 0];
+    for (const e of fresh) if (e.t === 'damage') ui.hurt[e.who] += e.n;
     FAB.audio.onLog(ui.s, fresh, ui.human);
     ui.spot = null;
     if (actor !== ui.human) {

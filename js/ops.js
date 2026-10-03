@@ -25,6 +25,12 @@
     fromArsenal: x => !!I(x.s, x.iid).fromArsenal,
     defWeaponAttack: x => !!(x.link && x.link.weapon && x.link.defs.some(e => e.iid === x.iid)),
     selfDefending: x => { const l = FAB.activeLink(x.s); return !!(l && l.defs.some(e => e.iid === x.iid)); },
+    flipCrush: x => x.flags.card != null && D(x.s, x.flags.card).ab.some(a => a.k === 'trig' && a.on === 'crush'),   // Bravo: "If it has crush"
+    addPaid: x => !!I(x.s, x.iid).addPaid,                                                  // Staunch Response: the optional additional cost was paid (CR 5.1.3b)
+    pitchGreater: x => P(x.s, x.ctrl).pitch.some(i => FAB.powerOf(x.s, i) != null && FAB.powerOf(x.s, i) > D(x.s, x.iid).power),   // Zealous Belting
+    hasArsenal: x => P(x.s, x.ctrl).arsenal.length > 0,                                     // Fault Line
+    controlSurge: x => P(x.s, x.ctrl).arena.some(i => I(x.s, i).id === 'seismic-surge'),    // Basalt Boots
+    pitchCost: (x, c) => P(x.s, x.ctrl).pitch.some(i => D(x.s, i).cost != null && D(x.s, i).cost >= c.n),   // Titan's Fist
     control6: x => {
       const s = x.s;
       if (s.stack.some(L => L.kind === 'card' && L.ctrl === x.ctrl && FAB.powerOf(s, L.iid) >= 6)) return true;
@@ -55,8 +61,106 @@
     buff(x, op) {                       // "Target ... attack gets ..."
       const link = FAB.activeLink(x.s);
       if (!link || link.n !== x.L.tgt || !FAB.matchAttack(x.s, link.iid, link.weapon, op.tgt)) return;   // the target is gone or no longer legal
-      link.mods.push({ p: op.p || 0, grant: op.grant || null, piercing: op.piercing || 0, src: x.iid });
-      FAB.log(x.s, 'buff', { who: x.ctrl, c: I(x.s, x.iid).id, to: I(x.s, link.iid).id, p: op.p || 0, grant: op.grant || null, piercing: op.piercing || 0 });
+      link.mods.push({ p: op.p || 0, grant: op.grant || null, piercing: op.piercing || 0, src: x.iid, ...(op.hitOps ? { hitOps: op.hitOps } : {}) });
+      FAB.log(x.s, 'buff', { who: x.ctrl, c: I(x.s, x.iid).id, to: I(x.s, link.iid).id, p: op.p || 0, grant: op.grant || null, piercing: op.piercing || 0, hit: op.hitOps ? 'discard' : null });
+    },
+    // ---- Guardian: crush effects (CR 8.4.2), Seismic Surge (CR 8.6.2), Heave (CR 8.3.18), Suspense (CR 8.3.42) ----
+    handToTop(x) {                      // Boulder Drop: the damaged hero chooses which card
+      const s = x.s, who = 1 - x.ctrl, p = P(s, who);
+      if (!p.hand.length) return;
+      const iid = FAB.ask(x, { who: who, kind: 'handToTop', src: x.iid, opts: p.hand.map(i => ({ id: i, iid: i })) });
+      FAB.move(s, iid, 'deck', { top: true });
+      FAB.log(s, 'handToDeck', { who: who, where: 'top' });
+    },
+    equipCounter(x, op) {               // Buckling Blow: the attacker chooses the equipment, even if there is one
+      const s = x.s, opts = P(s, 1 - x.ctrl).equip.map(i => ({ id: i, iid: i }));
+      if (!opts.length) return;
+      const iid = FAB.ask(x, { who: x.ctrl, kind: 'targetEquip', src: x.iid, n: op.n, opts: opts });
+      const c = I(s, iid);
+      c.counters.d = (c.counters.d || 0) + op.n;                                           // CR 1.15.2a: a -1{d} counter lowers its defense
+      FAB.log(s, 'counter', { who: c.owner, c: c.id, k: 'd', n: op.n });
+    },
+    oppFx(x, op) {                      // effects on the damaged hero that last into, or through, their next turn
+      const s = x.s, who = 1 - x.ctrl;
+      const turn = s.turn + (s.tp === who ? 2 : 1);                                         // their next turn; the effect ends with it (engine: end of turn)
+      if (op.fx === 'actTax') s.effects.push({ k: 'actTax', who: who, n: op.n, turn: turn, src: x.iid });
+      else if (op.fx === 'noGainP') s.effects.push({ k: 'noGainP', who: who, turn: turn, src: x.iid });
+      else if (op.fx === 'noPlayAA') s.effects.push({ k: 'noPlayAA', who: who, max: op.max, turn: turn, src: x.iid });
+      else if (op.fx === 'firstAttack') s.effects.push({ k: 'next', ctrl: who, f: {}, p: op.p, grant: null, hitGoAgain: false, turn: turn, src: x.iid });
+      else throw new Error('unknown crush effect: ' + op.fx);
+      FAB.log(s, 'fx', { who: who, c: I(s, x.iid).id, fx: op.fx, n: op.n || 0, p: op.p || 0, max: op.max == null ? null : op.max });
+    },
+    arsenalsBottom(x) {                 // Fault Line: all cards in all arsenals; one per arsenal, so there is no order to choose
+      const s = x.s;
+      for (const seat of [x.ctrl, 1 - x.ctrl]) for (const iid of P(s, seat).arsenal.slice()) {
+        const c = I(s, iid), seen = c.faceUp;
+        FAB.move(s, iid, 'deck');
+        FAB.log(s, 'arsenalBottom', { who: seat, c: seen ? c.id : null });
+      }
+    },
+    oppArsenalBottom(x) {               // Disable: the attacker chooses a card from their arsenal; a face-down one is chosen blind
+      const s = x.s, opp = 1 - x.ctrl, opts = P(s, opp).arsenal.map(i => ({ id: i, ...(I(s, i).faceUp ? { iid: i } : {}) }));
+      if (!opts.length) return;
+      const iid = FAB.ask(x, { who: x.ctrl, kind: 'arsenalPick', what: 'bottom', src: x.iid, opts: opts });
+      const c = I(s, iid), seen = c.faceUp;
+      FAB.move(s, iid, 'deck');
+      FAB.log(s, 'arsenalBottom', { who: opp, c: seen ? c.id : null });
+    },
+    destroyOppSurge(x) {                // Flatten the Field: Seismic Surge tokens are indistinguishable, so which one is not a choice
+      const t = P(x.s, 1 - x.ctrl).arena.find(i => I(x.s, i).id === 'seismic-surge');
+      if (t != null) FAB.destroy(x.s, t);
+    },
+    costRed(x, op) {                    // Seismic Surge: consumed by FAB.costOf's caller when the card is played
+      x.s.effects.push({ k: 'costRed', who: x.ctrl, f: op.f, n: op.n, dur: 'turn', src: x.iid });
+      FAB.log(x.s, 'fx', { who: x.ctrl, c: I(x.s, x.iid).id, fx: 'costRed', n: op.n, p: 0, max: null });
+    },
+    revealCrush(x) {                    // Crash and Bash: "you may reveal a card with crush"
+      const s = x.s, p = P(s, x.ctrl);
+      x.flags.did = false;
+      const opts = p.hand.filter(i => D(s, i).ab.some(a => a.k === 'trig' && a.on === 'crush')).map(i => ({ id: i, iid: i }));
+      if (!opts.length) return;
+      opts.push({ id: 'no' });
+      const a = FAB.ask(x, { who: x.ctrl, kind: 'revealCrush', src: x.iid, opts: opts });
+      if (a === 'no') return;
+      FAB.log(s, 'reveal', { who: x.ctrl, c: I(s, a).id });
+      x.flags.did = true;
+    },
+    arsenalFlip(x) {                    // Bravo: turn a face-down card in your arsenal face-up
+      const s = x.s, opts = P(s, x.ctrl).arsenal.filter(i => !I(s, i).faceUp).map(i => ({ id: i, iid: i }));
+      if (!opts.length) return;
+      const iid = FAB.ask(x, { who: x.ctrl, kind: 'arsenalPick', what: 'flip', src: x.iid, opts: opts });
+      I(s, iid).faceUp = true;
+      FAB.log(s, 'reveal', { who: x.ctrl, c: I(s, iid).id, zone: 'arsenal' });
+      x.flags.card = iid;
+    },
+    cardBuff(x, op) {                   // Bravo: the buff waits on that card and applies when it is played this turn
+      if (x.flags.card == null) return;
+      x.s.effects.push({ k: 'cardBuff', iid: x.flags.card, p: op.p || 0, grant: op.grant || null, dur: 'turn', src: x.iid });
+      FAB.log(x.s, 'fx', { who: x.ctrl, c: I(x.s, x.iid).id, fx: 'cardBuff', n: op.p || 0, p: 0, max: null, to: I(x.s, x.flags.card).id, grant: op.grant || null });
+    },
+    discardChoice(x) {                  // Pummel's granted "they discard a card": the damaged hero chooses
+      const s = x.s, who = 1 - x.ctrl, p = P(s, who);
+      if (!p.hand.length) return;
+      const iid = FAB.ask(x, { who: who, kind: 'discardPick', src: x.iid, opts: p.hand.map(i => ({ id: i, iid: i })) });
+      FAB.discard(s, iid, false);
+    },
+    heave(x, op) {                      // CR 8.3.18: you may pay N{r} and put this face-up into your empty arsenal; if you do, N Seismic Surge tokens
+      const s = x.s, p = P(s, x.ctrl), c = I(s, x.iid);
+      if (c.zone !== 'hand' || p.arsenal.length) return;                                    // CR 8.3.18b
+      if (!FAB.canPay(s, x.ctrl, op.n, x.iid, 0)) return;
+      if (FAB.ask(x, { who: x.ctrl, kind: 'may', src: x.iid, what: 'heave', cost: op.n, opts: [{ id: 'yes' }, { id: 'no' }] }) !== 'yes') return;
+      FAB.payRes(x, x.ctrl, op.n, x.iid, 'heave', { cancel: false, excl: x.iid });
+      FAB.move(s, x.iid, 'arsenal');                                                        // face-up: it was heaved
+      FAB.log(s, 'heave', { who: x.ctrl, c: c.id, n: op.n });
+      for (let i = 0; i < op.n; i++) FAB.createToken(s, x.ctrl, 'Seismic Surge');
+    },
+    suspenseTick(x) {                   // CR 8.3.42: at the start of your turn remove a suspense counter; with none left, destroy it
+      const s = x.s, c = I(s, x.iid);
+      if (c.zone !== 'arena') return;
+      const left = Math.max(0, (c.counters.suspense || 0) - 1);
+      c.counters.suspense = left;
+      FAB.log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: -1, left: left });
+      if (left === 0) FAB.destroy(s, x.iid);
     },
     next(x, op) {                       // "Your next ... attack this turn gets ..."
       x.s.effects.push({ k: 'next', ctrl: x.ctrl, f: op.f, p: op.p || 0, grant: op.grant || null, hitGoAgain: !!op.hitGoAgain, dur: 'turn', src: x.iid });
@@ -187,11 +291,12 @@
   // Load-time validation: refuses to run rather than play a card wrongly.
   FAB.validate = function () {
     const bad = [];
-    const walk = (id, ops) => { for (const op of ops || []) { if (!OPS[op.o]) bad.push(id + ': op with no handler: ' + op.o); if (op.cond && !CONDS[op.cond.c]) bad.push(id + ': no condition: ' + op.cond.c); walk(id, op.then); walk(id, op.else); walk(id, op.win); } };
+    const walk = (id, ops) => {
+      for (const op of ops || []) { if (!OPS[op.o]) bad.push(id + ': op with no handler: ' + op.o); if (op.cond && !CONDS[op.cond.c]) bad.push(id + ': no condition: ' + op.cond.c); walk(id, op.then); walk(id, op.else); walk(id, op.win); walk(id, op.hitOps); } };
     for (const id in FAB.cards) {
       const c = FAB.cards[id];
       if (c.un) continue;
-      for (const ab of c.ab) { walk(id, ab.ops); if (ab.cond && !CONDS[ab.cond.c]) bad.push(id + ': no condition: ' + ab.cond.c); }
+      for (const ab of c.ab) { walk(id, ab.ops); for (const m of ab.modes || []) walk(id, m.ops); if (ab.cond && !CONDS[ab.cond.c]) bad.push(id + ': no condition: ' + ab.cond.c); }
     }
     for (const id in FAB.decks) {
       const d = FAB.decks[id];

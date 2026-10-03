@@ -10,7 +10,7 @@
   const D = (s, iid) => FAB.cards[s.cards[iid].id];
 
   // Weights. A card in hand is worth about what it blocks; life is worth more when it is short.
-  const W = { card: 3.0, arsenal: 2.6, equipDef: 0.7, token: 1.2, counter: 1.0, lowLife: 8, lowLifeExtra: 0.7, next: 0.6 };
+  const W = { blockHigh: 1.5, blockMid: 1.25, card: 3.0, arsenal: 2.6, equipDef: 0.7, token: 1.2, counter: 1.0, lowLife: 8, lowLifeExtra: 0.7, next: 0.6 };
   FAB.aiWeights = W;
 
   function lifeScore(l) { return l + (l < W.lowLife ? -(W.lowLife - l) * W.lowLifeExtra : 0); }
@@ -70,7 +70,10 @@
       case 'target': case 'chooseSource': return q.opts[0].id;
       case 'targetHero': return q.who;
       case 'topOrBottom': return 'bottom';
-      case 'handToDeck': case 'discardCost': return leastKept(s, q.opts).id;
+      case 'handToDeck': case 'discardCost': case 'handToTop': case 'discardPick': return leastKept(s, q.opts).id;
+      case 'targetEquip': return q.opts.slice().sort((a, b) => FAB.defenseOf(s, b.iid, null) - FAB.defenseOf(s, a.iid, null))[0].id;   // hurt the sturdiest piece
+      case 'arsenalPick': return q.opts[0].id;
+      case 'revealCrush': { const r = q.opts.find(o => o.id !== 'no'); return r.id; }                                                    // revealing is free; the token is the prize
       case 'revealOrDiscard': { const r = q.opts.find(o => o.act === 'reveal'); return r ? r.id : leastKept(s, q.opts.filter(o => o.act === 'discard')).id; }
       default: return undefined;
     }
@@ -164,7 +167,11 @@
       const c = s.cards[o.iid], d = FAB.cards[c.id], hand = c.zone === 'hand';
       const def = FAB.defenseOf(s, o.iid, link);
       let cost;
-      if (hand) cost = d.kind === 'block' ? 0.6 : W.card * (0.75 + 0.1 * keepValue(s, o.iid));
+      // A card kept is a card played next turn; that is worth more than the life it would save
+      // while life is plentiful. Swept blockHigh 1.0 / 1.5 / 2.0 over 30 games, both seats: blocked
+      // 73.1% / 68.7% / 67.9% of incoming power, hand entering own turn 2.59 / 2.66 / 2.69. A weak
+      // lever: most blocks are equipment and crush-avoidance. Do not expect more from this number.
+      if (hand) cost = d.kind === 'block' ? 0.6 : W.card * (0.75 + 0.1 * keepValue(s, o.iid)) * (life >= 12 ? W.blockHigh : life >= 7 ? W.blockMid : 1);
       else cost = d.kw.bladeBreak ? def * W.equipDef + 0.5 : d.kw.guardwell ? def * W.equipDef : (d.kw.temper || d.kw.battleworn) ? W.equipDef + 0.2 : 0.2;
       return { id: o.id, def: def, cost: cost, hand: hand };
     }).filter(it => it.def > 0).slice(0, 10);

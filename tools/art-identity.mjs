@@ -20,7 +20,10 @@ export const WHO = {
     'wearing polished plate armour, gripping a radiant golden two-handed sword',
   kayo:
     'a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, ' +
-    'a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains'
+    'a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains',
+  bravo:
+    'a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, ' +
+    'in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands'
 };
 
 const D = 'dorinthea', K = 'kayo';
@@ -288,5 +291,146 @@ export const CARDS = {
     who: K,
     subject: 'snapping at the ankles of a fleeing rival, tusks flashing, a quick sharp slash',
     setting: 'across a torchlit fighting pit with scattering onlookers'
+  },
+
+  // ---- bravo-flattering-showman deck ----
+  'bravo-flattering-showman': {
+    who: 'bravo',
+    subject: 'standing in a triumphant showman pose, a wide confident stance, the hammer held across his body',
+    setting: 'on a grand colosseum stage under blazing spotlights with a shadowy audience beyond'
+  },
+  'basalt-boots': {
+    subject: 'a pair of heavy black basalt-plated armoured boots with glowing amber cracks and bronze trim, the boots themselves are the focus',
+    setting: 'planted on cracked volcanic stone with drifting embers'
+  },
+  'blade-beckoner-helm': {
+    subject: 'a sleek steel helm with swept-back crest and a glinting visor, ringed with floating spectral blades, the helm itself is the focus',
+    setting: 'on a weathered stone pedestal in a moonlit armoury'
+  },
+  'enclosed-firemind': {
+    subject: 'a full iron helm sealed around a glowing orange flame burning inside the visor slit, the helm itself is the focus',
+    setting: 'on a dark forge anvil with shimmering heat haze'
+  },
+  'magmatic-carapace': {
+    subject: 'a heavy breastplate of dark plates split by flowing molten magma seams, the armour itself is the focus',
+    setting: 'displayed on a rock ledge above a glowing lava river'
+  },
+  'nullrune-boots': {
+    subject: 'a pair of sleek dark boots etched with glowing violet runes that swallow stray magic, the boots themselves are the focus',
+    setting: 'standing on a smooth stone floor with faint violet mist'
+  },
+  'nullrune-gloves': {
+    subject: 'a pair of slim dark gauntlets etched with glowing violet runes, palms open and repelling sparks of magic, the gauntlets themselves are the focus',
+    setting: 'floating in a dim chamber with swirling violet mist'
+  },
+  'nullrune-robe': {
+    subject: 'a long dark hooded robe with glowing violet runic trim that swallows stray magic, the robe itself is the focus',
+    setting: 'hanging in a dim chamber with swirling violet mist'
+  },
+  'sledge-of-anvilheim': {
+    subject: 'an enormous two-handed war hammer with a massive stone head bound in bronze and teal, shown at a slant, the hammer itself is the focus',
+    setting: 'resting on a cracked stone dais in a quarry at dusk with dust floating'
+  },
+  'steelbraid-buckler': {
+    subject: 'a round shield of braided steel cords with a bright bronze boss, the shield itself is the focus',
+    setting: 'leaning against a rough stone wall in a torchlit armoury'
+  },
+  'titans-fist': {
+    subject: 'a gigantic armoured stone gauntlet fist crackling with golden energy, with a short heavy hammer haft, the weapon itself is the focus',
+    setting: 'on a boulder in a rocky ravine under a stormy sky'
+  },
+  'boulder-drop': {
+    who: 'bravo',
+    subject: 'lifting a giant boulder overhead with both arms and hurling it down',
+    setting: 'in a rocky quarry with dust clouds and falling rubble'
+  },
+  'buckling-blow': {
+    who: 'bravo',
+    subject: 'smashing his hammer down onto the dented shield of a rival, bending the metal',
+    setting: 'on a torchlit arena floor with sparks flying'
+  },
+  'cartilage-crush': {
+    who: 'bravo',
+    subject: 'driving a heavy fist forward in a brutal punch that sends a shockwave',
+    setting: 'on a cracked mountain pass with swirling snow'
+  },
+  'chokeslam': {
+    who: 'bravo',
+    subject: 'seizing a stumbling rival by the throat and slamming him down onto the ground',
+    setting: 'in the centre of a grand colosseum stage with spotlights blazing'
+  },
+  'crash-and-bash': {
+    who: 'bravo',
+    subject: 'bracing behind a raised hammer to block, as a golden ring of cracked stone bursts at his feet',
+    setting: 'in a torchlit arena tunnel with sparks and dust'
+  },
+  'debilitate': {
+    who: 'bravo',
+    subject: 'swinging the hammer in a wide sweeping arc that knocks a rival off balance',
+    setting: 'on a storm-lit plateau with lightning above'
+  },
+  'fault-line': {
+    who: 'bravo',
+    subject: 'slamming the hammer into the ground so a glowing crack races across the earth toward the viewer',
+    setting: 'on a dry salt flat at sunset with shattered rock rising'
+  },
+  'pummel': {
+    who: 'bravo',
+    subject: 'hammering a flurry of heavy hammer blows with a blurred, motion-streaked arm',
+    setting: 'in a dusty arena yard with debris scattering'
+  },
+  'staunch-response': {
+    who: 'bravo',
+    subject: 'planting his feet and raising a crossed-arm guard as a heavy blow rebounds off him in a flash of light',
+    setting: 'on a stone bridge over a misty gorge'
+  },
+  'zealous-belting': {
+    who: 'bravo',
+    subject: 'lunging forward with a roaring charge, the hammer swinging in a rapid wild spin',
+    setting: 'through a torchlit marketplace square with blurred stalls'
+  },
+  'clash-of-vigor': {
+    who: 'bravo',
+    subject: 'locking hammer against hammer with a rival, nose to nose, in a blazing clash of golden sparks',
+    setting: 'on a narrow rocky ledge at the edge of a cliff'
+  },
+  'crush-the-weak': {
+    who: 'bravo',
+    subject: 'stomping down on the weapon of a fallen rival, splintering it under a giant boot',
+    setting: 'on a muddy battlefield at dusk with smoke curling'
+  },
+  'disable': {
+    who: 'bravo',
+    subject: 'pinning the outstretched arm of a rival to the ground under the huge hammer head',
+    setting: 'in a dim arena cellar lit by one hanging lamp'
+  },
+  'edge-of-their-seats': {
+    who: 'bravo',
+    subject: 'posed with a dramatic hand raised, the hammer held low, a single spotlight cone and a hushed expectant glow around him',
+    setting: 'on a darkened colosseum stage with a shadowy audience in the stands'
+  },
+  'flatten-the-field': {
+    who: 'bravo',
+    subject: 'sweeping the hammer flat across the ground, levelling a ring of rock and a glowing amber shockwave ring',
+    setting: 'across a wide barren plain with rubble flying'
+  },
+  'macho-grande': {
+    who: 'bravo',
+    subject: 'flexing in a grand heroic pose with fists on hips, a huge golden burst of light behind him',
+    setting: 'on a grand colosseum stage with fireworks overhead'
+  },
+  'the-suspense-is-killing-me': {
+    who: 'bravo',
+    subject: 'crouched with the hammer raised and a tense wide-eyed grin, spotlights narrowing on him',
+    setting: 'in a hushed torchlit arena with a shadowy audience leaning forward'
+  },
+  'thunder-quake': {
+    who: 'bravo',
+    subject: 'heaving the huge hammer high overhead for a colossal strike as lightning arcs from its head',
+    setting: 'on a storm-lit plateau with a shattered stone floor'
+  },
+  'seismic-surge': {
+    subject: 'an abstract emblem of a seismic surge, a shockwave ring bursting up through cracked stone, glowing amber',
+    setting: 'against a deep dark earth with floating rock fragments'
   }
 };

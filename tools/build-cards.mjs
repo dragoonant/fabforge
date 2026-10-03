@@ -51,6 +51,7 @@ const CONDS = [
   [`a card with ${SIX} was discarded as an additional cost to play it`, () => ({ c: 'costDisc6' })],
   ["this hasn't hit this turn", () => ({ c: 'notHit' })],
   ['you do', () => ({ c: 'did' })],
+  ['it has crush', () => ({ c: 'flipCrush' })],                       // Bravo: the card just turned face-up
 ];
 
 const nextFilter = w => {
@@ -59,6 +60,7 @@ const nextFilter = w => {
   if (w === 'weapon') return { weapon: true };
   if (w === 'sword') return { sub: ['Sword'] };
   if (w === 'sword or dagger') return { sub: ['Sword', 'Dagger'] };
+  if (w === 'club or hammer weapon') return { weapon: true, sub: ['Club', 'Hammer'] };
   if (w === 'Warrior') return { klass: ['Warrior'] };
   if (w === 'Brute or Warrior') return { klass: ['Brute', 'Warrior'] };
   return null;
@@ -67,7 +69,24 @@ const res = s => (s.match(/\{r\}/g) || []).length;
 
 // Effect sentences -> ops. Each: [anchored regex, builder -> op | [ops] | null]
 const EFFECTS = [
-  [/^Target (weapon|Warrior|sword|sword or dagger) attack gets \+(\d+)\{p\}(?: and piercing (\d+))?$/, m => ({ o: 'buff', tgt: nextFilter(m[1]), p: +m[2], ...(m[3] ? { piercing: +m[3] } : {}) })],
+  [/^Target (weapon|Warrior|sword|sword or dagger|club or hammer weapon) attack gets \+(\d+)\{p\}(?: and piercing (\d+))?$/, m => ({ o: 'buff', tgt: nextFilter(m[1]), p: +m[2], ...(m[3] ? { piercing: +m[3] } : {}) })],
+  // Pummel's second mode: the granted ability is a hit-trigger carried on the attack (CR 6.6.4-style "gets" text)
+  [/^Target attack action card with cost (\d+) or more gets \+(\d+)\{p\} and <HITDISC>$/, m => ({ o: 'buff', tgt: { aa: true, costMin: +m[1] }, p: +m[2], hitOps: [{ o: 'discardChoice' }] })],
+  [/^your next (Guardian) attack action card this turn costs ((?:\{r\})+) less to play$/, m => ({ o: 'costRed', f: { klass: [m[1]], aa: true }, n: res(m[2]) })],
+  [/^[Cc]reate an? (Seismic Surge) token$/, m => ({ o: 'token', name: m[1] })],
+  [/^you may reveal a card with crush from your hand$/, () => ({ o: 'revealCrush' })],
+  [/^Turn a face-down card in your arsenal face-up$/, () => ({ o: 'arsenalFlip' })],
+  [/^it gets \+(\d+)\{p\} and dominate this turn$/, m => ({ o: 'cardBuff', p: +m[1], grant: 'dominate' })],
+  // Crush effects (CR 8.4.2): each is its own op; the compiler never reads a prefix.
+  [/^they put a card from their hand on top of their deck$/, () => ({ o: 'handToTop' })],
+  [/^put a -(\d+)\{d\} counter on target equipment they control$/, m => ({ o: 'equipCounter', n: +m[1] })],
+  [/^their first action during their next turn costs an additional ((?:\{r\})+) to play or activate$/, m => ({ o: 'oppFx', fx: 'actTax', n: res(m[1]) })],
+  [/^attack action cards they control can't gain \{p\} during their next action phase$/, () => ({ o: 'oppFx', fx: 'noGainP' })],
+  [/^their first attack during their next turn gets -(\d+)\{p\}$/, m => ({ o: 'oppFx', fx: 'firstAttack', p: -m[1] })],
+  [/^they can't play attack action cards with (\d+) or less base \{p\} during their next action phase$/, m => ({ o: 'oppFx', fx: 'noPlayAA', max: +m[1] })],
+  [/^put all cards in all arsenals on the bottom of their owner's deck$/, () => ({ o: 'arsenalsBottom' })],
+  [/^put a card from their arsenal on the bottom of its owner's deck$/, () => ({ o: 'oppArsenalBottom' })],
+  [/^destroy a Seismic Surge token they control$/, () => ({ o: 'destroyOppSurge' })],
   [/^target weapon attack gets \+(\d+)\{p\}$/, m => ({ o: 'buff', tgt: { weapon: true }, p: +m[1] })],
   [/^Target attack with (\d+) or less base \{p\} gets \+(\d+)\{p\}$/, m => ({ o: 'buff', tgt: { baseMax: +m[1] }, p: +m[2] })],
   [/^Target sword attack gets go again$/, () => ({ o: 'buff', tgt: { sub: ['Sword'] }, grant: 'goAgain' })],
@@ -103,7 +122,7 @@ const EFFECTS = [
 ];
 
 function splitSentences(t) {
-  t = t.replace(/"When this hits, it gets go again\."/g, '<HITGA>.').trim();
+  t = t.replace(/"When this hits, it gets go again\."/g, '<HITGA>.').replace(/"When this hits a hero, they discard a card\."/g, '<HITDISC>.').trim();
   return t.split(/(?<=\.)\s+/).map(x => x.replace(/\.$/, '').trim()).filter(Boolean);
 }
 
@@ -161,6 +180,12 @@ const TRIGGERS = [
   [new RegExp(`^The first time you discard a card with ${SIX} during each of your action phases, (.+)$`), () => ({ on: 'disc6', first: true })],
   [/^When this is discarded at random, (.+)$/, () => ({ on: 'selfRandDisc' })],
   [/^When you win a clash revealing this, (.+)$/, () => ({ on: 'clashWin' })],
+  // CR 8.4.2: crush is conditional on an event that deals damage, not merely a hit-event.
+  [/^When this deals (\d+) or more damage to a hero, (.+)$/, m => ({ on: 'crush', n: +m[1], body: m[2] })],
+  [/^When this leaves the arena, (.+)$/, () => ({ on: 'leaveArena' })],
+  [/^At the beginning of your action phase, (.+)$/, () => ({ on: 'beginAction' })],
+  // Magmatic Carapace: the tap and the payment are costs of a "you may"; the effect follows only if both are paid.
+  [/^Whenever you play an aura, you may \{t\} this and pay ((?:\{r\})+)\. If you do, (.+)$/, m => ({ on: 'playAura', may: { tap: true, r: res(m[1]) }, body: m[2] })],
 ];
 
 const STATICS = [
@@ -178,12 +203,24 @@ const STATICS = [
   [/^Attack action cards you own get \+1\{p\} while they are in any zone other than the combat chain$/, () => ({ k: 'heroStatic', rule: 'aaPlus1OffChain' })],
   [/^(\w+) Specialization$/, m => ({ k: 'meta', rule: 'specialization', hero: m[1] })],
   [/^Arcane Barrier (\d+)$/, m => ({ k: 'kw', kw: 'arcaneBarrier', n: +m[1] })],
+  // CR 8.3.18 Heave: a hidden triggered ability that works while the card is in hand.
+  [/^Heave (\d+)$/, m => ({ k: 'kw', kw: 'heave', n: +m[1], also: { k: 'trig', on: 'endPhase', zone: 'hand', ops: [{ o: 'heave', n: +m[1] }] } })],
+  // CR 8.3.42 Suspense: enters with 2 suspense counters; at the start of your turn remove one; destroyed at none.
+  [/^Suspense$/, () => ({ k: 'kw', kw: 'suspense', n: true, also: { k: 'trig', on: 'startTurn', ops: [{ o: 'suspenseTick' }] } })],
+  [/^If the additional cost is paid, this gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'addPaid' }, d: +m[1] })],
+  [/^As an additional cost to play this, you may pay ((?:\{r\})+)$/, m => ({ k: 'addCost', opt: true, cost: { r: res(m[1]) } })],
+  [/^If there is a card in your pitch zone with \{p\} greater than this card's base \{p\}, this gets go again$/, () => ({ k: 'static', cond: { c: 'pitchGreater' }, grant: 'goAgain' })],
+  [/^If you have a card in your arsenal, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'hasArsenal' }, p: +m[1] })],
+  [/^If you control a Seismic Surge token, this gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'controlSurge' }, d: +m[1] })],
+  [/^If there is a card with cost (\d+) or more in your pitch zone, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'pitchCost', n: +m[1] }, p: +m[2] })],
+  [/^Your first attack each turn gets \+(\d+)\{p\}$/, m => ({ k: 'attackStatic', first: true, p: +m[1] })],
 ];
 
 function parseCost(t, why) {
   const cost = {};
   for (const part of t.split(', ')) {
     if (/^(\{r\})+$/.test(part)) cost.r = res(part);
+    else if (part === '{t}') cost.tap = true;                               // CR 8.5.55
     else if (part === 'Destroy this') cost.destroySelf = true;
     else if (part === 'Discard this') cost.discardSelf = true;
     else if (part === 'Discard a card') cost.discard = 1;
@@ -199,8 +236,21 @@ function compile(c) {
   const isPermanentCard = types.some(t => ['Hero', 'Weapon', 'Equipment', 'Token', 'Aura', 'Item'].includes(t));
   const lines = (c.functional_text_plain || '').split('\n').map(x => x.trim()).filter(Boolean);
   const resOps = [];
-  for (let line of lines) {
+  for (let li = 0; li < lines.length; li++) {
+    let line = lines[li];
     const why = [];
+    // CR 1.7.5: "Choose 1;" followed by "- mode" lines. Each mode is its own base ability, parsed on its own.
+    if (line === 'Choose 1;') {
+      const modes = []; let bad = false;
+      while (lines[li + 1] && lines[li + 1].startsWith('- ')) {
+        const text = lines[++li].slice(2); const w = [];
+        const ops = parseBody(text, w, []);
+        const tg = ops && ops.find(o => o.o === 'buff');
+        if (!ops || !tg) { out.un.push(text + (w.length ? '  <- ' + w.join(' | ') : ' <- a mode with no target')); bad = true; } else modes.push({ text, ops, tgt: tg.tgt });
+      }
+      if (!bad && modes.length) out.ab.push({ k: 'res', modal: 1, modes });
+      continue;
+    }
     if (KW_LINES[line]) { out.kw[KW_LINES[line][0]] = KW_LINES[line][1]; continue; }
     line = line.replace(/^(Unity|Reprise|Crush) - /, '');
     // activated
@@ -225,15 +275,16 @@ function compile(c) {
     let done = false;
     for (const [re, f] of TRIGGERS) {
       m = line.match(re); if (!m) continue;
-      const ops = parseBody(m[1], why);
-      if (ops) { out.ab.push({ k: 'trig', ...f(m), ops }); done = true; }
+      const { body, ...attrs } = f(m);
+      const ops = parseBody(body != null ? body : m[1], why);
+      if (ops) { out.ab.push({ k: 'trig', ...attrs, ops }); done = true; }
       break;
     }
     if (done) continue;
     // static / rules
     for (const [re, f] of STATICS) {
       m = line.replace(/\.$/, '').match(re); if (!m) continue;
-      const r = f(m); if (r.k === 'kw') out.kw[r.kw] = r.n; else out.ab.push(r); done = true; break;
+      const r = f(m); if (r.k === 'kw') { out.kw[r.kw] = r.n; if (r.also) out.ab.push(r.also); } else out.ab.push(r); done = true; break;
     }
     if (done) continue;
     // resolution text of a non-permanent card

@@ -19,16 +19,23 @@ Status every session.
   prevention; triggers as layers; the end-of-turn pitch order asked.
 - `tools/build-cards.mjs` compiles printed text to ops with anchored patterns and builds decks from
   LSS's published lists. See its output for current coverage.
-- Two registered decks: **Dorinthea** and **Kayo** (LSS Silver Age precons). A third, Bravo, is
-  being added.
+- Three registered decks: **Dorinthea**, **Kayo** and **Bravo, Flattering Showman** (LSS Silver
+  Age precons). 113 of the 393 cards in the fourteen precon pools compile (28.8%).
 - AI opponent: turn planner, block chooser, pitch and arsenal policy.
 - Interface: board, chain and stack viewers, prompts, full log, hover zoom, zone viewers, menu with
   deck provenance, how-to-play, bug report.
 - Art: generated illustrations for every card in the registered decks (`tools/gen-art.mjs`), with a
   procedural fallback. Sound: ElevenLabs effects (`tools/gen-sfx.mjs`) with a synthesised fallback
   voice for each, and six ElevenLabs music tracks (`tools/gen-music.mjs`).
-- Gates: `tools/test.mjs` (per-card behaviour tests), `tools/sim.mjs` (headless games with
+- Gates: `tools/test.mjs` (48 per-card behaviour tests), `tools/replay-report.mjs --selftest`, `tools/sim.mjs` (headless games with
   invariants), `tools/check-art.mjs`, `tools/check-pages.mjs`.
+
+**Measured (tools/arena.mjs, 30 games, three decks, both seats)**
+- First player wins 46.7%. LSS's own turn-one rules, nothing tuned.
+- The AI blocks about 69% of incoming power and starts its turns with 2.7 cards; the turn player
+  takes no action on about 15% of turns (often legitimately: a taxed or unaffordable hand).
+- Bravo wins least (11 of 60 random-policy games, 3 of 30 AI games): the AI rarely heaves and
+  sometimes wastes Bravo's ability on an empty arsenal.
 
 **Not done** — `TODO.md` is the queue, `DEVIATIONS.md` the standing rules gaps. The largest:
 only Silver Age precons are in; arcane damage does not exist yet, so no Wizard or Runeblade;

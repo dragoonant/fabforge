@@ -179,7 +179,116 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 10
+  "poolCompiled": 34,
+  "deck": [
+   {
+    "id": "boulder-drop-red",
+    "n": 2
+   },
+   {
+    "id": "buckling-blow-red",
+    "n": 2
+   },
+   {
+    "id": "cartilage-crush-red",
+    "n": 2
+   },
+   {
+    "id": "chokeslam-red",
+    "n": 2
+   },
+   {
+    "id": "crash-and-bash-red",
+    "n": 2
+   },
+   {
+    "id": "debilitate-red",
+    "n": 2
+   },
+   {
+    "id": "fault-line-red",
+    "n": 2
+   },
+   {
+    "id": "pummel-red",
+    "n": 2
+   },
+   {
+    "id": "staunch-response-red",
+    "n": 2
+   },
+   {
+    "id": "zealous-belting-red",
+    "n": 2
+   },
+   {
+    "id": "boulder-drop-blu",
+    "n": 2
+   },
+   {
+    "id": "buckling-blow-blu",
+    "n": 2
+   },
+   {
+    "id": "chokeslam-blu",
+    "n": 2
+   },
+   {
+    "id": "clash-of-vigor-blu",
+    "n": 2
+   },
+   {
+    "id": "crush-the-weak-blu",
+    "n": 1
+   },
+   {
+    "id": "debilitate-blu",
+    "n": 2
+   },
+   {
+    "id": "disable-blu",
+    "n": 1
+   },
+   {
+    "id": "edge-of-their-seats-blu",
+    "n": 2
+   },
+   {
+    "id": "flatten-the-field-blu",
+    "n": 2
+   },
+   {
+    "id": "the-suspense-is-killing-me-blu",
+    "n": 2
+   },
+   {
+    "id": "thunder-quake-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "macho-grande-blu",
+    "n": 2
+   },
+   {
+    "id": "crush-the-weak-blu",
+    "n": 1
+   },
+   {
+    "id": "disable-blu",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "sledge-of-anvilheim",
+   "blade-beckoner-helm",
+   "magmatic-carapace",
+   "blade-beckoner-gauntlets",
+   "basalt-boots"
+  ],
+  "rule": "LSS's Silver Age precon is a 44-card deck pool; a registered deck is exactly 40 (TRP 7.4). This default leaves four cards in the sideboard: both Macho Grande (the 7-cost one), one Crush the Weak and one Disable. The loadout is the 2H Sledge of Anvilheim, which fills both weapon zones, so the 1H hammer and the buckler stay out.",
+  "registered": true
  },
  "dash": {
   "id": "dash",
@@ -2362,7 +2471,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 6
+  "poolCompiled": 12
  },
  "prism-advent-of-thrones": {
   "id": "prism-advent-of-thrones",

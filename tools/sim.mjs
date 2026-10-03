@@ -28,7 +28,7 @@ for (let g = 0; g < games; g++) {
       const legal = FAB.legalActions(s);
       let act;
       if (policy === 'ai') act = FAB.ai.choose(s);
-      else { const np = legal.filter(l => l.type !== 'pass' && l.type !== 'cancel'); act = (np.length && rnd(4) > 0) ? np[rnd(np.length)] : legal[rnd(legal.length)]; }
+      else { const np = legal.filter(l => l.type !== 'pass' && l.type !== 'cancel'), nc = legal.filter(l => l.type !== 'cancel' || rnd(12) === 0); act = (np.length && rnd(4) > 0) ? np[rnd(np.length)] : nc[rnd(nc.length)] || legal[0]; }
       acts.push(act);
       s = FAB.apply(s, act); steps++;
       check(s, 'game ' + g + ' step ' + n);

@@ -34,12 +34,12 @@
     prevent: (s, e) => `${tag(e.c)} prevents ${e.n} damage.`,
     goAgain: (s, e, v) => `${tag(e.c)} has go again: ${T.who(s, e.who, v)} ${T.v(e.who, v, 'gain', 'gains')} an action point.`,
     chainClose: () => `The combat chain closes.`,
-    counter: (s, e) => e.k === 'd' ? `${tag(e.c)} gets ${e.n === 1 ? 'a −1 defense counter' : e.n + ' −1 defense counters'}.` : `${tag(e.c)} gets a +1 power counter.`,
+    counter: (s, e) => e.k === 'suspense' ? (e.n > 0 ? `${tag(e.c)} enters with ${plural(e.n, 'suspense counter')}.` : `${tag(e.c)} loses a suspense counter (${plural(e.left, 'counter')} left).`) : e.k === 'd' ? `${tag(e.c)} gets ${e.n === 1 ? 'a −1 defense counter' : e.n + ' −1 defense counters'}.` : `${tag(e.c)} gets a +1 power counter.`,
     counterClear: (s, e) => `${tag(e.c)} loses its +1 power counters.`,
     destroy: (s, e) => `${tag(e.c)} is destroyed.`,
     discard: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'discard', 'discards')} ${tag(e.c)}${e.random ? ' at random' : ''}.`,
     token: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'create', 'creates')} ${tag(e.c)}.`,
-    buff: (s, e) => `${tag(e.to)} gets ${[e.p ? '+' + e.p + ' power' : '', e.grant === 'goAgain' ? 'go again' : e.grant || '', e.piercing ? 'piercing ' + e.piercing : ''].filter(Boolean).join(' and ')}${e.c !== e.to ? ' from ' + tag(e.c) : ''}.`,
+    buff: (s, e) => `${tag(e.to)} gets ${[e.p ? '+' + e.p + ' power' : '', e.grant === 'goAgain' ? 'go again' : e.grant || '', e.piercing ? 'piercing ' + e.piercing : '', e.hit === 'discard' ? '“When this hits a hero, they discard a card.”' : ''].filter(Boolean).join(' and ')}${e.c !== e.to ? ' from ' + tag(e.c) : ''}.`,
     next: (s, e, v) => `${tag(e.c)}: ${T.who(s, e.who, v) === 'You' ? 'your' : T.who(s, e.who, v) + '’s'} next matching attack this turn gets ${[e.p ? '+' + e.p + ' power' : '', e.grant === 'goAgain' ? 'go again' : ''].filter(Boolean).join(' and ') || 'a bonus'}.`,
     nextApplied: (s, e) => `${tag(e.c)} applies to ${tag(e.to)}.`,
     gain: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'gain', 'gains')} ${e.k === 'r' ? plural(e.n, 'resource') : plural(e.n, 'action point')}.`,
@@ -57,6 +57,23 @@
     pitchBack: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'put', 'puts')} ${plural(e.n, 'pitched card')} on the bottom of the deck.`,
     toBottom: (s, e) => `${tag(e.c)} goes to the bottom of its owner’s deck.`,
     undone: (s, e, v) => `${T.who(s, e.who, v)} could not pay; the play is undone.`,
+    tap: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'tap', 'taps')} ${tag(e.c)}.`,
+    mode: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'choose', 'chooses')} for ${tag(e.c)}: ${e.text}`,
+    optCost: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'pay', 'pays')} ${plural(e.n, 'resource')} extra for ${tag(e.c)}.`,
+    heave: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'heave', 'heaves')} ${tag(e.c)} face-up into ${e.who === v ? 'your' : 'their'} arsenal and ${T.v(e.who, v, 'create', 'creates')} ${plural(e.n, 'Seismic Surge token')}.`,
+    arsenalBottom: (s, e, v) => `${e.c ? tag(e.c) : 'A face-down card'} from ${e.who === v ? 'your' : 'their'} arsenal goes to the bottom of ${e.who === v ? 'your' : 'their'} deck.`,
+    fx: (s, e, v) => {
+      const poss = e.who === v ? 'your' : T.who(s, e.who, v) + '’s', Poss = poss[0].toUpperCase() + poss.slice(1);
+      switch (e.fx) {
+        case 'actTax': return `${tag(e.c)}: ${poss} first action during ${e.who === v ? 'your' : 'their'} next turn costs ${e.n} more to play or activate.`;
+        case 'noGainP': return `${tag(e.c)}: attack action cards ${T.who(s, e.who, v) === 'You' ? 'you control' : 'they control'} can’t gain power during ${e.who === v ? 'your' : 'their'} next action phase.`;
+        case 'noPlayAA': return `${tag(e.c)}: ${T.who(s, e.who, v)} can’t play attack action cards with ${e.max} or less base power during ${e.who === v ? 'your' : 'their'} next action phase.`;
+        case 'firstAttack': return `${tag(e.c)}: ${poss} first attack during ${e.who === v ? 'your' : 'their'} next turn gets ${e.p} power.`;
+        case 'costRed': return `${tag(e.c)}: ${poss} next Guardian attack action card this turn costs ${e.n} less to play.`;
+        case 'cardBuff': return `${tag(e.c)}: ${tag(e.to)} gets +${e.n} power and ${e.grant} this turn when it attacks.`;
+        default: throw new Error('fx log with no line: ' + e.fx);
+      }
+    },
     win: (s, e, v) => e.who === 'draw' ? `The game is a draw.` : `<b>${T.who(s, e.who, v)} ${T.v(e.who, v, 'win', 'wins')} the game.</b>`,
   };
   T.lines = LINES;
@@ -71,7 +88,7 @@
   const cardOf = (s, iid) => tag(s.cards[iid].id);
   const PROMPTS = {
     first: () => ({ title: 'You won the roll', body: 'Choose who takes the first turn. The first player may attack on turn one, and both players draw back up at the end of it.', labels: { me: 'I go first', opp: 'Opponent goes first' } }),
-    pitch: (s, q) => ({ title: `Pitch to pay for ${q.label ? cardOf(s, q.src) + '’s ability' : cardOf(s, q.src)}`, body: `It costs <b>${q.cost}</b>. You have <b>${s.players[q.who].res}</b> in your pool, so you need <b>${q.need}</b> more. Click a card in your hand to pitch it; it returns to the bottom of your deck at end of turn.`, labels: {} }),
+    pitch: (s, q) => ({ title: `Pitch to pay for ${q.label === 'heave' ? 'heaving ' + cardOf(s, q.src) : q.label ? cardOf(s, q.src) + '’s ability' : cardOf(s, q.src)}`, body: `It costs <b>${q.cost}</b>. You have <b>${s.players[q.who].res}</b> in your pool, so you need <b>${q.need}</b> more. Click a card in your hand to pitch it; it returns to the bottom of your deck at end of turn.`, labels: {} }),
     target: (s, q) => ({ title: `Choose the target for ${cardOf(s, q.src)}`, body: FAB.cards[s.cards[q.src].id].text, labels: {} }),
     defend: (s, q) => {
       const pv = FAB.blockPreview(s);
@@ -82,6 +99,9 @@
       if (q.what === 'destroySelf') return { title: `Destroy ${cardOf(s, q.src)}?`, body: c.text, labels: { yes: 'Destroy it', no: 'Keep it' } };
       if (q.what === 'peekArsenal') return { title: `${cardOf(s, q.src)} hit`, body: 'You may turn the card in their arsenal face-up. If it is a defense reaction, it is destroyed.', labels: { yes: 'Turn it face-up', no: 'Leave it' } };
       if (q.what === 'gainLife') return { title: `${cardOf(s, q.src)}`, body: 'You have less life than the other hero. You may gain 1 life.', labels: { yes: 'Gain 1 life', no: 'Decline' } };
+      if (q.what === 'optCost') return { title: `Pay an additional ${q.cost} for ${cardOf(s, q.src)}?`, body: `${c.text} Paying it makes the total cost ${FAB.costOf(s, q.src) + q.cost}.`, labels: { yes: `Pay ${q.cost} more`, no: 'Do not pay it' } };
+      if (q.what === 'tapPay') return { title: `Tap ${cardOf(s, q.src)} and pay ${q.cost}?`, body: `${c.text} If you decline, nothing happens.`, labels: { yes: 'Tap it and pay', no: 'Decline' } };
+      if (q.what === 'heave') return { title: `Heave ${cardOf(s, q.src)}?`, body: `At the beginning of your end phase you may pay ${q.cost} and put it face-up into your empty arsenal. If you do, create ${q.cost} Seismic Surge tokens. Paying pitches cards from your hand.`, labels: { yes: `Pay ${q.cost} and heave`, no: 'Keep it in hand' } };
       return { title: `${cardOf(s, q.src)}`, body: c.text, labels: { yes: 'Yes', no: 'No' } };
     },
     arsenal: () => ({ title: 'End of turn — arsenal', body: 'You may put one card from your hand face-down into your arsenal. It stays there until you play it. Then you draw back up to your intellect.', labels: { none: 'Keep my arsenal empty' } }),
@@ -91,6 +111,12 @@
     handToDeck: (s, q) => ({ title: `${cardOf(s, q.src)}`, body: 'Put a card from your hand on the top or bottom of your deck.', labels: {} }),
     topOrBottom: (s, q) => ({ title: `Where does ${cardOf(s, q.src)} go?`, body: 'Choose the top or the bottom of your deck.', labels: { top: 'Top of deck', bottom: 'Bottom of deck' } }),
     targetHero: (s, q) => ({ title: `${cardOf(s, q.src)}: choose a hero`, body: FAB.cards[s.cards[q.src].id].text, labels: { [q.who]: 'Me', [1 - q.who]: 'My opponent' } }),
+    mode: (s, q) => ({ title: `Choose a mode for ${cardOf(s, q.src)}`, body: 'Choose 1; the mode is declared as the card is played.', labels: Object.fromEntries(q.opts.map(o => [o.id, FAB.cards[s.cards[q.src].id].ab.find(a => a.k === 'res').modes[o.id].text])) }),
+    handToTop: (s, q) => ({ title: `${cardOf(s, q.src)} crushes you`, body: 'Choose a card from your hand to put on top of your deck. You will draw it next.', labels: {} }),
+    targetEquip: (s, q) => ({ title: `${cardOf(s, q.src)}: choose an equipment`, body: `Put a −${q.n} defense counter on target equipment they control.`, labels: {} }),
+    arsenalPick: (s, q) => ({ title: `${cardOf(s, q.src)}`, body: q.what === 'flip' ? 'Turn a face-down card in your arsenal face-up.' : 'Put a card from their arsenal on the bottom of its owner’s deck. A face-down card stays hidden.', labels: Object.fromEntries(q.opts.filter(o => o.iid == null).map(o => [o.id, 'Their face-down arsenal card'])) }),
+    revealCrush: (s, q) => ({ title: `${cardOf(s, q.src)} defends`, body: 'You may reveal a card with crush from your hand. If you do, create a Seismic Surge token.', labels: { no: 'Reveal nothing' } }),
+    discardPick: (s, q) => ({ title: `${cardOf(s, q.src)} gave the attack “When this hits a hero, they discard a card.”`, body: 'Choose a card from your hand to discard.', labels: {} }),
     chooseSource: (s, q) => ({ title: `${cardOf(s, q.src)}: choose the source to prevent damage from`, body: FAB.cards[s.cards[q.src].id].text, labels: {} }),
   };
   T.prompts = PROMPTS;

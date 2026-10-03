@@ -1,0 +1,41 @@
+// Replays a bug report (the JSON the game's "Copy bug report" button produces) and says where it
+// went wrong: ILLEGAL (an action the engine would not offer), THREW (apply raised), DIVERGED (the
+// log length differs from the one recorded), or OK.
+//   node tools/replay-report.mjs report.json [--tail N]
+//   node tools/replay-report.mjs --selftest
+import fs from 'node:fs';
+import { loadEngine } from './load.mjs';
+const FAB = loadEngine();
+
+export function replay(rep) {
+  let s = FAB.newGame({ seed: rep.seed, decks: rep.decks });
+  for (let i = 0; i < rep.actions.length; i++) {
+    const a = rep.actions[i];
+    const legal = FAB.legalActions(s);
+    if (!legal.some(l => l.type === a.type && l.id === a.id && l.iid === a.iid && l.ab === a.ab)) return { verdict: 'ILLEGAL', at: i, action: a, s };
+    try { s = FAB.apply(s, a); } catch (e) { return { verdict: 'THREW', at: i, action: a, error: e, s }; }
+  }
+  if (rep.log != null && rep.log !== s.log.length) return { verdict: 'DIVERGED', at: rep.actions.length, s, expected: rep.log, got: s.log.length };
+  return { verdict: 'OK', s };
+}
+
+if (process.argv.includes('--selftest')) {
+  const ids = Object.values(FAB.decks).filter(d => d.registered).map(d => d.id);
+  let s = FAB.newGame({ seed: 4242, decks: [ids[0], ids[1 % ids.length]] });
+  const actions = [];
+  while (s.winner == null && actions.length < 400) { const a = FAB.ai.choose(s); actions.push(a); s = FAB.apply(s, a); }
+  const good = replay({ seed: 4242, decks: [ids[0], ids[1 % ids.length]], actions, log: s.log.length });
+  const bad1 = replay({ seed: 4242, decks: [ids[0], ids[1 % ids.length]], actions: actions.slice(0, 20).concat([{ type: 'play', iid: 99999 }]) });
+  const bad2 = replay({ seed: 4243, decks: [ids[0], ids[1 % ids.length]], actions: actions.slice(0, 3), log: 1 });
+  const ok = good.verdict === 'OK' && bad1.verdict === 'ILLEGAL' && bad2.verdict !== 'OK';
+  console.log(`selftest: replay ${good.verdict}, bad action ${bad1.verdict}, wrong seed ${bad2.verdict} -> ${ok ? 'PASS' : 'FAIL'}`);
+  process.exit(ok ? 0 : 1);
+}
+const file = process.argv[2];
+if (!file) { console.log('usage: node tools/replay-report.mjs report.json [--tail N]'); process.exit(2); }
+const rep = JSON.parse(fs.readFileSync(file, 'utf8'));
+const r = replay(rep);
+const tail = process.argv.includes('--tail') ? +process.argv[process.argv.indexOf('--tail') + 1] : 25;
+console.log(r.verdict + (r.at != null ? ' at action ' + r.at + ' ' + JSON.stringify(r.action || '') : '') + (r.error ? '\n' + r.error.stack.split('\n').slice(0, 5).join('\n') : ''));
+for (const e of r.s.log.slice(-tail)) { const { t, turn, ...rest } = e; console.log(String(turn).padStart(2), t.padEnd(12), JSON.stringify(rest)); }
+if (r.s.pending) console.log('pending:', JSON.stringify(r.s.pending.q));

@@ -72,9 +72,12 @@ const load = async (rel) => { const w = { FAB: {} }; new Function('window', awai
 const { cards } = await load('data/cards.js');
 const { decks } = await load('data/decks.js');
 
-const ids = new Set(['agility', 'might', 'vigor']);
+const extra = (args.find((a) => a.startsWith('--deck=')) || '').slice(7) || (args[args.indexOf('--deck') + 1] || '');
+const extraDecks = args.includes('--deck') || extra ? extra.split(',').filter(Boolean) : [];
+const ids = new Set(['agility', 'might', 'vigor', 'seismic-surge']);
 for (const d of Object.values(decks)) {
-  if (!d.registered) continue;
+  if (!d.registered && !extraDecks.includes(d.id)) continue;
+  if (!d.deck && !d.loadout) (d.pool || []).forEach((e) => ids.add(e.id));
   ids.add(d.hero);
   (d.loadout || []).forEach((i) => ids.add(i));
   (d.deck || []).forEach((e) => ids.add(e.id));

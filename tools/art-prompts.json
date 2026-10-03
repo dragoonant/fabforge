@@ -16,6 +16,10 @@
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, lunging with his tusks bared and snapping, claws swiping forward. in a torchlit fighting pit with a baying shadowy ring around it. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
+    "key": "basalt-boots",
+    "prompt": "a pair of heavy black basalt-plated armoured boots with glowing amber cracks and bronze trim, the boots themselves are the focus. planted on cracked volcanic stone with drifting embers. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
     "key": "bear-hug",
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, crushing a smaller fighter in a one-armed hold, armour plates buckling. in the shadowy heart of a torchlit fighting pit. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
@@ -28,12 +32,36 @@
     "prompt": "a pair of sleek steel gauntlets with fine curved blade edges along the knuckles, the gauntlets themselves are the focus. laid on a weapon table inside a lantern-lit armoury. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
+    "key": "blade-beckoner-helm",
+    "prompt": "a sleek steel helm with swept-back crest and a glinting visor, ringed with floating spectral blades, the helm itself is the focus. on a weathered stone pedestal in a moonlit armoury. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
     "key": "blossom-of-spring",
     "prompt": "a light breastplate of pale green enamel with pink blossoms etched across it and petals drifting off, the armour itself is the focus. on a mannequin in a sunny garden courtyard with falling petals. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
+    "key": "boulder-drop",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, lifting a giant boulder overhead with both arms and hurling it down. in a rocky quarry with dust clouds and falling rubble. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "bravo-flattering-showman",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, standing in a triumphant showman pose, a wide confident stance, the hammer held across his body. on a grand colosseum stage under blazing spotlights with a shadowy audience beyond. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "buckling-blow",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, smashing his hammer down onto the dented shield of a rival, bending the metal. on a torchlit arena floor with sparks flying. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
     "key": "buckwild",
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, charging wildly with his arm flung wide, bellowing, debris flying off his shoulders. through the splintered gate of a savage wilds outpost. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "cartilage-crush",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, driving a heavy fist forward in a brutal punch that sends a shockwave. on a cracked mountain pass with swirling snow. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "chokeslam",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, seizing a stumbling rival by the throat and slamming him down onto the ground. in the centre of a grand colosseum stage with spotlights blazing. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "clash-of-agility",
@@ -44,16 +72,52 @@
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, locked in a head-to-head clash with a huge armoured guardian, a crimson shockwave between them. in a ring of cracked stone lit by burning braziers. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
+    "key": "clash-of-vigor",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, locking hammer against hammer with a rival, nose to nose, in a blazing clash of golden sparks. on a narrow rocky ledge at the edge of a cliff. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "crash-and-bash",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, bracing behind a raised hammer to block, as a golden ring of cracked stone bursts at his feet. in a torchlit arena tunnel with sparks and dust. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "crush-the-weak",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, stomping down on the weapon of a fallen rival, splintering it under a giant boot. on a muddy battlefield at dusk with smoke curling. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
     "key": "dawnblade",
     "prompt": "a radiant golden two-handed sword planted point-down, glowing along its edge like sunrise, the sword itself is the focus. on an ancient stone dais at the crest of misty highlands as the sun breaks. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "debilitate",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, swinging the hammer in a wide sweeping arc that knocks a rival off balance. on a storm-lit plateau with lightning above. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "disable",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, pinning the outstretched arm of a rival to the ground under the huge hammer head. in a dim arena cellar lit by one hanging lamp. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "dorinthea",
     "prompt": "a young human woman warrior with flowing red-brown hair and a determined stare, wearing polished plate armour, gripping a radiant golden two-handed sword, standing tall in a heroic pose, the golden blade raised beside her and trailing light. on the sunlit sand of a grand arena at dawn, cheering stands blurred behind her. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
+    "key": "edge-of-their-seats",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, posed with a dramatic hand raised, the hammer held low, a single spotlight cone and a hushed expectant glow around him. on a darkened colosseum stage with a shadowy audience in the stands. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "enclosed-firemind",
+    "prompt": "a full iron helm sealed around a glowing orange flame burning inside the visor slit, the helm itself is the focus. on a dark forge anvil with shimmering heat haze. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
     "key": "energy-potion",
     "prompt": "a round glass flask of glowing yellow liquid with a cork stopper and crackling sparks inside, the flask itself is the focus. on a rough wooden shelf in a dim alchemist workshop. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "fault-line",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, slamming the hammer into the ground so a glowing crack races across the earth toward the viewer. on a dry salt flat at sunset with shattered rock rising. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "flatten-the-field",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, sweeping the hammer flat across the ground, levelling a ring of rock and a glowing amber shockwave ring. across a wide barren plain with rubble flying. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "gauntlets-of-unity",
@@ -92,6 +156,14 @@
     "prompt": "a young human woman warrior with flowing red-brown hair and a determined stare, wearing polished plate armour, gripping a radiant golden two-handed sword, dashing forward ahead of a rival, her golden blade held low and glowing, motion lines behind her. across the open sand of a sunlit arena. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
+    "key": "macho-grande",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, flexing in a grand heroic pose with fists on hips, a huge golden burst of light behind him. on a grand colosseum stage with fireworks overhead. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "magmatic-carapace",
+    "prompt": "a heavy breastplate of dark plates split by flowing molten magma seams, the armour itself is the focus. displayed on a rock ledge above a glowing lava river. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
     "key": "mandible-claw",
     "prompt": "a huge curved bone-and-iron claw weapon strapped to a heavy gauntlet, jagged and wicked, the weapon itself is the focus. resting on bloodstained sand in a torchlit fighting pit. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
@@ -102,6 +174,18 @@
   {
     "key": "nip-at-the-heels",
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, snapping at the ankles of a fleeing rival, tusks flashing, a quick sharp slash. across a torchlit fighting pit with scattering onlookers. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "nullrune-boots",
+    "prompt": "a pair of sleek dark boots etched with glowing violet runes that swallow stray magic, the boots themselves are the focus. standing on a smooth stone floor with faint violet mist. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "nullrune-gloves",
+    "prompt": "a pair of slim dark gauntlets etched with glowing violet runes, palms open and repelling sparks of magic, the gauntlets themselves are the focus. floating in a dim chamber with swirling violet mist. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "nullrune-robe",
+    "prompt": "a long dark hooded robe with glowing violet runic trim that swallows stray magic, the robe itself is the focus. hanging in a dim chamber with swirling violet mist. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "oasis-respite",
@@ -122,6 +206,10 @@
   {
     "key": "pulping",
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, hammering his one fist down again and again, the stone cracking beneath it. in a grimy fighting pit with the sand ripped into flying clods. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "pummel",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, hammering a flurry of heavy hammer blows with a blurred, motion-streaked arm. in a dusty arena yard with debris scattering. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "puncture",
@@ -164,8 +252,16 @@
     "prompt": "a young human woman warrior with flowing red-brown hair and a determined stare, wearing polished plate armour, gripping a radiant golden two-handed sword, pressing a hand to a fresh wound and swinging back in anger, a red afterglow trailing the blade. on a rain-soaked battlefield under dark clouds. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
+    "key": "seismic-surge",
+    "prompt": "an abstract emblem of a seismic surge, a shockwave ring bursting up through cracked stone, glowing amber. against a deep dark earth with floating rock fragments. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
     "key": "sharpen-steel",
     "prompt": "a young human woman warrior with flowing red-brown hair and a determined stare, wearing polished plate armour, gripping a radiant golden two-handed sword, drawing a whetstone along her golden blade, bright sparks streaming off the edge. at a campfire beside a ridge of misty highlands at twilight. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "sledge-of-anvilheim",
+    "prompt": "an enormous two-handed war hammer with a massive stone head bound in bronze and teal, shown at a slant, the hammer itself is the focus. resting on a cracked stone dais in a quarry at dusk with dust floating. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "smash-instinct",
@@ -174,6 +270,14 @@
   {
     "key": "springboard-somersault",
     "prompt": "a young human woman warrior with flowing red-brown hair and a determined stare, wearing polished plate armour, gripping a radiant golden two-handed sword, vaulting off a wall in a graceful somersault over a rival, her cape fanning out. in a castle training yard with colourful pennants overhead. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "staunch-response",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, planting his feet and raising a crossed-arm guard as a heavy blow rebounds off him in a flash of light. on a stone bridge over a misty gorge. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "steelbraid-buckler",
+    "prompt": "a round shield of braided steel cords with a bright bronze boss, the shield itself is the focus. leaning against a rough stone wall in a torchlit armoury. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "stroke-of-foresight",
@@ -186,6 +290,18 @@
   {
     "key": "test-of-might",
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, bracing against a towering armoured opponent, both gripping each other in a straining shove. in a ring of stone pillars lit by embers. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "the-suspense-is-killing-me",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, crouched with the hammer raised and a tense wide-eyed grin, spotlights narrowing on him. in a hushed torchlit arena with a shadowy audience leaning forward. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "thunder-quake",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, heaving the huge hammer high overhead for a colossal strike as lightning arcs from its head. on a storm-lit plateau with a shattered stone floor. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "titans-fist",
+    "prompt": "a gigantic armoured stone gauntlet fist crackling with golden energy, with a short heavy hammer haft, the weapon itself is the focus. on a boulder in a rocky ravine under a stormy sky. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   },
   {
     "key": "trot-along",
@@ -210,5 +326,9 @@
   {
     "key": "wreck-havoc",
     "prompt": "a towering muscular young man, a savage pit-fighter with a wild tawny mane, sharp fangs and old scars, a heavy tattered fur cloak draped over his entire left side, his bare right arm huge and wrapped in iron chains, smashing aside a defensive line of shields in an explosion of splinters and fragments. inside a wrecked torchlit fighting pit. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
+  },
+  {
+    "key": "zealous-belting",
+    "prompt": "a huge handsome broad-shouldered human showman-warrior with a confident grin, a smooth clean-shaven jaw and swept-back dark hair, in ornate bronze-and-teal heavy armour with a fur-trimmed mantle, gripping an enormous stone-headed war hammer in both hands, lunging forward with a roaring charge, the hammer swinging in a rapid wild spin. through a torchlit marketplace square with blurred stalls. anime trading card illustration, polished cel shading, thick clean ink outlines, energetic effects, glowing aura, explosive dynamic composition, vivid saturated colour."
   }
 ]
