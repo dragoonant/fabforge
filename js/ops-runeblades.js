@@ -167,11 +167,6 @@
       FAB.log(s, 'rb_banish', { who: x.ctrl, cs: [id], why: 'aura', src: I(s, x.iid).id });
       x.flags.did = true;
     },
-    // Well Grounded: "Prevent the next N damage that would be dealt to you this turn" - from every source, so no source is chosen
-    rb_prevent(x, op) {
-      x.s.effects.push({ k: 'prevent', who: x.ctrl, n: op.n, by: x.iid, dur: 'turn' });
-      FAB.log(x.s, 'rb_shield', { who: x.ctrl, c: I(x.s, x.iid).id, n: op.n });
-    },
     // Malefic / Runeblood Incantation: "remove a verse counter from this" - "if you do" is whether there was one to remove
     rb_removeVerse(x) {
       const s = x.s, c = I(s, x.iid);
@@ -224,18 +219,6 @@
     if (f.talents && !f.talents.some(t => typesOf(s, iid, true).includes(t))) return false;
     return true;
   };
-  // Embodiment of Earth: "Non-attack action cards you control get +1{d} while defending." A non-null link means the card is being
-  // counted as a defender of that link (the defend prompt asks the same question before the card is on the link).
-  const coreDefense = FAB.defenseOf;
-  FAB.defenseOf = function (s, iid, link) {
-    let v = coreDefense(s, iid, link);
-    if (!link) return v;
-    const c = I(s, iid), d = FAB.cards[c.id];
-    if (!(d.types.includes('Action') && !d.types.includes('Attack'))) return v;
-    for (const a of P(s, c.owner).arena) for (const ab of D(s, a).ab) if (ab.k === 'rb_defPlus') v += ab.n;
-    return v;
-  };
-
   // ---- the opponent's answers --------------------------------------------------------------------------------------
   Object.assign(FAB.aiPolicy, {
     rb_side: (s, q) => q.opts[q.opts.length - 1].id,                                                 // the melded whole is listed last: it is everything at once

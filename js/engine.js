@@ -541,7 +541,6 @@
     const n = ab ? (ab.cost.r || 0) : gated ? 0 : (d.cost || 0);
     let tax = 0, red = 0;
     for (const t of P(s, c.owner).arena) for (const a of FAB.cards[I(s, t).id].ab) if (a.k === 'costUp') tax += a.n;   // [elemguard] Frostbite: cards and abilities cost an additional {r}
-    if (!ab) for (const a of d.ab) if (a.k === 'selfCostRed') red += FAB.num({ s: s, ctrl: c.owner, iid: iid, flags: {} }, a.n);   // [shadow] "This costs {r} less to play for each ..."
     for (const e of s.effects) {
       if (e.who !== c.owner) continue;
       if (e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) tax += e.n;                 // Cartilage Crush
@@ -757,7 +756,6 @@
       }
     }
     if (d.kw.boost) FAB.me_boost(x, L, c, d);                                               // [mech] CR 8.3.9: boost is an optional additional cost
-    for (const ab of d.ab) if (ab.k === 'fusion') FAB.fuse(x, who, iid, ab);                // [elemguard] CR 8.3.17: the optional reveal is declared with the other additional costs
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.opt && ab.cost.discard6) FAB.br_beatChest(x, who, iid);   // [brutes] CR 8.3.33 Beat Chest: an optional additional cost, declared with the others
     for (const ab of d.ab) if (ab.k === 'rb_fusion') FAB.rbFuse(x, who, iid, ab);          // [runeblades] CR 8.3.17: Fusion is an optional additional cost, declared with the other costs (CR 5.1.3b)
     const res = d.ab.find(a => a.k === 'res');
@@ -878,9 +876,6 @@
           c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
         }
         if (c.zone === 'arena') FAB.me_onEnter(X, c);                                       // [mech] "enters the arena with N steam counters", Crank (CR 8.3.29)
-        if (c.zone === 'arena' && d.kw.verse) {                                             // [shadow] "This enters the arena with N verse counters" (applied as it enters, like Suspense)
-          c.counters.verse = d.kw.verse; log(s, 'sh_counter', { who: c.owner, c: c.id, k: 'verse', n: d.kw.verse, left: d.kw.verse });
-        }
       }
     }
     if (s.flow === 'action' && s.sub !== 'begin' && !s.closing && s.winner == null) setPriority(s, s.tp);         // CR 1.11 (not before the action phase has begun, CR 4.3.3)

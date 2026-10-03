@@ -289,7 +289,7 @@ test('Malefic Incantation: enters with verse counters; once per turn, playing an
   s = passUntil(s, x => step(x, 'resolution'));
   eq(s.cards[m].counters.verse, 1, 'one counter removed');
   // a second attack action card in the same turn does not trigger it again
-  eq(logged(s, 'sh_counter').length, 2);
+  eq(logged(s, 'rb_counter').length, 2);
 });
 
 test('Malefic Incantation: when it has none, destroy it', () => {

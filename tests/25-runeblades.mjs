@@ -277,7 +277,6 @@ test('Sigil of Suffering: deals 1 arcane damage to the attacking hero, then +1{d
   s = passUntil(s, x => asked(x, 'defend')); s = answer(s, 'done');
   s = passUntil(s, x => step(x, 'reaction') && x.priority === 1);
   s = play(s, 'sigil-of-suffering-red');
-  s = passUntil(s, x => asked(x, 'arcaneTarget')); s = answer(s, 0);
   s = passUntil(s, x => step(x, 'damage'));
   eq(s.players[0].life, 19, 'the attacker took 1 arcane damage');
   eq(s.players[1].life, 20 - (FAB.cards['scar-for-a-scar-red'].power - FAB.cards['sigil-of-suffering-red'].def - 1));

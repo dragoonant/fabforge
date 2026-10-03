@@ -9,7 +9,6 @@
   const P = (s, seat) => s.players[seat];
   const isAA = d => d.kind === 'action' && d.types.includes('Attack');
 
-  const runechants = (s, seat) => P(s, seat).arena.filter(i => I(s, i).id === 'runechant').length;
   // CR 3.11.5: a hero's soul is a collection of cards under the hero. No effect in the pool puts a card there yet, so this counts cards whose zone is 'soul'.
   const soulCount = (s, seat) => Object.values(s.cards).filter(c => c.owner === seat && c.zone === 'soul').length;
   // Heroes that have lost {h} this turn, from damage or from any other loss (CR 8.5.3, 8.5.12). Both are logged where they happen, so the log is the record.
@@ -29,7 +28,6 @@
     sh_twoFromHand: x => { const l = FAB.activeLink(x.s); return !!l && l.defs.filter(e => e.from === 'hand').length >= 2 && l.defs.some(e => e.iid === x.iid && e.from === 'hand'); },
   });
   Object.assign(FAB.vars, {
-    sh_runechants: x => runechants(x.s, x.ctrl),
     sh_lostHeroes: x => lostHeroes(x.s),
     sh_bdBanished: x => x.ev.n,                                                                               // Soul Reaping: the event carries how many blood debt cards were banished
   });
@@ -88,33 +86,17 @@
       link.mods.push({ p: 0, grant: 'goAgain', src: x.iid });
       FAB.log(s, 'buff', { who: x.ctrl, c: I(s, x.iid).id, to: I(s, link.iid).id, p: 0, grant: 'goAgain', piercing: 0 });
     },
-    // Verse counters. then: ran if a counter was removed; else: ran if there was none. When the last is gone, "When it has none" triggers.
-    sh_verse(x, op) {
-      const s = x.s, c = I(s, x.iid);
-      if (c.zone !== 'arena') return;
-      if (op.once) c.sh_turn = s.turn;                                                                         // "Once per turn"
-      const n = c.counters.verse || 0;
-      if (n > 0) {
-        c.counters.verse = n - 1;
-        FAB.log(s, 'sh_counter', { who: c.owner, c: c.id, k: 'verse', n: -1, left: n - 1 });
-        FAB.runOps(x, op.then);
-        if (n - 1 === 0) FAB.emit(s, { t: 'sh_verseNone', iid: x.iid });
-      } else FAB.runOps(x, op.else);
-    },
   });
 
   Object.assign(FAB.trigMatchers, {
     sh_chainClose: (s, ab, iid) => !!s.chain && s.chain.links.some(l => !l.weapon && l.iid === iid),          // an attack on the chain; a defending card's ability is not functional (CR 1.7.4a)
     sh_altPaid: (s, ab, iid, ev) => ev.iid === iid,
-    sh_verseNone: (s, ab, iid, ev) => ev.iid === iid,
   });
-  // The core matchers for 'damaged' and 'playAttack' know nothing of these flags; wrap them so only abilities that carry the flag change.
-  const baseDamaged = FAB.trigMatchers.damaged, basePlayAttack = FAB.trigMatchers.playAttack;
+  // The core matcher for 'damaged' knows nothing of this flag; wrap it so only abilities that carry the flag change.
+  const baseDamaged = FAB.trigMatchers.damaged;
   FAB.trigMatchers.damaged = (s, ab, iid, ev) => ab.sh_either
     ? (ev.who === I(s, iid).owner || (ev.iid != null && I(s, ev.iid).owner === I(s, iid).owner))               // Arcane Cussing: "you deal or are dealt damage"
     : baseDamaged(s, ab, iid, ev);
-  FAB.trigMatchers.playAttack = (s, ab, iid, ev) => basePlayAttack(s, ab, iid, ev)
-    && (!ab.sh_aa || ev.weapon === false) && (!ab.sh_once || I(s, iid).sh_turn !== s.turn);                    // Malefic Incantation: an attack action card, once per turn
 
   // Continuous effects that attach to a card as it is played (CR 5.1.2a).
   FAB.playHooks.push((s, L, c, d) => {

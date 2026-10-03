@@ -11,20 +11,6 @@
   const yn = [{ id: 'yes' }, { id: 'no' }];
   const SLOT = { arms: 'Arms', chest: 'Chest', head: 'Head', legs: 'Legs', 'off-hand': 'Off-Hand' };
 
-  // CR 8.3.17 Fusion: an optional additional cost, declared as the card is played (called from EXEC.play).
-  // Revealing leaves the card in hand; the played card is "fused" for as long as it is the same object.
-  FAB.fuse = function (x, who, iid, ab) {
-    const s = x.s, c = I(s, iid);
-    c.fused = false;
-    const opts = P(s, who).hand.filter(i => is(s, i, ab.el)).map(i => ({ id: i, iid: i }));
-    if (!opts.length) return;                                                               // CR 8.3.17b: nothing to reveal, so it cannot be fused
-    opts.push({ id: 'no' });
-    const a = FAB.ask(x, { who: who, kind: 'eg_fuse', src: iid, el: ab.el, opts: opts, cancel: true });
-    if (a === 'no') return;
-    c.fused = true;                                                                         // CR 8.3.17a
-    FAB.log(s, 'eg_fuse', { who: who, c: c.id, r: I(s, a).id, el: ab.el });
-  };
-
   // CR 4.5.3a: losing life is not damage, so it has its own small door and the same game-end check.
   const loseLife = (x, who, n) => {
     const s = x.s, p = P(s, who);
@@ -41,12 +27,10 @@
     eg_defReact: x => { const l = FAB.activeLink(x.s); return !!l && x.s.chain.step === 'reaction' && l.tgt === x.ctrl; },
     // "If an Earth card is pitched this way": the cards pitched to pay this ability's cost, recorded on its layer.
     eg_pitchedEl: (x, c) => x.L.pitched.some(i => is(x.s, i, c.el)),
-    eg_fused: x => !!I(x.s, x.iid).fused,                                                   // CR 8.3.17a
     eg_defClass: (x, c) => { const l = FAB.activeLink(x.s); return !!l && D(x.s, l.iid).types.includes(c.klass); },
     eg_alone: x => x.ev.iids.length === 1,                                                  // CR 7.3.2d, example: a lone defense reaction defends alone
     eg_defAura: x => !!x.link && P(x.s, x.link.tgt).arena.some(i => D(x.s, i).kind === 'token' && is(x.s, i, 'Aura')),
     eg_pitchEarth: x => P(x.s, x.ctrl).pitch.some(i => is(x.s, i, 'Earth')),
-    eg_banishEarth: (x, c) => P(x.s, x.ctrl).banish.filter(i => is(x.s, i, 'Earth')).length >= c.n,
     eg_aboveBase: x => !!x.link && FAB.attackPower(x.s, x.link) > D(x.s, x.link.iid).power,
   });
 
@@ -94,22 +78,6 @@
       s.effects.push({ k: 'eg_noAura', who: who, turn: s.turn + (s.tp === who ? 2 : 1), src: x.iid });
       FAB.log(s, 'eg_noAura', { who: who, c: I(s, x.iid).id });
     },
-    eg_decompose(x) {                    // CR 8.4.14: banish 2 Earth cards and an action card from your graveyard (three different cards)
-      const s = x.s, p = P(s, x.ctrl);
-      x.flags.did = false;
-      const earth = p.grave.filter(i => is(s, i, 'Earth'));
-      const actOpts = p.grave.filter(i => is(s, i, 'Action') && earth.filter(e => e !== i).length >= 2).map(i => ({ id: i, iid: i }));
-      if (!actOpts.length) return;
-      if (FAB.ask(x, { who: x.ctrl, kind: 'eg_decompose', what: 'may', src: x.iid, opts: yn }) !== 'yes') return;
-      const act = FAB.ask(x, { who: x.ctrl, kind: 'eg_decompose', what: 'action', src: x.iid, opts: actOpts });
-      const rest = earth.filter(e => e !== act), picked = [];
-      for (let k = 0; k < 2; k++) {
-        const e = FAB.ask(x, { who: x.ctrl, kind: 'eg_decompose', what: 'earth', n: k + 1, src: x.iid, opts: rest.filter(i => !picked.includes(i)).map(i => ({ id: i, iid: i })) });
-        picked.push(e);
-      }
-      for (const i of [act].concat(picked)) { FAB.log(s, 'eg_banish', { who: x.ctrl, c: I(s, i).id }); FAB.move(s, i, 'banish'); }
-      x.flags.did = true;
-    },
     eg_loser(x, op) {                    // Clash of <slot>: the hero who did not win puts a -1{d} counter on a <slot> they have equipped, or loses 1{h}
       const s = x.s, w = x.flags.winner;
       if (w == null) return;                                                                 // "If there is a winner"
@@ -137,11 +105,9 @@
   });
 
   Object.assign(FAB.aiPolicy, {
-    eg_fuse: (s, q) => q.opts[0].id,                                                        // revealing costs nothing
     eg_mayPay: () => 'yes',                                                                 // the pitched card returns to the deck and is replaced at end of turn
     eg_targetOther: (s, q) => q.opts[0].id,
     eg_handToTop: (s, q, h) => h.leastKept(s, q.opts).id,
     eg_clashCounter: (s, q) => q.opts.slice().sort((a, b) => FAB.defenseOf(s, a.iid, null) - FAB.defenseOf(s, b.iid, null))[0].id,   // a counter on a piece with no defense costs nothing
-    eg_decompose: (s, q) => (q.what === 'may' ? 'yes' : q.opts[0].id),
   });
 })();

@@ -32,7 +32,6 @@ export const EFFECTS = [
   [/^[Cc]reate (\d+) Runechant tokens$/, m => ({ o: 'rb_tokens', name: 'Runechant', n: +m[1] })],
   [/^[Cc]reate a Runechant token for each damage dealt this way$/, () => ({ o: 'rb_tokensDealt', name: 'Runechant' })],
   [/^destroy this and deal (\d+) arcane damage to target opposing hero$/, m => [{ o: 'destroySelf' }, { o: 'arcane', n: +m[1], tgt: 'opp' }]],
-  [/^[Dd]eal (\d+) arcane damage to the attacking hero$/, m => ({ o: 'arcane', n: +m[1], tgt: 'opp' })],
   [/^[Dd]eal (\d+) arcane damage to any opposing target$/, m => ({ o: 'arcane', n: +m[1], tgt: 'opp' })],
   [/^[Dd]eal (\d+) arcane damage to them$/, m => ({ o: 'rb_arcaneHit', n: +m[1] })],
   [/^(?:this|it) gets \+(\d+)\{p\} and go again$/, m => [{ o: 'selfBuff', p: +m[1] }, { o: 'selfBuff', grant: 'goAgain' }]],
@@ -43,7 +42,6 @@ export const EFFECTS = [
   [/^[Yy]ou may banish 2 Earth cards and an action card from your graveyard$/, () => ({ o: 'rb_decompose' })],
   [/^[Yy]ou may banish another aura from your graveyard$/, () => ({ o: 'rb_banishAura' })],
   [/^remove a verse counter from this$/, () => ({ o: 'rb_removeVerse' })],
-  [/^Prevent the next (\d+) damage that would be dealt to you this turn$/, m => ({ o: 'rb_prevent', n: +m[1] })],
   [/^Otherwise, destroy this$/, () => ({ o: 'if', cond: { c: 'rb_didnt' }, then: [{ o: 'destroySelf' }] })],
 ];
 
@@ -56,7 +54,7 @@ export const TRIGGERS = [
 ];
 
 export const STATICS = [
-  [/^Essence of (.+)$/, m => ({ k: 'meta', rule: 'essence', of: m[1] })],                                                  // CR 8.3.16
+  [/^Essence of ((?:Earth|Ice|Lightning)(?: and (?:Earth|Ice|Lightning))*)$/, m => ({ k: 'meta', rule: 'essence', els: m[1].split(' and ') })],   // CR 8.3.16
   [/^(Earth|Ice|Lightning)(?: (and|and\/or) (Earth|Ice|Lightning))? Fusion$/, m => ({ k: 'rb_fusion', talents: m[3] ? [m[1], m[3]] : [m[1]], mode: m[2] || 'and' })],   // CR 8.3.17
   [/^If you've played a Lightning card this turn, this card's attacks get \+(\d+)\{p\} and go again$/, m => ({ k: 'static', cond: { c: 'rb_playedTalent', t: 'Lightning' }, p: +m[1], grant: 'goAgain' })],
   [/^If this was fused, it gets go again$/, () => ({ k: 'static', cond: { c: 'rb_fused' }, grant: 'goAgain' })],
@@ -64,7 +62,6 @@ export const STATICS = [
   [/^If you've played an instant card this chain link, this gets go again$/, () => ({ k: 'static', cond: { c: 'rb_instantLink' }, grant: 'goAgain' })],
   [/^This costs \{r\} less to play for each Runechant you control$/, () => ({ k: 'rb_costRed' })],
   [/^While this is face-up in any zone, it's Earth, Ice, and Lightning$/, () => ({ k: 'rb_talents', add: ['Earth', 'Ice', 'Lightning'] })],
-  [/^Non-attack action cards you control get \+(\d+)\{d\} while defending$/, m => ({ k: 'rb_defPlus', n: +m[1] })],
   [/^This enters the arena with (\d+) verse counters$/, m => ({ k: 'rb_enter', counter: 'verse', n: +m[1] })],
   [/^If there are (\d+) or more Earth cards in your banished zone, Florian gets "If you would create 1 or more aura tokens, instead create that many plus 1 of each of those tokens\."$/, m => ({ k: 'heroStatic', rule: 'rb_auraPlus1', n: +m[1] })],
 ];

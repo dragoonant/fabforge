@@ -11,7 +11,6 @@
     sh_gate: (s, e, v) => e.way === 'rune'
       ? `${T.who(s, e.who, v)} ${T.v(e.who, v, 'rune gate', 'rune gates')} ${T.tag(e.c)}: it is played from the banished zone without paying its resource cost.`
       : `${T.tag(e.c)} is played from the banished zone.`,
-    sh_counter: (s, e) => e.n > 0 ? `${T.tag(e.c)} enters with ${T.plural(e.n, 'verse counter')}.` : `${T.tag(e.c)} loses a verse counter (${T.plural(e.left, 'counter')} left).`,
     sh_altCost: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'banish', 'banishes')} ${T.plural(e.n, 'card')} from ${mine(e, v)} hand rather than pay ${T.tag(e.c)}’s resource cost.`,
     sh_granted: (s, e) => `${T.tag(e.c)}: ${T.tag(e.to)} gets ${e.grant === 'goAgain' ? 'go again' : e.grant}.`,
     sh_next: (s, e, v) => `${T.tag(e.c)}: ${e.who === v ? 'your' : 'their'} next Runeblade attack action card this turn gets go again and “When this hits, create ${T.plural(e.n, 'Runechant token')}.”`,

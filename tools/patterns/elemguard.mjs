@@ -3,11 +3,9 @@
 let h;
 export function init(helpers) { h = helpers; }
 const SLOT = '(arms|chest|head|legs|off-hand)';
-const FRONT = 'Earth|Ice|Lightning';
 
 export const KW_LINES = {};
 export const CONDS = [
-  ['there are 4 or more Earth cards in your banished zone', () => ({ c: 'eg_banishEarth', n: 4 })],           // Fertile Ground
   ['this has \\{p\\} greater than its base', () => ({ c: 'eg_aboveBase' })],                                    // Concuss
 ];
 export const EFFECTS = [
@@ -19,7 +17,6 @@ export const EFFECTS = [
   [/^the attacking hero puts a card from their hand on top of their deck$/, () => ({ o: 'eg_attackerHandToTop' })],   // Oldhim
   [/^they can't create aura tokens during their next turn$/, () => ({ o: 'eg_noAura' })],                     // Renounce Grandeur
   [/^put it on the bottom of its owner's deck$/, () => ({ o: 'selfToBottom' })],                              // Evergreen
-  [/^You may banish 2 Earth cards and an action card from your graveyard$/, () => ({ o: 'eg_decompose' })],   // CR 8.4.14
   [new RegExp(`^<EGLOSER ${SLOT}>$`), m => ({ o: 'eg_loser', slot: m[1] })],                                 // Clash of Arms / Chests / Heads / Legs / Shields
 ];
 export const TRIGGERS = [
@@ -29,26 +26,20 @@ export const TRIGGERS = [
   [/^When you play a card or activate an ability, (.+)$/, () => ({ on: 'eg_use' })],                           // Frostbite
 ];
 export const STATICS = [
-  [/^Essence of (Earth|Ice)(?: and (Earth|Ice))?$/, m => ({ k: 'meta', rule: 'essence', els: [m[1], m[2]].filter(Boolean) })],   // CR 8.3.16
-  [/^If this was fused, it gets dominate$/, () => ({ k: 'static', cond: { c: 'eg_fused' }, grant: 'dominate' })],
-  [/^If this was fused, it gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'eg_fused' }, d: +m[1] })],
+  [/^If this was fused, it gets dominate$/, () => ({ k: 'static', cond: { c: 'rb_fused' }, grant: 'dominate' })],
+  [/^If this was fused, it gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'rb_fused' }, d: +m[1] })],
   [/^If the defending hero controls an aura token, this gets \+(\d+)\{p\}$/, m => ({ k: 'static', cond: { c: 'eg_defAura' }, p: +m[1] })],
   [/^Cards and abilities cost you an additional ((?:\{r\})+) to play or activate$/, m => ({ k: 'costUp', n: (m[1].match(/\{r\}/g) || []).length })],   // Frostbite, read by FAB.costOf
   [/^Non-attack action cards you control get \+(\d+)\{d\} while defending$/, m => ({ k: 'defStatic', d: +m[1], nonAttackAction: true })],   // Embodiment of Earth, read by FAB.defenseOf
 ];
 export const ACTCONDS = [];
-export const LABELS = ['Decompose'];
+export const LABELS = [];
 export const SPLIT = [
   // Clash of <slot>: the loser puts the counter, and loses life if they could not.
   [new RegExp(`If there is a winner, the other hero puts a -1\\{d\\} counter on an? ${SLOT} they have equipped\\. If they don't, they lose 1\\{h\\}\\.`, 'g'), '<EGLOSER $1>.'],
 ];
 export const COSTS = [];
 export const LINES = [
-  // CR 8.3.17: "[Element] Fusion" is an optional additional cost to play: reveal a card of that element from hand.
-  (line, ctx) => {
-    const m = line.match(new RegExp(`^(${FRONT}) Fusion$`)); if (!m) return false;
-    ctx.out.ab.push({ k: 'fusion', el: m[1] }); return true;
-  },
   // Oldhim: a defense reaction ability. "Pitched this way" is the cards pitched to pay its cost.
   (line, ctx) => {
     const m = line.match(/^Once per Turn Defense Reaction - ((?:\{r\})+): If an Earth card is pitched this way, (.+)\. If an Ice card is pitched this way, (.+)$/); if (!m) return false;

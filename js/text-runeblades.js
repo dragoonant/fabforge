@@ -6,7 +6,6 @@
   const list = ids => ids.map(tag).join(', ');
 
   Object.assign(T.lines, {
-    rb_shield: (s, e, v) => `${tag(e.c)}: the next ${e.n} damage that would be dealt to ${e.who === v ? 'you' : T.who(s, e.who, v)} this turn is prevented.`,
     rb_counter: (s, e, v) => e.enters
       ? `${tag(e.c)} enters the arena with ${plural(e.n, e.k + ' counter')}.`
       : `${tag(e.c)} loses a ${e.k} counter (${plural(e.left, e.k + ' counter')} left).`,

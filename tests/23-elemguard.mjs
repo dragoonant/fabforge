@@ -14,9 +14,9 @@ test('Glacial Footsteps: Ice Fusion reveals an Ice card from hand as an addition
   const run = fuse => {
     let s = game(OL, 'dorinthea'); give(s, 0, ['glacial-footsteps-blu', 'winters-grasp-blu', 'chokeslam-blu', 'chokeslam-blu']); give(s, 1, []);
     s = play(s, 'glacial-footsteps-blu');
-    eq(s.pending.q.kind, 'eg_fuse'); eq(s.pending.q.opts.length, 2, 'the Ice card, and no');
+    eq(s.pending.q.kind, 'rb_fuse'); eq(s.pending.q.opts.length, 2, 'the Ice card, and no');
     if (fuse) s = answerCard(s, 'winters-grasp-blu'); else s = answer(s, 'no');
-    s = pay(s, 'chokeslam-blu', 'chokeslam-blu'); eq(logged(s, 'eg_fuse').length, fuse ? 1 : 0);
+    s = pay(s, 'chokeslam-blu', 'chokeslam-blu'); eq(logged(s, 'rb_fuse').length, fuse ? 1 : 0);
     s = passUntil(s, x => asked(x, 'defend'));
     ok(has(s, 0, 'hand', 'winters-grasp-blu'), 'the revealed card stays in hand');
     return FAB.attackHas(s, FAB.activeLink(s), 'dominate');
@@ -32,7 +32,7 @@ test('Turn Timber: Earth Fusion; fused, it gets +2{d}', () => {
     let s = game('dorinthea', TE); give(s, 0, ['hit-and-run-blu']); give(s, 1, ['turn-timber-blu', 'autumns-touch-blu', 'chokeslam-blu']);
     s = act(s, 'dawnblade'); s = answerCard(s, 'hit-and-run-blu'); s = swing(s);
     s = toReaction(s, 1);
-    s = play(s, 'turn-timber-blu'); eq(s.pending.q.kind, 'eg_fuse');
+    s = play(s, 'turn-timber-blu'); eq(s.pending.q.kind, 'rb_fuse');
     s = fuse ? answerCard(s, 'autumns-touch-blu') : answer(s, 'no');
     s = pay(s, 'chokeslam-blu');
     s = passUntil(s, x => step(x, 'damage'));
@@ -95,11 +95,11 @@ test('Rootbound Carapace, Decompose (CR 8.4.14): banish 2 Earth cards and an act
     put(s, 1, 'rootbound-carapace-red', 'arsenal', false);
     s = act(s, 'dawnblade'); s = answerCard(s, 'hit-and-run-blu'); s = swing(s);
     s = toReaction(s, 1); s = play(s, 'rootbound-carapace-red');
-    s = passUntil(s, x => asked(x, 'eg_decompose')); eq(s.pending.q.what, 'may');
+    s = passUntil(s, x => asked(x, 'rb_decompose'));
     if (!yes) { s = answer(s, 'no'); s = passUntil(s, x => step(x, 'damage')); eq(s.players[1].banish.length, 0); return logged(s, 'clashOfArms')[0].def; }
-    s = answer(s, 'yes'); eq(s.pending.q.what, 'action'); eq(s.pending.q.opts.length, 1, 'only the action card that leaves 2 Earth cards');
-    s = answerCard(s, 'chokeslam-blu'); eq(s.pending.q.what, 'earth'); s = answerCard(s, 'autumns-touch-red'); eq(s.pending.q.n, 2); s = answerCard(s, 'autumns-touch-blu');
-    eq(s.players[1].banish.length, 3); eq(s.players[1].grave.length, 0); eq(logged(s, 'eg_banish').length, 3);
+    s = answer(s, 'yes'); eq(s.pending.q.kind, 'rb_banishPick'); eq(s.pending.q.what, 'Earth'); s = answerCard(s, 'autumns-touch-red'); eq(s.pending.q.what, 'Earth'); s = answerCard(s, 'autumns-touch-blu');
+    eq(s.pending.q.what, 'action'); eq(s.pending.q.opts.length, 1, 'only the action card'); s = answerCard(s, 'chokeslam-blu');
+    eq(s.players[1].banish.length, 3); eq(s.players[1].grave.length, 0); eq(logged(s, 'rb_banish')[0].cs.length, 3);
     s = passUntil(s, x => step(x, 'damage'));
     return logged(s, 'clashOfArms')[0].def;
   };
@@ -110,7 +110,7 @@ test('Decompose is not offered when the graveyard cannot pay for it', () => {
   put(s, 1, 'autumns-touch-red', 'grave'); put(s, 1, 'chokeslam-blu', 'grave'); put(s, 1, 'rootbound-carapace-red', 'arsenal', false);
   s = act(s, 'dawnblade'); s = answerCard(s, 'hit-and-run-blu'); s = swing(s);
   s = toReaction(s, 1); s = play(s, 'rootbound-carapace-red');
-  s = passUntil(s, x => step(x, 'damage')); eq(logged(s, 'eg_banish').length, 0); eq(logged(s, 'clashOfArms')[0].def, 3);
+  s = passUntil(s, x => step(x, 'damage')); eq(logged(s, 'rb_banish').length, 0); eq(logged(s, 'clashOfArms')[0].def, 3);
 });
 test('Fertile Ground: gain 2{h}; with 4 or more Earth cards in your banished zone, instead gain 3{h} (blue)', () => {
   const run = n => {
