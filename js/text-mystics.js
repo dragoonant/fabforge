@@ -14,6 +14,7 @@
     my_banish: (s, e, v) => `${T.who(s, e.who, v)} ${T.v(e.who, v, 'banish', 'banishes')} ${tag(e.c)} from ${e.from === 'soul' ? (e.owner === v ? 'your' : 'their') + ' soul' : (e.owner === v ? 'your' : 'their') + ' graveyard'}.`,
     my_soul: (s, e, v) => `${tag(e.c)} is put into ${e.who === v ? 'your' : 'their'} soul.`,
     my_toTop: (s, e, v) => `${tag(e.c)} goes on top of ${e.who === v ? 'your' : 'their'} deck.`,
+    my_noPhantasm: (s, e, v) => `${tag(e.c)}: the next Illusionist attack action card ${T.who(s, e.who, v) === 'You' ? 'you play' : 'they play'} this turn loses phantasm and can’t gain it.`,
     my_phantasm: (s, e) => `${tag(e.c)} is defended by a non-Illusionist attack action card with 6 or more power: phantasm destroys it and the combat chain closes.`,
   });
   // Chi points are paid before resource points (CR 1.14.2a); the pool shows both.
@@ -35,6 +36,7 @@
     }),
     my_bottomPick: (s, q) => ({ title: `${cardOf(s, q.src)}: put a card on the bottom`, body: 'Each hero puts a card from their hand on the bottom of their deck, then creates a Ponder token. Choose the card from your hand.', labels: {} }),
     my_soulPick: (s, q) => ({ title: `${cardOf(s, q.src)}: banish a card from your soul`, body: 'Banishing a card from your soul is part of the cost of this ability. Cancel to not activate it.', labels: {} }),
+    my_mayPay: (s, q) => ({ title: `${cardOf(s, q.src)}: pay ${q.cost}?`, body: `${FAB.cards[s.cards[q.src].id].text} Paying pitches cards from your hand; if you decline, nothing happens.`, labels: { yes: `Pay ${q.cost}`, no: 'Decline' } }),
     my_heraldPick: (s, q) => ({ title: `${cardOf(s, q.src)}: choose an attack action card`, body: `Target attack action card with Herald in its name gets +${q.n} defense.`, labels: {} }),
   });
 })();

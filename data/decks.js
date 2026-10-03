@@ -178,7 +178,7 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Amos Norris",
   "date": "21 Jun 2026",
-  "poolCompiled": 31,
+  "poolCompiled": 33,
   "deck": [
    {
     "id": "astral-etchings-red",
@@ -282,7 +282,7 @@ window.FAB.decks = {
    "wave-of-reality",
    "silken-slippers"
   ],
-  "rule": "Prism's list from the World Championship Qualifier in New Zealand (1st). Its pool is cut to 40 by leaving the two Arcane Polarity, the two Pummel and the two Unmovable in the sideboard. Iris of Reality makes Prism's Illusionist auras attack; Dream Weavers and Silent Stilettos are not implemented and stay in the sideboard.",
+  "rule": "Prism's list from the World Championship Qualifier in New Zealand (1st). Its pool is cut to 40 by leaving the two Arcane Polarity, the two Pummel and the two Unmovable in the sideboard. Iris of Reality makes Prism's Illusionist auras attack. Dream Weavers and Silent Stilettos stay in the sideboard.",
   "registered": true
  },
  "ira-crimson-haze-pt-yokohama": {
@@ -863,7 +863,7 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Colin Li",
   "date": "08 Aug 2026",
-  "poolCompiled": 33,
+  "poolCompiled": 34,
   "deck": [
    {
     "id": "astral-etchings-red",
@@ -969,9 +969,9 @@ window.FAB.decks = {
    "nullrune-hood",
    "blade-beckoner-plating",
    "nullrune-gloves",
-   "unflinching-foothold"
+   "silent-stilettos"
   ],
-  "rule": "Enigma's list from Calling: Bangkok (2nd). Its 55-card pool is cut to 40 by leaving the two Oasis Respite and the two Test of Strength in the sideboard. Cosmo, Scroll of Ancestral Tapestry makes Enigma's Spectral Shields and wards attack; Silent Stilettos, Skycrest Keikoi (cloaked) and Uphold Tradition (cloaked) are not implemented and stay in the sideboard.",
+  "rule": "Enigma's list from Calling: Bangkok (2nd). Its 55-card pool is cut to 40 by leaving the two Oasis Respite and the two Test of Strength in the sideboard. Cosmo, Scroll of Ancestral Tapestry makes Enigma's Spectral Shields and wards attack. Skycrest Keikoi and Uphold Tradition (both cloaked) are not implemented and stay in the sideboard.",
   "registered": true
  },
  "valda-brightaxe-calling-shanghai": {
@@ -6181,7 +6181,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 30
+  "poolCompiled": 31
  },
  "fai": {
   "id": "fai",
@@ -7061,7 +7061,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 18
+  "poolCompiled": 20
  },
  "viserai-between-worlds": {
   "id": "viserai-between-worlds",

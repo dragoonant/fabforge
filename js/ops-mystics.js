@@ -30,7 +30,7 @@
   // Is any of these cards a non-Illusionist attack action card defending this link with 6 or more {p}?
   const phantasmMet = (s, link, iids) => iids.some(i => { const c = I(s, i), d = FAB.cards[c.id]; return c.zone === 'chain' && isAttackAction(d) && !isIll(d) && defPower(s, i, link) >= 6; });
   // Passing Mirage: "Your first Illusionist attack each turn loses and can't gain phantasm."
-  const noPhantasm = (s, link) => link.my_ill === 1 && hasStatic(s, link.ctrl, 'my_noPhantasm');
+  const noPhantasm = (s, link) => (link.my_ill === 1 && hasStatic(s, link.ctrl, 'my_noPhantasm')) || !!I(s, link.iid).my_noPh;   // or Dream Weavers' "next Illusionist attack action card you play this turn"
 
   Object.assign(FAB.conds, {
     my_noOtherAuras: x => !illAuras(x.s, x.ctrl).some(i => i !== x.iid && i !== x.flags.tok),
@@ -56,7 +56,12 @@
   FAB.hooks.play.push(function (s, iid, who) {
     const p = P(s, who), d = D(s, iid);
     if (d.pitch === 3) p.h.my_blu = (p.h.my_blu || 0) + 1;                                          // "another blue card this turn"
-    if (isIll(d) && isAttackAction(d)) { I(s, iid).my_firstIll = !p.h.my_illAA; p.h.my_illAA = (p.h.my_illAA || 0) + 1; }
+    if (isIll(d) && isAttackAction(d)) {
+      I(s, iid).my_firstIll = !p.h.my_illAA; p.h.my_illAA = (p.h.my_illAA || 0) + 1;
+      const e = s.effects.find(f => f.k === 'my_noPhantasmNext' && f.who === who);                  // Dream Weavers
+      I(s, iid).my_noPh = !!e;
+      if (e) s.effects.splice(s.effects.indexOf(e), 1);
+    }
   });
   FAB.hooks.attackBegin.push(function (s, link) {
     const p = P(s, link.ctrl), d = D(s, link.iid);
@@ -148,6 +153,10 @@
       s.effects.push({ k: 'my_prevent', who: x.ctrl, n: op.n || 0, all: !!op.all, color: op.color == null ? null : op.color, dur: 'turn', src: x.iid });
       FAB.log(s, 'my_shield', { who: x.ctrl, c: I(s, x.iid).id, n: op.n || 0, all: !!op.all, color: op.color == null ? null : op.color });
     },
+    my_nextNoPhantasm(x) {                                                                           // Dream Weavers
+      x.s.effects.push({ k: 'my_noPhantasmNext', who: x.ctrl, dur: 'turn', src: x.iid });
+      FAB.log(x.s, 'my_noPhantasm', { who: x.ctrl, c: I(x.s, x.iid).id });
+    },
     my_transcend(x) {                                                                                // CR 8.5.48: put the source into its owner's hand with its back-face active
       const s = x.s, c = I(s, x.iid);
       if (c.zone !== 'stack') return;
@@ -217,7 +226,15 @@
       if (!phantasmMet(s, link, link.defs.map(e => e.iid))) return;                                                                            // CR 5.3.2a: the state is no longer met
       FAB.log(s, 'my_phantasm', { who: x.ctrl, c: I(s, x.iid).id });
       FAB.destroy(s, x.iid);
+      FAB.emit(s, { t: 'my_phantasmDestroyed', iid: x.iid, ctrl: x.ctrl });                          // Silent Stilettos
       FAB.attackCeased(s, link);                                                                     // CR 8.3.13b
+    },
+    my_mayPay(x, op) {                                                                               // "you may pay {r}{r}{r}. If you do, ..."
+      const s = x.s;
+      if (!FAB.canPay(s, x.ctrl, op.r, null, 0)) return;
+      if (FAB.ask(x, { who: x.ctrl, kind: 'my_mayPay', src: x.iid, cost: op.r, opts: [{ id: 'yes' }, { id: 'no' }] }) !== 'yes') return;
+      FAB.payRes(x, x.ctrl, op.r, x.iid, 'ability', { cancel: false });
+      FAB.runOps(x, op.then);
     },
     my_mirage(x) {                                                                                   // CR 8.3.25: destroy this when defending a non-Illusionist attack with 6 or more {p}
       const s = x.s, link = x.link;
@@ -239,6 +256,7 @@
       return true;
     },
     my_targeted: (s, ab, iid, ev) => ev.iid === iid,
+    my_phantasmDestroyed: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner,                           // "an attack action card you control is destroyed by phantasm"
     destroyed: (s, ab, iid, ev) => {
       if (!ab.mine) return ev.iid === iid;
       const d = D(s, ev.iid);
@@ -249,6 +267,7 @@
   const first = (s, q) => q.opts[0].id;
   Object.assign(FAB.aiPolicy, {
     my_ward: () => 'yes',
+    my_mayPay: () => 'no',                                                                          // three cards for one action point is rarely worth it
     my_playAs: () => 'instant',
     my_attackTarget: () => 'hero',
     my_auraPick: first,

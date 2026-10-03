@@ -99,7 +99,7 @@
         <div class="portrait" style="background-image:${FAB.art.css(hero.id)}"></div>
         <div class="hname">${esc(hero.name)}${mine ? ' <span class="you">you</span>' : ''}</div>
         <div class="life ${ui.hurt && ui.hurt[seat] ? 'hurt' : ''}" title="Life">${Math.max(0, p.life)}${ui.hurt && ui.hurt[seat] ? `<span class="dmgfly">−${ui.hurt[seat]}</span>` : ''}</div>
-        <div class="chips"><span class="chip ap" title="Action points">${p.ap} AP</span><span class="chip res" title="Resource points in the pool">${p.res} res</span><span class="chip" title="Intellect: you draw up to this many cards at the end of your turn">int ${FAB.intellect(s, seat)}</span></div>
+        <div class="chips"><span class="chip ap" title="Action points">${p.ap} AP</span><span class="chip res" title="Resource points in the pool">${p.res} res</span>${p.chi ? `<span class="chip res" title="Chi points in the pool: they pay resource costs too, and are used first">${p.chi} chi</span>` : ''}<span class="chip" title="Intellect: you draw up to this many cards at the end of your turn">int ${FAB.intellect(s, seat)}</span></div>
         ${am.m[p.hero] ? `<div class="heroact" data-acts='${JSON.stringify(am.m[p.hero])}'>Hero ability</div>` : ''}
       </div>
       <div class="gear">${weapons}${gear}</div>
@@ -111,6 +111,7 @@
         <div class="zone pile"><div class="zl">Deck</div>${p.deck.length ? back(p.deck.length) : '<div class="empty">0</div>'}</div>
         <div class="zone pile click" data-view="grave:${seat}"><div class="zl">Graveyard ${p.grave.length}</div>${grave}</div>
         <div class="zone pile click" data-view="banish:${seat}"><div class="zl">Banished ${p.banish.length}</div>${faceDownBanished ? back(faceDownBanished, 'sm') : ''}</div>
+        ${p.soul.length ? `<div class="zone pile click" data-view="soul:${seat}"><div class="zl">Soul ${p.soul.length}</div>${face(s, s.cards[p.soul[p.soul.length - 1]].id, { cls: 'sm' })}</div>` : ''}
       </div>
     </div>`;
   }
@@ -182,9 +183,9 @@
   function modalHTML(s) {
     if (!ui.modal) return '';
     const [zone, seatS] = ui.modal.split(':'), seat = +seatS, p = s.players[seat];
-    const ids = zone === 'grave' ? p.grave : p.banish;
+    const ids = zone === 'grave' ? p.grave : zone === 'soul' ? p.soul : p.banish;   // [mystics] the soul is a public zone (CR 3.11.5)
     const shown = ids.filter(i => s.cards[i].faceUp), hidden = ids.length - shown.length;
-    return `<div class="modal" data-ui="closemodal"><div class="mbox"><div class="mtitle">${T.who(s, seat, ui.human) === 'You' ? 'Your' : T.who(s, seat, ui.human) + '’s'} ${zone === 'grave' ? 'graveyard' : 'banished zone'} — ${ids.length} card${ids.length === 1 ? '' : 's'}${hidden ? ` (${hidden} face-down)` : ''}</div>
+    return `<div class="modal" data-ui="closemodal"><div class="mbox"><div class="mtitle">${T.who(s, seat, ui.human) === 'You' ? 'Your' : T.who(s, seat, ui.human) + '’s'} ${zone === 'grave' ? 'graveyard' : zone === 'soul' ? 'soul' : 'banished zone'} — ${ids.length} card${ids.length === 1 ? '' : 's'}${hidden ? ` (${hidden} face-down)` : ''}</div>
       <div class="mcards">${shown.map(i => face(s, s.cards[i].id, { iid: i })).join('') || '<div class="empty">nothing to see</div>'}</div><button class="btn" data-ui="closemodal">Close</button></div></div>`;
   }
 

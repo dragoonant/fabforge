@@ -329,6 +329,26 @@ test('Merciful Retribution: when an aura or attack action card you control is de
   s = passUntil(s, x => asked(x, 'arcaneTarget')); s = answer(s, 1); s = passUntil(s, closed);
   eq(logged(s, 'my_phantasm').length, 1); eq(s.players[1].life, 19); eq(count(s, 0, 'soul', 'wartune-herald-red'), 1); eq(count(s, 0, 'grave', 'wartune-herald-red'), 0);
 });
+test('Silent Stilettos: when an attack action card you control is destroyed by phantasm, you may pay {r}{r}{r} to destroy it and gain an action point', () => {
+  let s = game(ENI, KAY); give(s, 0, ['spears-of-surreality-blu', 'hit-and-run-blu', 'scar-for-a-scar-red', 'scar-for-a-scar-red', 'scar-for-a-scar-red']); give(s, 1, ['rough-up-red']);
+  ok(has(s, 0, 'equip', 'silent-stilettos'));
+  s = attackInto(s, 'spears-of-surreality-blu', ['hit-and-run-blu']); s = answerCard(s, 'rough-up-red'); s = answer(s, 'done');
+  s = passUntil(s, x => asked(x, 'my_mayPay')); eq(s.pending.q.cost, 3);
+  s = answer(s, 'yes'); while (asked(s, 'pitch')) s = answerCard(s, 'scar-for-a-scar-red');  // 2 resources are floating from the overpaid Spears
+  s = passUntil(s, closed);
+  ok(has(s, 0, 'grave', 'silent-stilettos')); eq(s.players[0].ap, 1);
+  s = game(ENI, KAY); give(s, 0, ['spears-of-surreality-blu', 'hit-and-run-blu', 'scar-for-a-scar-red']); give(s, 1, ['rough-up-red']);
+  s = attackInto(s, 'spears-of-surreality-blu', ['hit-and-run-blu']); s = answerCard(s, 'rough-up-red'); s = answer(s, 'done');
+  s = passUntil(s, x => asked(x, 'my_mayPay')); s = answer(s, 'no'); s = passUntil(s, closed);
+  ok(has(s, 0, 'equip', 'silent-stilettos')); eq(s.players[0].ap, 0);
+});
+test('Dream Weavers: the next Illusionist attack action card you play this turn loses phantasm; go again', () => {
+  let s = game(PRI, KAY); give(s, 0, ['spears-of-surreality-blu', 'scar-for-a-scar-red']); give(s, 1, ['rough-up-red']);
+  const dw = put(s, 0, 'dream-weavers', 'equip');
+  s = act(s, 'dream-weavers'); s = passUntil(s, closed); eq(s.players[0].ap, 1, 'go again'); ok(has(s, 0, 'grave', 'dream-weavers'));
+  s = attackInto(s, 'spears-of-surreality-blu', ['scar-for-a-scar-red']); s = answerCard(s, 'rough-up-red'); s = answer(s, 'done');
+  s = passUntil(s, x => step(x, 'resolution')); eq(logged(s, 'my_phantasm').length, 0);
+});
 test('Shimmering Specter: when it leaves the arena while attacking, a Spectral Shield; Mirage destroys it defending a 6-power attack', () => {
   let s = game(PRI, KAY); give(s, 0, ['shimmering-specter-blu', 'scar-for-a-scar-red', 'scar-for-a-scar-red', 'scar-for-a-scar-red']); give(s, 1, []);
   s = attackInto(s, 'shimmering-specter-blu', ['scar-for-a-scar-red', 'scar-for-a-scar-red', 'scar-for-a-scar-red']); s = answer(s, 'done'); s = passUntil(s, closed);

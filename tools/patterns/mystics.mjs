@@ -18,6 +18,7 @@ export const EFFECTS = [
   [/^the next time you would be dealt damage by a (red|yellow|blue) source this turn, prevent it$/, m => ({ o: 'my_preventNext', all: true, color: { red: 1, yellow: 2, blue: 3 }[m[1]] })],
   [/^The next time you would be dealt damage this turn, prevent (\d+) of that damage$/, m => ({ o: 'my_preventNext', n: +m[1] })],
   [/^instead prevent (\d+)$/, m => ({ o: 'INSTEAD', op: { o: 'my_preventNext', n: +m[1] } })],
+  [/^The next Illusionist attack action card you play this turn loses and can't gain phantasm$/, () => ({ o: 'my_nextNoPhantasm' })],
   // ---- Transcend (CR 8.5.48) ----
   [/^transcend$/, () => ({ o: 'my_transcend' })],
   // ---- Clear Conscience ----
@@ -75,6 +76,13 @@ const NEEDS = [
   [/^Target attack action card with Herald in its name gets \+3\{d\}\.?$/, { o: 'my_defBuffTarget', n: 3, name: 'Herald' }, 'my_heraldTarget'],
 ];
 export const LINES = [
+  // Silent Stilettos. No card in the game creates an ally for its controller to attack with, so the "attacking ally dies" half has no event to listen to; the phantasm half is the one that happens.
+  (line, ctx) => {
+    const m = line.match(/^Whenever an attacking ally you control dies or an attack action card you control is destroyed by phantasm, you may pay ((?:\{r\})+)\. If you do, destroy this and gain 1 action point\.?$/);
+    if (!m) return false;
+    ctx.out.ab.push({ k: 'trig', on: 'my_phantasmDestroyed', ops: [{ o: 'my_mayPay', r: h.res(m[1]), then: [{ o: 'destroySelf' }, { o: 'gainAP', n: 1 }] }] });
+    return true;
+  },
   (line, ctx) => {
     for (const [re, op, cond] of NEEDS) if (re.test(line)) { ctx.resOps.push({ ...op }); ctx.out.ab.push({ k: 'playIf', cond: { c: cond } }); return true; }
     return false;
