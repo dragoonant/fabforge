@@ -56,13 +56,16 @@
       };
       p.hero = mk(deck.hero, 'hero');
       p.life = FAB.cards[deck.hero].life;
+      const startItems = [];                         // [mech] CR 4.1.6b: a hero may start the game with an item from their deck in the arena
       for (const id of deck.loadout) {             // CR 4.1.4: arena-cards start equipped
         const d = FAB.cards[id];
-        if (d.kind === 'weapon') p.weapons.push(mk(id, 'weapon'));
+        if (d.types.includes('Item')) { startItems.push(id); const iid = mk(id, 'arena'); p.arena.push(iid); FAB.me_startItem(s, deck, iid); }
+        else if (d.kind === 'weapon') p.weapons.push(mk(id, 'weapon'));
         else if (d.kind === 'equipment') p.equip.push(mk(id, 'equip'));
         else throw new Error('loadout card is not a weapon or equipment: ' + id);
       }
-      for (const e of deck.deck) for (let i = 0; i < e.n; i++) p.deck.push(mk(e.id, 'deck'));
+      for (const e of deck.deck) for (let i = 0; i < e.n; i++) { if (startItems.includes(e.id)) { startItems.splice(startItems.indexOf(e.id), 1); continue; } p.deck.push(mk(e.id, 'deck')); }   // [mech] the starting item is one of the 40, not a 41st
+      if (startItems.length) throw new Error('a starting item is not in the deck: ' + startItems.join(', '));
       FAB.shuffle(s, p.deck);                       // CR 4.1.8
     }
     // CR 4.1.3: a randomly selected player chooses the first-turn-player.
@@ -166,11 +169,12 @@
     const c = I(s, link.iid), d = FAB.cards[c.id];
     const nog = !link.weapon && isAttackDef(d) && noGainP(s, link.ctrl);
     const gain = v => (nog && v > 0) ? 0 : v;
-    let p = d.power + gain(c.counters.p || 0);
     const x = { s: s, ctrl: link.ctrl, iid: link.iid, link: link, flags: {} };
-    for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(ab.p);
+    // [mech] a card whose {p} is computed ("this card's {p} is equal to ...") names it in a basePower ability; a static {p} may be a { v: name } variable
+    let p = (d.power != null ? d.power : FAB.num(x, d.ab.find(a => a.k === 'basePower').p)) + gain(c.counters.p || 0);
+    for (const ab of d.ab) if (ab.k === 'static' && ab.p && FAB.cond(x, ab.cond)) p += gain(FAB.num(x, ab.p));
     const me = P(s, link.ctrl);                                                        // "Your first attack each turn gets +1{p}": a continuous effect of a permanent
-    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1)) p += gain(ab.p);
+    for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1) && FAB.cond(x, ab.cond)) p += gain(ab.p);   // [mech] a permanent's attackStatic may carry a condition on the attack
     let pierce = 0;
     for (const m of link.mods) { if (m.p) p += gain(m.p); if (m.piercing) pierce += m.piercing; }
     if (d.kw.piercing) pierce += d.kw.piercing;
@@ -192,6 +196,7 @@
     for (const m of c.mods) if (m.d) v += m.d;
     const x = { s: s, ctrl: c.owner, iid: iid, link: link, flags: {} };
     for (const ab of d.ab) if (ab.k === 'static' && ab.d && FAB.cond(x, ab.cond)) v += ab.d;
+    for (const f of FAB.defenseMods) v += f(s, iid, link);                                      // [mech] effects of other cards on this one's {d}
     return Math.max(0, v);
   };
   FAB.linkDefense = (s, link) => link.defs.reduce((a, e) => a + FAB.defenseOf(s, e.iid, link), 0);
@@ -213,6 +218,9 @@
 
   // The one damage door (CR 8.5.3). Prevention is applied here and nowhere else.
   // Extension registries: js/ops-*.js add to these; the core never needs editing for a new trigger kind.
+  FAB.defenseMods = [];              // [mech] (s, iid, link) => number added to that card's {d}
+  FAB.costMods = [];                 // [mech] (s, iid, abIdx) => number of {r} the cost is reduced by
+  FAB.arcaneHooks = [];              // [mech] (x, o, n, iid, def) => n: extra prevention inside the arcane damage door
   FAB.aiPolicy = {};                 // question kind -> (s, q, helpers) => option id; read by js/ai.js
   FAB.trigMatchers = {
     toGrave: (s, ab, iid, ev) => ev.iid === iid,
@@ -240,6 +248,7 @@
           const k = Math.min(n, sv); n -= k; log(s, 'prevent', { who: o.to, n: k, c: c.id });
         }
       }
+      for (const f of FAB.arcaneHooks) if (n > 0) n = f(x, o, n, iid, d);                                 // [mech]
     }
     return n;
   }
@@ -412,6 +421,7 @@
         const c = I(s, link.iid); c.hitsTurn = (c.hitsTurn || 0) + 1;
         emit(s, { t: 'crush', iid: link.iid, ctrl: link.ctrl, n: dealt });                 // CR 8.4.2a: the damage dealt, after prevention
         emit(s, { t: 'hit', iid: link.iid, ctrl: link.ctrl, n: dealt });
+        emit(s, { t: 'me_hit', iid: link.iid, ctrl: link.ctrl, n: dealt, weapon: link.weapon });   // [mech] "When a Mechanologist attack action card you control hits a hero"
         if (link.weapon) { P(s, link.ctrl).h.weaponHits++; emit(s, { t: 'weaponHit', ctrl: link.ctrl, iid: link.iid, n: dealt }); }
         for (const m of link.mods) if (m.hitOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.hitOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
         for (const m of link.mods) if (m.hitGoAgain) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: [{ o: 'selfBuff', grant: 'goAgain' }], src: m.src }, ctrl: link.ctrl, ev: { t: 'hit', iid: link.iid, n: dealt }, linkN: link.n });
@@ -492,6 +502,7 @@
       if (e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) tax += e.n;                 // Cartilage Crush
       if (e.k === 'costRed' && !ab && costRedFits(d, e)) red += e.n;                              // Seismic Surge
     }
+    for (const f of FAB.costMods) red += f(s, iid, abIdx);                                        // [mech] "this costs {r} less to play" printed on the card
     return Math.max(0, n + tax - red);
   };
   // Once the cost is paid, the effects that applied to it are used up.
@@ -515,6 +526,7 @@
     if (fromHand && FAB.attackHas(s, link, 'dominate') && (already || link.defs.some(e => e.from === 'hand'))) return false;   // CR 8.3.4
     const r = d.ab.find(a => a.k === 'rule' && a.rule === 'defendBaseMax');
     if (r && !(D(s, link.iid).power <= r.n)) return false;
+    if (d.kind === 'equipment' && D(s, link.iid).ab.some(a => a.k === 'rule' && a.rule === 'me_noEquipDef')) return false;   // [mech] Out Pace: can't be defended by equipment
     return true;
   }
   const canPlay = FAB.canPlay = function (s, who, iid) {
@@ -553,6 +565,7 @@
     if (ab.type === 'ar') { const link = activeLink(s); if (!(link && s.chain.step === 'reaction' && link.ctrl === who)) return false; if (ab.tgt && !legalTarget(s, link, ab.tgt)) return false; }   // [warriors] an activated attack reaction (CR 7.4.2a), e.g. Prized Galea
     if (ab.opt) { const used = c.acts || 0, extra = c.extra || 0; if (used >= 1 + extra) return false; }                // CR 5.2.3
     if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
+    if (!FAB.me_canPayExtra(s, iid, ab.cost)) return false;                                                            // [mech]
     if (ab.cond && !FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, ab.cond)) return false;
     return canPay(s, who, FAB.costOf(s, iid, i), ab.cost.discardSelf ? iid : null, ab.cost.discard || 0);
   };
@@ -669,6 +682,7 @@
         log(s, 'optCost', { who: who, c: d.id, n: ab.cost.r });
       }
     }
+    if (d.kw.boost) FAB.me_boost(x, L, c, d);                                               // [mech] CR 8.3.9: boost is an optional additional cost
     const res = d.ab.find(a => a.k === 'res');
     let tgt = res ? res.tgt : null;
     if (res && res.modes) {                                                                 // CR 5.1.4a, 1.7.5a: modes are declared as the card is played
@@ -708,6 +722,7 @@
       if (c.tapped) throw new Illegal('already tapped');
       c.tapped = true; log(s, 'tap', { who: who, c: d.id });
     }
+    FAB.me_payExtra(s, iid, ab.cost);                                                       // [mech] counter costs ("remove a steam counter from this")
     payRes(x, who, FAB.costOf(s, iid, x.inv.ab), iid, 'ability');
     spendCostFx(s, who, d, ab);
     if (ab.cost.discard) {
@@ -715,7 +730,7 @@
       if (!opts.length) throw new Illegal('no card to discard');
       discard(s, ask(x, { who: who, kind: 'discardCost', src: iid, opts: opts, cancel: true }), false);
     }
-    c.acts = (c.acts || 0) + 1;
+    if (ab.opt) c.acts = (c.acts || 0) + 1;                                                 // [mech] CR 5.2.3: only a once-per-turn ability counts toward its limit (another ability on the same card does not use it up)
     log(s, 'activate', { who: who, c: d.id, attack: !!ab.attack });
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
@@ -769,6 +784,7 @@
         if (c.zone === 'arena' && d.kw.suspense) {                                          // CR 8.3.42: enters with 2 suspense counters
           c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
         }
+        if (c.zone === 'arena') FAB.me_onEnter(X, c);                                       // [mech] "enters the arena with N steam counters", Crank (CR 8.3.29)
       }
     }
     if (s.flow === 'action' && s.sub !== 'begin' && !s.closing && s.winner == null) setPriority(s, s.tp);         // CR 1.11 (not before the action phase has begun, CR 4.3.3)

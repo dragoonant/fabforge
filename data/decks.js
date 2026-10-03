@@ -1153,7 +1153,125 @@ window.FAB.decks = {
   "rank": "3rd",
   "player": "Eugene C",
   "date": "09 Apr 2026",
-  "poolCompiled": 5
+  "poolCompiled": 37,
+  "deck": [
+   {
+    "id": "boom-grenade-red",
+    "n": 1
+   },
+   {
+    "id": "dive-through-data-red",
+    "n": 2
+   },
+   {
+    "id": "fender-bender-red",
+    "n": 2
+   },
+   {
+    "id": "hyper-driver-red",
+    "n": 1
+   },
+   {
+    "id": "jump-start-red",
+    "n": 2
+   },
+   {
+    "id": "out-pace-red",
+    "n": 1
+   },
+   {
+    "id": "re-charge-red",
+    "n": 1
+   },
+   {
+    "id": "rev-up-red",
+    "n": 2
+   },
+   {
+    "id": "throttle-red",
+    "n": 2
+   },
+   {
+    "id": "under-loop-red",
+    "n": 2
+   },
+   {
+    "id": "zero-to-sixty-red",
+    "n": 2
+   },
+   {
+    "id": "zipper-hit-red",
+    "n": 2
+   },
+   {
+    "id": "jump-start-yel",
+    "n": 2
+   },
+   {
+    "id": "zero-to-sixty-yel",
+    "n": 2
+   },
+   {
+    "id": "zipper-hit-yel",
+    "n": 2
+   },
+   {
+    "id": "big-bertha-blu",
+    "n": 2
+   },
+   {
+    "id": "crankshaft-blu",
+    "n": 2
+   },
+   {
+    "id": "jump-start-blu",
+    "n": 2
+   },
+   {
+    "id": "teklo-trebuchet-2000-blu",
+    "n": 2
+   },
+   {
+    "id": "throttle-blu",
+    "n": 2
+   },
+   {
+    "id": "zero-to-sixty-blu",
+    "n": 2
+   },
+   {
+    "id": "zipper-hit-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "scramble-pulse-red",
+    "n": 1
+   },
+   {
+    "id": "out-pace-red",
+    "n": 1
+   },
+   {
+    "id": "overblast-red",
+    "n": 1
+   },
+   {
+    "id": "penetration-script-yel",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "plasma-barrel-shot",
+   "mbrio-base-vizier",
+   "mbrio-base-cortex",
+   "punching-gloves",
+   "achilles-accelerator",
+   "hyper-driver-red"
+  ],
+  "rule": "Dash's list from the Pro Tour: Yokohama (3rd place). Dash starts with Plasma Barrel Shot, the mBrio base head and chest, Punching Gloves and Achilles Accelerator, and with Hyper Driver in the arena (CR 4.1.6b), so the deck zone holds 39 cards. This default leaves four cards in the sideboard: the equipment-hate Scramble Pulse and one Out Pace, plus Overblast and Penetration Script.",
+  "registered": true
  },
  "rhinar-calling-bangkok": {
   "id": "rhinar-calling-bangkok",
@@ -4896,7 +5014,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 6
+  "poolCompiled": 33
  },
  "iyslander": {
   "id": "iyslander",

@@ -1,1 +1,7 @@
-{}
+{
+  "dash-pt-yokohama": {
+    "rule": "Dash's list from the Pro Tour: Yokohama (3rd place). Dash starts with Plasma Barrel Shot, the mBrio base head and chest, Punching Gloves and Achilles Accelerator, and with Hyper Driver in the arena (CR 4.1.6b), so the deck zone holds 39 cards. This default leaves four cards in the sideboard: the equipment-hate Scramble Pulse and one Out Pace, plus Overblast and Penetration Script.",
+    "loadout": ["plasma-barrel-shot", "mbrio-base-vizier", "mbrio-base-cortex", "punching-gloves", "achilles-accelerator", "hyper-driver-red"],
+    "cut": [["scramble-pulse-red", 1], ["out-pace-red", 1], ["overblast-red", 1], ["penetration-script-yel", 1]]
+  }
+}
