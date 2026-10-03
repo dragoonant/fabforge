@@ -272,8 +272,7 @@
       const s = x.s, who = x.flags.hero;
       if (who == null || !(P(s, who).life < P(s, 1 - who).life)) return;
       if (FAB.ask(x, { who: who, kind: 'may', src: x.iid, what: 'gainLife', opts: [{ id: 'yes' }, { id: 'no' }] }) !== 'yes') return;
-      P(s, who).life += op.n;
-      FAB.log(s, 'life', { who: who, n: op.n, life: P(s, who).life });
+      FAB.gainLife(s, who, op.n);                                                          // [shadow] through the life door
     },
     handToDeck(x) {                     // Stroke of Foresight
       const s = x.s, p = P(s, x.ctrl);
@@ -291,7 +290,7 @@
   };
   // ---- shared vocabulary used by many classes ------------------------------------------------
   Object.assign(OPS, {
-    gainLife(x, op) { const p = P(x.s, x.ctrl); p.life += op.n; FAB.log(x.s, 'life', { who: x.ctrl, n: op.n, life: p.life }); },
+    gainLife(x, op) { FAB.gainLife(x.s, x.ctrl, op.n); },                                   // [shadow] through the life door (Reaping Blade can bar it)
     // CR 8.5.3b: arcane damage. The target is asked for even when only one hero could be chosen.
     arcane(x, op) {
       const s = x.s;

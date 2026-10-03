@@ -563,7 +563,7 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Chanon Puttaree",
   "date": "09 Apr 2026",
-  "poolCompiled": 20
+  "poolCompiled": 21
  },
  "enigma-calling-bangkok": {
   "id": "enigma-calling-bangkok",
@@ -2110,7 +2110,124 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Evanking Chiu",
   "date": "21 Dec 2025",
-  "poolCompiled": 7
+  "poolCompiled": 36,
+  "deck": [
+   {
+    "id": "arcane-cussing-red",
+    "n": 1
+   },
+   {
+    "id": "deathly-delight-red",
+    "n": 2
+   },
+   {
+    "id": "deathly-wail-red",
+    "n": 2
+   },
+   {
+    "id": "envelop-in-darkness-red",
+    "n": 2
+   },
+   {
+    "id": "malefic-incantation-red",
+    "n": 2
+   },
+   {
+    "id": "putrid-stirrings-red",
+    "n": 2
+   },
+   {
+    "id": "read-the-runes-red",
+    "n": 2
+   },
+   {
+    "id": "reduce-to-runechant-red",
+    "n": 2
+   },
+   {
+    "id": "runeblood-incantation-red",
+    "n": 1
+   },
+   {
+    "id": "sigil-of-suffering-red",
+    "n": 2
+   },
+   {
+    "id": "soul-reaping-red",
+    "n": 1
+   },
+   {
+    "id": "spellblade-assault-red",
+    "n": 2
+   },
+   {
+    "id": "vantom-banshee-red",
+    "n": 2
+   },
+   {
+    "id": "vantom-wraith-red",
+    "n": 2
+   },
+   {
+    "id": "deathly-wail-yel",
+    "n": 2
+   },
+   {
+    "id": "malefic-incantation-yel",
+    "n": 2
+   },
+   {
+    "id": "read-the-runes-yel",
+    "n": 1
+   },
+   {
+    "id": "spellblade-assault-yel",
+    "n": 2
+   },
+   {
+    "id": "vantom-wraith-yel",
+    "n": 2
+   },
+   {
+    "id": "mauvrion-skies-blu",
+    "n": 2
+   },
+   {
+    "id": "oath-of-the-arknight-blu",
+    "n": 2
+   },
+   {
+    "id": "spellblade-assault-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "pummel-red",
+    "n": 2
+   },
+   {
+    "id": "right-behind-you-blu",
+    "n": 2
+   },
+   {
+    "id": "sift-blu",
+    "n": 1
+   },
+   {
+    "id": "timesnap-potion-blu",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "reaping-blade",
+   "ebon-fold",
+   "bloodtorn-bodice",
+   "runehold-release",
+   "sutcliffes-suede-hides"
+  ],
+  "rule": "Chane's list from Battle Hardened: Hong Kong (1st). The default 40 leaves the two Pummel, both Right Behind You, the Sift and the Timesnap Potion in the sideboard: generic cards that do nothing for the Runechant, banish and rune gate plan. The Nullrune pieces, the Blade Beckoner pieces and the second pair of arms/legs stay in the sideboard too (one piece per slot).",
+  "registered": true
  },
  "fai-showdown-las-vegas": {
   "id": "fai-showdown-las-vegas",
@@ -3547,7 +3664,7 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Michael Hamilton",
   "date": "09 Apr 2026",
-  "poolCompiled": 13
+  "poolCompiled": 23
  },
  "kayo-calling-london": {
   "id": "kayo-calling-london",
@@ -5228,7 +5345,7 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Yuki Lee Bender",
   "date": "09 Apr 2026",
-  "poolCompiled": 12
+  "poolCompiled": 15
  },
  "bravo-flattering-showman": {
   "id": "bravo-flattering-showman",
@@ -8048,6 +8165,6 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 5
+  "poolCompiled": 7
  }
 };
