@@ -13,6 +13,7 @@ export const CONDS = [
   ['this was fused and deals damage to a hero', () => ({ c: 'wz_fusedHit' })],
   ["you've dealt damage this turn", () => ({ c: 'wz_dealtDmg' })],
   ['an instant card has been put into your graveyard this turn', () => ({ c: 'wz_starfall' })],   // CR 8.4.21
+  ['a Lightning card was pitched to play this', () => ({ c: 'wz_bondLightning' })],                // CR 8.4.15 Lightning Bond
 ];
 export const EFFECTS = [
   // Amp (CR 8.5.47) and the cards that give a later card more arcane damage
@@ -42,17 +43,34 @@ export const EFFECTS = [
   [/^Shuffle up to (\d+) non-attack action cards? from your graveyard into your deck$/, m => ({ o: 'wz_shuffleBack', n: +m[1] })],
   // Oscilio
   [/^this gets \+(\d+)\{p\} and go again$/, m => [{ o: 'selfBuff', p: +m[1] }, { o: 'selfBuff', grant: 'goAgain' }]],
+  [/^Target attack action card with cost (\d+) or less gets \+(\d+)\{p\}$/, m => ({ o: 'buff', tgt: { aa: true, costMax: +m[1] }, p: +m[2] })],
+  [/^The next attack action card you play this turn with cost (\d+) or less gets \+(\d+)\{p\}$/, m => ({ o: 'next', f: { aa: true, costMax: +m[1] }, p: +m[2] })],
+  [/^Prevent the next (\d+) damage that would be dealt to you this turn$/, m => ({ o: 'wz_preventNext', n: +m[1] })],
+  [/^The next time you would be dealt damage this turn, prevent (\d+) of that damage$/, m => ({ o: 'wz_preventNext', n: +m[1], once: true })],
+  [/^deal (\d+) arcane damage to all opposing heroes$/, m => ({ o: 'wz_arcAll', n: +m[1] })],
+  [/^destroy this and deal (\d+) arcane damage to any target$/, m => [{ o: 'destroySelf' }, { o: 'arcane', n: +m[1], tgt: 'hero' }]],
+  [/^You may destroy a Lightning Flow you control$/, () => ({ o: 'wz_destroyFlow' })],
+  [/^Create an Embodiment of Lightning or Lightning Flow token$/, () => ({ o: 'wz_starlight' })],
+  [/^\{u\} a staff you control$/, () => ({ o: 'wz_untapStaff' })],
 ];
 export const TRIGGERS = [
   [/^Whenever you opt, (.+)$/, () => ({ on: 'wz_opt' })],
   [/^Whenever you play an Ice card during an opponent's turn, (.+)$/, () => ({ on: 'wz_play', ice: true, oppTurn: true })],
   [/^When you play a card or activate an ability, (.+)$/, () => ({ on: 'wz_use' })],
+  [/^When you play an attack action card, (.+)$/, () => ({ on: 'wz_play', atk: true })],
 ];
 export const STATICS = [
   [/^Cards and abilities cost you an additional ((?:\{r\})+) to play or activate$/, m => ({ k: 'wzCostTax', n: res(m[1]) })],
+  [/^If you've been attacked (\d+) or more times this turn, this gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'wz_attacked', n: +m[1] }, d: +m[2] })],
+  [/^If you've played an instant card this chain link, this gets go again$/, () => ({ k: 'static', cond: { c: 'wz_chainInstant' }, grant: 'goAgain' })],
+  [/^While this is defending, if you've played an instant card this chain link, this gets \+(\d+)\{d\}$/, m => ({ k: 'static', cond: { c: 'wz_defChainInstant' }, d: +m[1] })],
+  [/^If this was played from arsenal, it gets go again$/, () => ({ k: 'static', cond: { c: 'fromArsenal' }, grant: 'goAgain' })],
 ];
-export const ACTCONDS = [];
-export const LABELS = ['Starfall'];
+export const ACTCONDS = [
+  ["if you've played an instant card this turn", () => ({ cond: { c: 'wz_playedInstant' } })],
+  ['if an instant card has been put into your graveyard this turn', () => ({ cond: { c: 'wz_starfall' } })],
+];
+export const LABELS = ['Starfall', 'Lightning Bond'];
 // The final full stop is optional because an activated ability's body has already lost it.
 export const SPLIT = [
   [/Look at the top card of your deck\. If it's a non-attack action card, you may banish it\. If you do, you may play it this turn as though it were an instant\.?/g, '<WZKANO>.'],
@@ -64,11 +82,25 @@ export const COSTS = [
   (part, cost) => {
     if (part === 'destroy this') { cost.destroySelf = true; return true; }
     if (part === 'Remove X energy counters from Blaze') { cost.wzEnergy = true; return true; }
+    if (part === 'Discard an instant') { cost.wzDiscardInstant = true; return true; }
+    if (part === '{t} your hero') { cost.wzTapHero = true; return true; }
     return false;
   },
 ];
 export const LINES = [
   (line, ctx) => {
+    // Meld (CR 8.3.38) on a split card (CR 9.2): the two halves are read here, left side then right side
+    if (ctx.out.wzSplit) return true;                                // the lines of both halves were read together with "Meld"
+    if (line === 'Meld') {
+      const rest = ctx.lines.slice(ctx.li + 1), cut = rest.indexOf('//');
+      if (cut < 0) return false;
+      const parse = ls => { const ops = []; for (const l of ls) if (!h.parseBody(l, ctx.why, ops)) return null; return ops; };
+      const left = parse(rest.slice(0, cut)), right = parse(rest.slice(cut + 1));
+      if (!left || !right || !left.length || !right.length) return false;
+      ctx.out.ab.push({ k: 'res', side: 0, ops: left }, { k: 'res', side: 1, ops: right }, { k: 'wzMeld' });
+      ctx.out.wzSplit = true;
+      return true;
+    }
     // Surge (CR 8.4.8): a resolution ability conditional on the arcane damage this card dealt
     let m = line.match(/^Surge - If this deals more than (\d+) damage, (.+?)\.?$/);
     if (m) {

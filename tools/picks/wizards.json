@@ -13,5 +13,10 @@
     "rule": "Iyslander's list from the first Pro Tour, Yokohama, with the staff, Nullrune Hood, Spellfire Cloak, Nullrune Gloves and Aetherstorm Wellingtons equipped. Frost Spike is left in the sideboard because its text does not say whose exposed equipment zone receives the Frostbite, so it is not implemented; Look Tuff and one Chest Puff are cut with it to reach exactly 40.",
     "loadout": ["crucible-of-aetherweave", "nullrune-hood", "spellfire-cloak", "nullrune-gloves", "aetherstorm-wellingtons"],
     "cut": [["frost-spike-blu", 1], ["look-tuff-red", 2], ["chest-puff-red", 1]]
+  },
+  "oscilio-showdown-kansas-city": {
+    "rule": "Oscilio's list from Sunday Showdown: Kansas City 2026, with Volzar, Voltic Vanguard, Spellfire Cloak, Constella Waves and Twinkle Toes equipped. The sideboard keeps the generic attacks (Ravenous Rabble, Scar for a Scar, Snatch and Fyendal's Fighting Spirit) to reach exactly 40.",
+    "loadout": ["volzar-meteor-storm", "voltic-vanguard", "spellfire-cloak", "constella-waves", "twinkle-toes"],
+    "cut": [["ravenous-rabble-red", 2], ["scar-for-a-scar-red", 2], ["snatch-red", 2], ["fyendals-fighting-spirit-red", 1]]
   }
 }

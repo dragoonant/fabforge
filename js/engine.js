@@ -209,6 +209,7 @@
     if (f.baseMax != null && !(d.power <= f.baseMax)) return false;
     if (f.aa && (weapon || !isAttackDef(d))) return false;
     if (f.costMin != null && !(d.cost != null && d.cost >= f.costMin)) return false;
+    if (f.costMax != null && !(d.cost != null && d.cost <= f.costMax)) return false;                // [wizards] "with cost 1 or less"
     return true;
   };
 
@@ -258,6 +259,7 @@
       if (e.srcIid != null && e.srcIid !== o.src) continue;
       if (e.kind && e.kind !== o.kind) continue;                                   // [wizards] Dampen: "prevent the next X arcane damage"
       const k = Math.min(n, e.n); n -= k; e.n -= k;
+      if (e.once) e.n = 0;                                                         // [wizards] Cloud Cover: "the next time you would be dealt damage, prevent N of that damage"
       log(s, 'prevent', { who: o.to, n: k, c: I(s, e.by).id });
     }
     if (n <= 0) return 0;
@@ -513,6 +515,7 @@
   // -------------------------------------------------------------------------------------------
   // What may be played or activated (CR 5.1, 5.2, 7.0.1a, 7.4.2, 8.1)
   // -------------------------------------------------------------------------------------------
+  FAB.actionTiming = (s, who, attack) => actionTiming(s, who, attack);                       // [wizards] a split card's action side is chosen only when action timing allows it
   function actionTiming(s, who, attack) {
     if (who !== s.tp || s.flow !== 'action' || s.stack.length || P(s, who).ap < 1) return false;
     return attack ? (!s.chain || s.chain.step === 'resolution') : !s.chain;
@@ -699,8 +702,10 @@
       const link = activeLink(s);
       L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true });
     }
-    if (d.kind === 'action' && !asInst) p.ap -= 1;                                          // CR 5.1.6b
-    payRes(x, who, FAB.costOf(s, iid) + extra, iid);                                        // CR 5.1.7
+    if ((d.kind === 'action' || L.wzAction) && !asInst) p.ap -= 1;                          // CR 5.1.6b ([wizards] L.wzAction: the action side of a split card)
+    const pz0 = p.pitch.length;
+    payRes(x, who, FAB.costOf(s, iid) + extra + (L.meldCost || 0), iid);                    // CR 5.1.7 ([wizards] meld pays twice the base cost, CR 8.3.38)
+    L.pitched = p.pitch.slice(pz0);                                                         // [wizards] "if a Lightning card was pitched to play this" (Bond, CR 8.4.15)
     spendCostFx(s, who, d, null);
     for (const ab of d.ab) if (ab.k === 'addCost' && ab.cost.discardRandom) {               // CR 5.1.9 effect-costs
       if (!p.hand.length) throw new Illegal('no card to discard');
@@ -781,10 +786,16 @@
           emit(s, { t: 'defend', iids: [L.iid], anyHand: from === 'hand', who: L.ctrl });
         } else move(s, L.iid, 'grave');
       } else {
-        const res = d.ab.find(a => a.k === 'res');
+        const sides = d.ab.filter(a => a.k === 'res' && a.side != null);                       // [wizards] a split card resolves only the side(s) chosen (CR 9.2.3); a melded one resolves
+        const res = sides.length ? null : d.ab.find(a => a.k === 'res');                      // twice: the right half, then priority, then the left half (CR 5.3.4d)
+        const meldFirst = sides.length && L.side === 'both' && !L.half;
+        if (sides.length) FAB.runOps(X, sides[L.side === 'both' ? (L.half ? 0 : 1) : L.side].ops);
         if (res) FAB.runOps(X, res.modes ? res.modes[L.mode].ops : res.ops);
+        if (meldFirst) { L.half = 1; s.stack.push(L); }
+        else {
         if (d.kw.goAgain || L.goAgain) P(s, L.ctrl).ap++;                                    // [wizards] L.goAgain: "this gets go again" on a non-attack card
         if (c.zone === 'stack') move(s, L.iid, d.types.includes('Aura') || d.types.includes('Item') ? 'arena' : 'grave');
+        }
         if (c.zone === 'arena' && d.kw.suspense) {                                          // CR 8.3.42: enters with 2 suspense counters
           c.counters.suspense = 2; log(s, 'counter', { who: c.owner, c: c.id, k: 'suspense', n: 2, plus: true });
         }

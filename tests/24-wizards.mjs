@@ -260,6 +260,179 @@ test('Iyslander: whenever you play an Ice card during an opponent’s turn, crea
   eq(s.players[0].arena.filter(i => s.cards[i].id === 'frostbite').length, 1);
 });
 
+// ---- Oscilio --------------------------------------------------------------------------------
+const O = 'oscilio-showdown-kansas-city';
+const atResolution = s => passUntil(s, x => !!x.chain && x.chain.step === 'resolution' && !x.pending && !x.stack.length);
+const flow = (s, seat) => FAB.createToken(s, seat, 'Lightning Flow');
+test('Oscilio: once per turn, discard an instant: draw a card', () => {
+  let s = solo(['cosmic-flare-red', 'cosmic-flare-red'], O); topdeck(s, 0, ['voltic-veil-red']);
+  s = act(s, 'oscilio'); s = answerCard(s, 'cosmic-flare-red'); s = settle(s);
+  eq(s.players[0].hand.length, 2, 'one discarded, one drawn'); ok(has(s, 0, 'hand', 'voltic-veil-red'));
+  ok(!FAB.legalActions(s).some(a => a.type === 'act' && s.cards[a.iid].id === 'oscilio'), 'once per turn');
+  s = solo([F], O);
+  ok(!FAB.legalActions(s).some(a => a.type === 'act' && s.cards[a.iid].id === 'oscilio'), 'needs an instant in hand');
+});
+test('Constella Waves: tap your hero, destroy it: Amp 1', () => {
+  let s = solo(['flash-bolt-red', F], O); const L = life1(s);
+  s = act(s, 'constella-waves'); s = settle(s);
+  ok(heroOf(s, 0).tapped); ok(has(s, 0, 'grave', 'constella-waves'));
+  s = cast(s, 'flash-bolt-red'); s = settle(s); eq(life1(s), L - 4);
+});
+test('Voltic Vanguard: only after an instant was played this turn; destroy it to prevent the next 2 damage', () => {
+  let s = solo(['cosmic-flare-red'], O);
+  ok(!FAB.legalActions(s).some(a => a.type === 'act' && s.cards[a.iid].id === 'voltic-vanguard'), 'no instant yet');
+  s = play(s, 'cosmic-flare-red'); s = settle(s);
+  s = act(s, 'voltic-vanguard'); s = settle(s);
+  eq(s.effects.find(e => e.k === 'prevent').n, 2); ok(has(s, 0, 'grave', 'voltic-vanguard'));
+});
+test('Volzar, Meteor Storm: tap: Amp 1, only if an instant card was put into your graveyard this turn', () => {
+  let s = solo(['cosmic-flare-red', 'flash-bolt-red', F], O); const L = life1(s);
+  ok(!FAB.legalActions(s).some(a => a.type === 'act' && s.cards[a.iid].id === 'volzar-meteor-storm'));
+  s = play(s, 'cosmic-flare-red'); s = settle(s);
+  s = act(s, 'volzar-meteor-storm'); s = settle(s); ok(s.cards[s.players[0].weapons[0]].tapped);
+  s = cast(s, 'flash-bolt-red'); s = settle(s); eq(life1(s), L - 4);
+});
+test('Arc Ramp: Amp 3, and you may destroy a Lightning Flow for go again', () => {
+  let s = solo(['arc-ramp-red', 'flash-bolt-red', F, F], O); flow(s, 0); const L = life1(s);
+  s = play(s, 'arc-ramp-red'); s = passUntil(s, x => asked(x, 'wz_may')); s = answer(s, 'yes'); s = settle(s);
+  eq(s.players[0].ap, 1, 'go again'); ok(!has(s, 0, 'arena', 'lightning-flow'));
+  s = cast(s, 'flash-bolt-red'); s = settle(s); eq(life1(s), L - 6);
+  s = solo(['arc-ramp-red'], O); s = play(s, 'arc-ramp-red'); s = settle(s); eq(s.players[0].ap, 0, 'no Flow, no question, no go again');
+});
+test('Cloud Cover: the next time you would be dealt damage, prevent 3 of that damage, and no more', () => {
+  let s = solo(['cloud-cover-red'], O);
+  s = play(s, 'cloud-cover-red'); s = settle(s);
+  const life = s.players[0].life;
+  FAB.dealDamage(s, { to: 0, n: 5, src: s.players[1].hero, kind: 'p' }); eq(s.players[0].life, life - 2);
+  FAB.dealDamage(s, { to: 0, n: 2, src: s.players[1].hero, kind: 'p' }); eq(s.players[0].life, life - 4, 'used up');
+  s = solo(['cloud-cover-red'], O); s = play(s, 'cloud-cover-red'); s = settle(s);
+  const l2 = s.players[0].life; FAB.dealDamage(s, { to: 0, n: 1, src: s.players[1].hero, kind: 'p' }); FAB.dealDamage(s, { to: 0, n: 4, src: s.players[1].hero, kind: 'p' });
+  eq(s.players[0].life, l2 - 4, 'the 3 prevented is not carried over to the second hit');
+});
+test('Starfall (Comet Collision, Meteoric Impact): more damage once an instant has gone to the graveyard this turn', () => {
+  let s = solo(['comet-collision-red'], O); const L = life1(s);
+  s = play(s, 'comet-collision-red'); s = settle(s); eq(life1(s), L - 3);
+  s = solo(['cosmic-flare-red', 'comet-collision-red'], O, 2); s = play(s, 'cosmic-flare-red'); s = settle(s);
+  s = play(s, 'comet-collision-red'); s = settle(s); eq(life1(s), L - 4);
+  s = solo(['meteoric-impact-red', F], O); s = cast(s, 'meteoric-impact-red'); s = settle(s); eq(life1(s), L - 3);
+  s = solo(['cosmic-flare-red', 'meteoric-impact-red', F], O, 2); s = play(s, 'cosmic-flare-red'); s = settle(s);
+  s = cast(s, 'meteoric-impact-red'); s = settle(s); eq(life1(s), L - 5);
+});
+test('Comet Storm // Shock: played as one side; the action side costs an action point, the instant side does not', () => {
+  let s = game(O, 'kayo'); give(s, 0, ['comet-storm-shock-red', F, F]); give(s, 1, []); const L = life1(s);
+  s = play(s, 'comet-storm-shock-red'); eq(s.pending.q.kind, 'wz_side'); eq(s.pending.q.opts.map(o => o.id), [0, 1, 'both']);
+  s = answer(s, 0); s = pitchAll(s); s = settle(s); eq(life1(s), L - 5); eq(s.players[0].ap, 0, 'an action: one action point');
+  s = game(O, 'kayo'); give(s, 0, ['comet-storm-shock-red', F, F]); give(s, 1, []);
+  s = play(s, 'comet-storm-shock-red'); s = answer(s, 1); s = pitchAll(s); s = settle(s); eq(life1(s), L - 1); eq(s.players[0].ap, 1, 'an instant: no action point');
+});
+test('Meld: pay twice the base cost; the right half resolves, priority passes, then the left half', () => {
+  let s = game(O, 'kayo'); give(s, 0, ['comet-storm-shock-red', F, F]); give(s, 1, []); const L = life1(s);
+  s = play(s, 'comet-storm-shock-red'); s = answer(s, 'both');
+  s = pitchAll(s); eq(s.players[0].pitch.length, 2, 'cost 2 + 2 = 4 needs two 3-cards');
+  s = pass(s); s = pass(s);                                          // the stack resolves once: the right side, Shock
+  s = passUntil(s, x => asked(x, 'arcaneTarget')); s = answer(s, 1); eq(life1(s), L - 1, 'Shock first');
+  eq(s.stack.length, 1, 'the card is still on the stack for its second resolution'); eq(s.priority, 0);
+  s = settle(s); eq(life1(s), L - 1 - 5); ok(has(s, 0, 'grave', 'comet-storm-shock-red'));
+});
+test('Core Reaction: an instant aura; at the beginning of your action phase destroy it and deal 4 arcane damage', () => {
+  let s = solo(['core-reaction-red', F, F], O); const L = life1(s);
+  s = cast(s, 'core-reaction-red'); s = settle(s); ok(has(s, 0, 'arena', 'core-reaction-red'));
+  s = passUntil(s, x => x.turn >= 3 && logged(x, 'damage').some(e => e.kind === 'arcane'));
+  eq(life1(s), L - 4); ok(has(s, 0, 'grave', 'core-reaction-red'));
+});
+test('Electrostatic Discharge: the next attack action card with cost 1 or less gets +3 power', () => {
+  let s = solo(['electrostatic-discharge-red', 'lightning-surge-red'], O); const L = life1(s);
+  s = play(s, 'electrostatic-discharge-red'); s = settle(s);
+  s = play(s, 'lightning-surge-red'); s = atResolution(s);
+  eq(life1(s), L - 7, 'power 4 + 3 into no defense');
+});
+test('Lightning Press: target attack action card with cost 1 or less gets +3 power', () => {
+  let s = solo(['lightning-press-red', 'lightning-surge-red'], O); const L = life1(s);
+  s = play(s, 'lightning-surge-red'); s = passUntil(s, x => !!x.chain && x.chain.step === 'defend' && !x.pending);
+  s = passUntil(s, x => !!x.chain && x.chain.step === 'reaction' && x.priority === 0 && !x.pending);
+  s = play(s, 'lightning-press-red'); s = answer(s, s.pending.q.opts[0].id); s = settle2(s);
+  s = atResolution(s); eq(life1(s), L - 7);
+});
+test('Lightning Fusion (Entwine Lightning): reveal a Lightning card to fuse it; a fused one gets go again', () => {
+  let s = solo(['entwine-lightning-red', 'cosmic-flare-red'], O);
+  s = play(s, 'entwine-lightning-red'); eq(s.pending.q.kind, 'wz_fusion'); s = answerCard(s, 'cosmic-flare-red');
+  s = atResolution(s); eq(s.players[0].ap, 1, 'fused: go again'); ok(has(s, 0, 'hand', 'cosmic-flare-red'), 'revealed, not discarded');
+  s = solo(['entwine-lightning-red', 'cosmic-flare-red'], O);
+  s = play(s, 'entwine-lightning-red'); s = answer(s, 'no'); s = atResolution(s); eq(s.players[0].ap, 0, 'not fused');
+});
+test('Flittering Charge: go again if you have played an instant card this chain link', () => {
+  let s = solo(['flittering-charge-red', 'cosmic-flare-red'], O);
+  s = play(s, 'flittering-charge-red'); s = passUntil(s, x => !!x.chain && x.chain.step === 'attack' && x.priority === 0 && !x.pending);
+  s = play(s, 'cosmic-flare-red'); s = settle2(s);
+  s = atResolution(s); eq(s.players[0].ap, 1);
+  s = solo(['flittering-charge-red'], O); s = play(s, 'flittering-charge-red'); s = atResolution(s); eq(s.players[0].ap, 0);
+});
+test('Flittering Forcefield: +1 defense while defending if you have played an instant card this chain link', () => {
+  let s = game('kayo', O); give(s, 0, ['scar-for-a-scar-red']); give(s, 1, ['flittering-forcefield-red', 'cosmic-flare-red']);
+  s = play(s, 'scar-for-a-scar-red');
+  s = passUntil(s, x => asked(x, 'defend')); s = answer(s, 'done');
+  s = passUntil(s, x => !!x.chain && x.chain.step === 'reaction' && x.priority === 1 && !x.pending);
+  s = play(s, 'cosmic-flare-red'); s = settle2(s); s = pass(s);
+  s = play(s, 'flittering-forcefield-red'); s = settle2(s);
+  const link = FAB.activeLink(s), iid = link.defs[0].iid;
+  eq(FAB.defenseOf(s, iid, link), 4, '3 + 1');
+});
+test('Lightning Surge: if played from arsenal, it gets go again', () => {
+  let s = solo([], O); arsenalPut(s, 0, 'lightning-surge-red'); s.cards[s.players[0].arsenal[0]].faceUp = true;
+  s = play(s, 'lightning-surge-red'); s = atResolution(s); eq(s.players[0].ap, 1);
+  s = solo(['lightning-surge-red'], O); s = play(s, 'lightning-surge-red'); s = atResolution(s); eq(s.players[0].ap, 0);
+});
+test('Second Strike: when it attacks, if you have dealt damage this turn, +1 power and go again', () => {
+  let s = solo(['second-strike-red'], O); s.players[0].h.dmg = 1;
+  s = play(s, 'second-strike-red'); s = atResolution(s); eq(s.players[0].ap, 1); eq(life1(s), 20 - 4);
+  s = solo(['second-strike-red'], O); s = play(s, 'second-strike-red'); s = atResolution(s); eq(s.players[0].ap, 0); eq(life1(s), 20 - 3);
+});
+test('Strike Twice: an instant only if you have dealt arcane damage to an opposing hero this turn', () => {
+  let s = game('kayo', O); give(s, 1, ['strike-twice-red', F]); give(s, 0, []);
+  s = pass(s); ok(!canPlay(s, 'strike-twice-red'));
+  s = game('kayo', O); give(s, 1, ['strike-twice-red', F]); give(s, 0, []); s.players[1].h.arcaneDealt = 2;
+  s = pass(s); ok(canPlay(s, 'strike-twice-red'));
+});
+test('Voltic Veil: prevent the next 4 damage; Lightning Bond: a pitched Lightning card adds 1 arcane damage to all opposing heroes', () => {
+  let s = solo(['voltic-veil-red', 'cosmic-flare-red'], O); const L = life1(s);
+  s = play(s, 'voltic-veil-red'); s = answerCard(s, 'cosmic-flare-red'); s = settle(s);
+  eq(s.effects.find(e => e.k === 'prevent').n, 4); eq(life1(s), L - 1);
+  s = solo(['voltic-veil-red', F], O); s = cast(s, 'voltic-veil-red'); s = settle(s); eq(life1(s), L, 'a non-Lightning card pitched: no bond');
+});
+test('Constella Contemplation: create a Ponder; Starfall deals 1 arcane damage to target hero', () => {
+  let s = solo(['constella-contemplation-yel'], O); s.players[0].h.instGrave = 1; const L = life1(s);
+  s = play(s, 'constella-contemplation-yel'); s = settle(s); ok(has(s, 0, 'arena', 'ponder')); eq(life1(s), L - 1);
+});
+test('Constella Uplift: untap a staff you control', () => {
+  let s = solo(['constella-uplift-yel'], O); s.cards[s.players[0].weapons[0]].tapped = true;
+  s = play(s, 'constella-uplift-yel'); s = passUntil(s, x => asked(x, 'wz_untap')); s = answer(s, s.pending.q.opts[0].id); s = settle(s);
+  ok(!s.cards[s.players[0].weapons[0]].tapped);
+});
+test('Sigil of Lightning: destroyed at the start of your action phase; when it leaves, create an Embodiment of Lightning', () => {
+  let s = solo(['sigil-of-lightning-blu'], O);
+  s = play(s, 'sigil-of-lightning-blu'); s = settle(s); ok(has(s, 0, 'arena', 'sigil-of-lightning-blu'));
+  s = passUntil(s, x => x.turn >= 3 && has(x, 0, 'arena', 'embodiment-of-lightning'));
+  ok(!has(s, 0, 'arena', 'sigil-of-lightning-blu'));
+});
+test('Starlight Road and Embodiment of Lightning: choose a token; the Embodiment gives the next attack action card go again', () => {
+  let s = solo(['starlight-road-blu', 'lightning-surge-red'], O);
+  s = play(s, 'starlight-road-blu'); s = passUntil(s, x => asked(x, 'wz_token')); s = answer(s, 'Embodiment of Lightning'); s = settle(s);
+  ok(has(s, 0, 'arena', 'embodiment-of-lightning'));
+  s = play(s, 'lightning-surge-red'); s = atResolution(s);
+  ok(!has(s, 0, 'arena', 'embodiment-of-lightning'), 'destroyed'); eq(s.players[0].ap, 1, 'go again');
+  s = solo(['starlight-road-blu'], O); s = play(s, 'starlight-road-blu'); s = passUntil(s, x => asked(x, 'wz_token')); s = answer(s, 'Lightning Flow'); s = settle(s);
+  ok(has(s, 0, 'arena', 'lightning-flow'));
+});
+test('Olde Leather Plate: +2 defense if you have been attacked 2 or more times this turn', () => {
+  let s = game('kayo', O); const iid = s.nid++; s.cards[iid] = { iid, id: 'olde-leather-plate', owner: 1, zone: 'equip', counters: {}, mods: [], faceUp: true }; s.players[1].equip.push(iid);
+  eq(FAB.defenseOf(s, iid, null), 0); s.players[0].h.attacks = 2; eq(FAB.defenseOf(s, iid, null), 2);
+});
+test('Flash Bolt: an instant, 3 arcane damage to target hero, on the opponent’s turn', () => {
+  let s = game('kayo', O); give(s, 1, ['flash-bolt-red', F]); give(s, 0, []); const L = s.players[0].life;
+  s = pass(s); s = play(s, 'flash-bolt-red'); s = pitchAll(s); s = settle2(s);
+  eq(s.players[0].life, L - 3);
+});
+
 // ---- Blaze, Firemind ------------------------------------------------------------------------
 const heroOf = (s, seat) => s.cards[s.players[seat].hero];
 test('Blaze: whenever you opt, put energy counters on Blaze equal to the cards looked at', () => {

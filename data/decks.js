@@ -2345,7 +2345,124 @@ window.FAB.decks = {
   "rank": "1st",
   "player": "Kevin Murphy",
   "date": "30 Aug 2026",
-  "poolCompiled": 17
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "arc-ramp-red",
+    "n": 1
+   },
+   {
+    "id": "cloud-cover-red",
+    "n": 2
+   },
+   {
+    "id": "comet-collision-red",
+    "n": 2
+   },
+   {
+    "id": "comet-storm-shock-red",
+    "n": 2
+   },
+   {
+    "id": "core-reaction-red",
+    "n": 2
+   },
+   {
+    "id": "cosmic-flare-red",
+    "n": 1
+   },
+   {
+    "id": "electrostatic-discharge-red",
+    "n": 2
+   },
+   {
+    "id": "entwine-lightning-red",
+    "n": 2
+   },
+   {
+    "id": "flash-bolt-red",
+    "n": 2
+   },
+   {
+    "id": "flittering-charge-red",
+    "n": 2
+   },
+   {
+    "id": "flittering-forcefield-red",
+    "n": 1
+   },
+   {
+    "id": "lightning-press-red",
+    "n": 2
+   },
+   {
+    "id": "lightning-surge-red",
+    "n": 2
+   },
+   {
+    "id": "meteoric-impact-red",
+    "n": 2
+   },
+   {
+    "id": "second-strike-red",
+    "n": 2
+   },
+   {
+    "id": "strike-twice-red",
+    "n": 2
+   },
+   {
+    "id": "voltic-veil-red",
+    "n": 2
+   },
+   {
+    "id": "constella-contemplation-yel",
+    "n": 2
+   },
+   {
+    "id": "constella-uplift-yel",
+    "n": 2
+   },
+   {
+    "id": "sigil-of-lightning-blu",
+    "n": 1
+   },
+   {
+    "id": "starlight-road-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "ravenous-rabble-red",
+    "n": 2
+   },
+   {
+    "id": "scar-for-a-scar-red",
+    "n": 2
+   },
+   {
+    "id": "snatch-red",
+    "n": 2
+   },
+   {
+    "id": "fyendals-fighting-spirit-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "volzar-meteor-storm",
+   "voltic-vanguard",
+   "spellfire-cloak",
+   "constella-waves",
+   "twinkle-toes"
+  ],
+  "rule": "Oscilio's list from Sunday Showdown: Kansas City 2026, with Volzar, Voltic Vanguard, Spellfire Cloak, Constella Waves and Twinkle Toes equipped. The sideboard keeps the generic attacks (Ravenous Rabble, Scar for a Scar, Snatch and Fyendal's Fighting Spirit) to reach exactly 40.",
+  "registered": true
  },
  "dorinthea-calling-london": {
   "id": "dorinthea-calling-london",
@@ -4558,7 +4675,7 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Yuki Lee Bender",
   "date": "09 Apr 2026",
-  "poolCompiled": 14
+  "poolCompiled": 17
  },
  "bravo-flattering-showman": {
   "id": "bravo-flattering-showman",
@@ -6679,7 +6796,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 31
+  "poolCompiled": 32
  },
  "boltyn": {
   "id": "boltyn",
@@ -7378,6 +7495,6 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 5
+  "poolCompiled": 6
  }
 };

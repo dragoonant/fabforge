@@ -29,6 +29,11 @@
     wz_fusedHit: x => !!(x.L && x.L.fused) && (x.flags.dealt || 0) > 0,                         // "If this was fused and deals damage to a hero"
     wz_dealtDmg: x => (P(x.s, x.ctrl).h.dmg || 0) > 0,                                          // "you've dealt damage this turn"
     wz_starfall: x => (P(x.s, x.ctrl).h.instGrave || 0) > 0,                                    // CR 8.4.21: an instant card has been put into your graveyard this turn
+    wz_bondLightning: x => !!(x.L && x.L.pitched && x.L.pitched.some(i => D(x.s, i).types.includes('Lightning'))),   // CR 8.4.15: pitched to play this
+    wz_playedInstant: x => (P(x.s, x.ctrl).h.wzInst || 0) > 0,                                  // "you've played an instant card this turn"
+    wz_attacked: (x, c) => (P(x.s, 1 - x.ctrl).h.attacks || 0) >= c.n,                          // "you've been attacked N or more times this turn"
+    wz_chainInstant: x => { const l = x.link || FAB.activeLink(x.s); return !!(l && l.wzInst && l.wzInst[x.ctrl]); },   // "you've played an instant card this chain link"
+    wz_defChainInstant: x => FAB.conds.selfDefending(x) && FAB.conds.wz_chainInstant(x),
   });
   FAB.vars.wz_dealt = x => x.flags.dealt || 0;
 
@@ -55,14 +60,33 @@
       if (e.k === 'wz_nextNAA' && isNAA(d)) { L.goAgain = true; FAB.log(s, 'wz_fx', { who: who, c: d.id, fx: 'goAgain' }); return false; }
       return true;
     });
-    if (isWizNAA(d)) { const h = P(s, who).h; h.wzNAA = (h.wzNAA || 0) + 1; }
+    const actionSide = isWizNAA(d) || (L.wzAction && d.types.includes('Wizard'));                           // the left side of Comet Storm // Shock is a Wizard action
+    if (actionSide) { const h = P(s, who).h; h.wzNAA = (h.wzNAA || 0) + 1; }
     const link = FAB.activeLink(s);
-    if (link && d.kind === 'instant') { link.wzInst = link.wzInst || {}; link.wzInst[who] = true; }          // "an instant card this chain link"
+    if (d.kind === 'instant' && L.side !== 0) {                                                             // an instant card (not the action side of a split card)
+      const h = P(s, who).h; h.wzInst = (h.wzInst || 0) + 1;
+      if (link) { link.wzInst = link.wzInst || {}; link.wzInst[who] = true; }                               // "an instant card this chain link"
+    }
     FAB.emit(s, { t: 'wz_play', ctrl: who, iid: L.iid });                                                   // Iyslander
     FAB.emit(s, { t: 'wz_use', ctrl: who, iid: L.iid });                                                    // Frostbite: "when you play a card or activate an ability"
   });
   // Frostbite (CR 8.6.10): every one you control adds {r} to playing a card or activating an ability.
   FAB.costMods.push((s, c) => { let n = 0; for (const i of P(s, c.owner).arena) for (const a of D(s, i).ab) if (a.k === 'wzCostTax') n += a.n; return n; });
+  // A split card (CR 9.2.3) is played as one side; with Meld (CR 8.3.38) it may be played as both for twice the base cost.
+  FAB.playExtras.push((x, L, d, iid) => {
+    const sides = d.ab.filter(a => a.k === 'res' && a.side != null);
+    if (!sides.length) return;
+    const s = x.s, who = L.ctrl, names = d.name.split(' // ');
+    const act = FAB.actionTiming(s, who, false);
+    const opts = [];
+    if (act) opts.push({ id: 0 });                                                                          // the left side is a Wizard action
+    opts.push({ id: 1 });                                                                                   // the right side is a Lightning instant
+    if (act && d.ab.some(a => a.k === 'wzMeld') && FAB.canPay(s, who, FAB.costOf(s, iid) + (d.cost || 0), iid, 0)) opts.push({ id: 'both' });
+    L.side = FAB.ask(x, { who: who, kind: 'wz_side', src: iid, names: names, opts: opts, cancel: true });
+    if (L.side !== 1) L.wzAction = true;
+    if (L.side === 'both') L.meldCost = d.cost || 0;
+    FAB.log(s, 'mode', { who: who, c: d.id, text: L.side === 'both' ? names.join(' and ') + ' (melded)' : names[L.side] });
+  });
   // Fusion (CR 8.3.17): "you may reveal a card with that talent from your hand" as an additional cost; the card is then fused.
   FAB.playExtras.push((x, L, d, iid) => {
     const fz = d.ab.find(a => a.k === 'fusion');
@@ -111,8 +135,50 @@
     },
   };
 
+  // Oscilio: "Discard an instant" and "{t} your hero" are costs of an activated ability.
+  FAB.costHooks.wzDiscardInstant = {
+    can: (s, who) => P(s, who).hand.some(i => D(s, i).types.includes('Instant')),
+    pay: (x, who, iid) => {
+      const opts = P(x.s, who).hand.filter(i => i !== iid && D(x.s, i).types.includes('Instant')).map(i => ({ id: i, iid: i }));
+      FAB.discard(x.s, FAB.ask(x, { who: who, kind: 'discardCost', src: iid, opts: opts, cancel: true }), false);
+    },
+  };
+  FAB.costHooks.wzTapHero = {
+    can: (s, who) => !I(s, heroOf(s, who)).tapped,                                                            // CR 8.5.55a
+    pay: (x, who) => { const h = I(x.s, heroOf(x.s, who)); h.tapped = true; FAB.log(x.s, 'tap', { who: who, c: h.id }); },
+  };
   const OPS = FAB.ops;
   Object.assign(OPS, {
+    wz_preventNext(x, op) {                                                                                   // "Prevent the next N damage that would be dealt to you this turn" (generic damage)
+      x.s.effects.push({ k: 'prevent', who: x.ctrl, n: op.n, by: x.iid, dur: 'turn', ...(op.once ? { once: true } : {}) });
+      FAB.log(x.s, 'wz_fx', { who: x.ctrl, c: I(x.s, x.iid).id, fx: op.once ? 'preventOnce' : 'prevent', n: op.n });
+    },
+    wz_arcAll(x, op) {                                                                                        // "deal N arcane damage to all opposing heroes": no choice to make
+      const s = x.s;
+      let n = op.n;
+      if (n > 0) for (const f of FAB.arcaneMods) n = f(x, n, { o: 'arcane' });
+      x.flags.dealt = FAB.dealDamage(s, { to: 1 - x.ctrl, n: n, src: x.iid, kind: 'arcane', x: x });
+      x.flags.hero = 1 - x.ctrl;
+    },
+    wz_destroyFlow(x) {                                                                                       // Arc Ramp: "You may destroy a Lightning Flow you control"
+      const s = x.s, flows = P(s, x.ctrl).arena.filter(i => I(s, i).id === 'lightning-flow');
+      x.flags.did = false;
+      if (!flows.length) return;
+      if (FAB.ask(x, { who: x.ctrl, kind: 'wz_may', what: 'destroyFlow', src: x.iid, opts: yesNo }) !== 'yes') return;
+      FAB.destroy(s, flows[0]);                                                                               // Lightning Flow tokens are indistinguishable: which one is not a choice
+      x.flags.did = true;
+    },
+    wz_starlight(x) {                                                                                         // Starlight Road
+      const name = FAB.ask(x, { who: x.ctrl, kind: 'wz_token', src: x.iid, opts: [{ id: 'Embodiment of Lightning' }, { id: 'Lightning Flow' }] });
+      FAB.createToken(x.s, x.ctrl, name);
+    },
+    wz_untapStaff(x) {                                                                                        // Constella Uplift: "{u} a staff you control"
+      const s = x.s, opts = P(s, x.ctrl).weapons.filter(i => D(s, i).types.includes('Staff') && I(s, i).tapped).map(i => ({ id: i, iid: i }));
+      if (!opts.length) return;
+      const iid = FAB.ask(x, { who: x.ctrl, kind: 'wz_untap', src: x.iid, opts: opts });
+      delete I(s, iid).tapped;
+      FAB.log(s, 'wz_fx', { who: x.ctrl, c: I(s, iid).id, fx: 'untap' });
+    },
     wz_amp(x, op) {                                                                              // CR 8.5.47
       x.s.effects.push({ k: 'wz_amp', who: x.ctrl, n: op.n, dur: 'turn', src: x.iid });
       FAB.log(x.s, 'wz_fx', { who: x.ctrl, c: I(x.s, x.iid).id, fx: 'amp', n: op.n });
@@ -233,6 +299,10 @@
   // "this gets go again" on a card that is not an attack: the core op only knows attacks.
   const selfBuff0 = OPS.selfBuff;
   OPS.selfBuff = function (x, op) {
+    if (x.ev && x.ev.t === 'wz_play') {                                                          // Embodiment of Lightning: "the attack gets go again" names the attack just played
+      const as = Object.create(x); as.ev = Object.assign({}, x.ev, { t: 'playAttack' });
+      return selfBuff0(as, op);
+    }
     const d = D(x.s, x.iid);
     if (op.grant === 'goAgain' && x.L && x.L.kind === 'card' && x.L.iid === x.iid && !x.L.isAttack && (d.kind === 'action' || d.kind === 'instant')) {
       if (d.kw.goAgain || x.L.goAgain) return;                                                  // CR 8.3.5c: it cannot have the same keyword twice
@@ -245,7 +315,7 @@
 
   Object.assign(FAB.trigMatchers, {
     wz_opt: (s, ab, iid, ev) => ev.who === I(s, iid).owner,
-    wz_play: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner && (!ab.oppTurn || s.tp !== ev.ctrl) && (!ab.ice || D(s, ev.iid).types.includes('Ice')),
+    wz_play: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner && (!ab.oppTurn || s.tp !== ev.ctrl) && (!ab.ice || D(s, ev.iid).types.includes('Ice')) && (!ab.atk || (D(s, ev.iid).kind === 'action' && D(s, ev.iid).types.includes('Attack'))),
     wz_use: (s, ab, iid, ev) => ev.ctrl === I(s, iid).owner,
   });
   // The AI plays these spells at instant speed whenever it can: that is the point of the deck.
@@ -255,7 +325,10 @@
     wz_may: () => 'yes',
     wz_energyX: (s, q) => q.opts.reduce((a, o) => (o.id > a ? o.id : a), 0),
     wz_banish: (s, q) => { const b = bestArc(s, q.opts); return b ? b.id : 'no'; },
-    wz_targetHero: (s, q) => 1 - q.who,                                                          // Frostbite and discard effects go on the opponent
+    wz_side: (s, q) => q.opts.some(o => o.id === 0) ? 0 : 1,                                    // the cheaper action side when it is available, else the instant
+    wz_token: (s, q) => 'Embodiment of Lightning',
+    wz_untap: (s, q) => q.opts[0].id,
+    wz_targetHero: (s, q) => 1 - q.who,                                                        // Frostbite and discard effects go on the opponent
     wz_payOr: (s, q, h) => (s.players[q.who].hand.length > 2 ? 'yes' : 'no'),                    // pay when the hand is full enough to spare the cards
     wz_discard: (s, q, h) => h.leastKept(s, q.opts).id,
     wz_fusion: (s, q) => { const o = q.opts.find(o => o.id !== 'no'); return o.id; },           // revealing is free

@@ -17,6 +17,9 @@
         case 'nextNAA': return `${tag(e.c)}: ${poss} next non-attack action card this turn gets go again.`;
         case 'stir': return `${tag(e.c)}: ${poss} next Wizard non-attack action card this turn may be played as though it were an instant, and deals ${e.n} more arcane damage.`;
         case 'goAgain': return `${tag(e.c)} gets go again.`;
+        case 'prevent': return `${tag(e.c)}: the next ${e.n} damage that would be dealt to ${e.who === v ? 'you' : T.who(s, e.who, v)} this turn is prevented.`;
+        case 'preventOnce': return `${tag(e.c)}: the next time ${e.who === v ? 'you' : T.who(s, e.who, v)} would be dealt damage this turn, ${e.n} of that damage is prevented.`;
+        case 'untap': return `${tag(e.c)} is untapped.`;
         case 'dampen': return `${tag(e.c)}: the next ${e.n} arcane damage that would be dealt to ${e.who === v ? 'you' : T.who(s, e.who, v)} this turn is prevented.`;
         default: throw new Error('wz_fx log with no line: ' + e.fx);
       }
@@ -40,8 +43,12 @@
     wz_may: (s, q) => {
       if (q.what === 'kanoBanish') return { title: `${cardOf(s, q.src)}: banish ${cardOf(s, q.card)}?`, body: 'It is a non-attack action card. If you banish it you may play it this turn as though it were an instant; if you do not, it stays on top of your deck.', labels: { yes: 'Banish it', no: 'Leave it on top' } };
       if (q.what === 'tapHero') return { title: `${cardOf(s, q.src)}`, body: `${FAB.cards[s.cards[q.src].id].text} You may tap your hero; if you do, the rest of the effect happens. If you do not, nothing more happens.`, labels: { yes: 'Tap my hero', no: 'Do not tap' } };
+      if (q.what === 'destroyFlow') return { title: `${cardOf(s, q.src)}: destroy a Lightning Flow?`, body: `${FAB.cards[s.cards[q.src].id].text} If you destroy one, this gets go again; if you do not, it does not.`, labels: { yes: 'Destroy a Lightning Flow', no: 'Keep them' } };
       throw new Error('wz_may with no prompt: ' + q.what);
     },
+    wz_side: (s, q) => ({ title: `Play ${cardOf(s, q.src)} as which side?`, body: `${FAB.cards[s.cards[q.src].id].text}\nA split card is played as one of its sides${q.opts.some(o => o.id === 'both') ? ', or as both with meld for twice the base cost' : ''}. ${q.names[0]} is an action (it costs an action point); ${q.names[1]} is an instant.`, labels: { 0: q.names[0], 1: q.names[1], both: 'Both (meld)' } }),
+    wz_token: (s, q) => ({ title: `${cardOf(s, q.src)}: which token?`, body: 'Create an Embodiment of Lightning or a Lightning Flow token.', labels: { 'Embodiment of Lightning': 'Embodiment of Lightning', 'Lightning Flow': 'Lightning Flow' } }),
+    wz_untap: (s, q) => ({ title: `${cardOf(s, q.src)}: untap a staff`, body: 'Untap a staff you control.', labels: {} }),
     wz_energyX: (s, q) => ({ title: `${cardOf(s, q.src)}: remove how many energy counters?`, body: `Choose X. You have ${s.cards[q.src].counters.energy} energy counters. You then banish a Wizard non-attack action card from your hand with an effect that deals arcane damage equal to X, and may play it this turn as though it were an instant. Only values for which you hold such a card are offered.`, labels: Object.fromEntries(q.opts.map(o => [o.id, 'X = ' + o.id])) }),
     wz_banish: (s, q) => ({ title: q.what === 'reverb' ? `${cardOf(s, q.src)} dealt ${q.n}: banish a card?` : `${cardOf(s, q.src)}: banish a card with ${q.n} arcane damage`, body: q.what === 'reverb' ? 'You may banish a Wizard non-attack action card from your hand with cost less than or equal to the damage dealt. If you do, you may play it this turn as though it were an instant.' : 'Banish a Wizard non-attack action card from your hand with an effect that deals that much arcane damage. You may play it this turn as though it were an instant.', labels: { no: 'Banish nothing' } }),
   });
