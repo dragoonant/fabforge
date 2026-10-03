@@ -424,6 +424,7 @@
     s.chain.step = 'resolution';
     if (FAB.attackHas(s, link, 'goAgain')) { P(s, link.ctrl).ap++; log(s, 'goAgain', { who: link.ctrl, c: I(s, link.iid).id }); }
     link.resolved = true;
+    for (const m of link.mods) if (m.resolveOps) s.trigs.push({ iid: link.iid, ab: -1, inl: { ops: m.resolveOps, src: m.src }, ctrl: link.ctrl, ev: { t: 'linkResolve', iid: link.iid }, linkN: link.n });   // [warriors] wagers (CR 8.5.46): an effect that triggers when the chain link resolves
     setPriority(s, s.tp);
   }
   function finishClose(s) {                                                                // CR 7.7.5-7.7.7
@@ -549,6 +550,7 @@
     if (zone === 'hand' && c.zone !== 'hand') return false;
     if (zone === 'chain' && c.zone !== 'chain') return false;
     if (ab.type === 'action' && !actionTiming(s, who, !!ab.attack)) return false;
+    if (ab.type === 'ar') { const link = activeLink(s); if (!(link && s.chain.step === 'reaction' && link.ctrl === who)) return false; if (ab.tgt && !legalTarget(s, link, ab.tgt)) return false; }   // [warriors] an activated attack reaction (CR 7.4.2a), e.g. Prized Galea
     if (ab.opt) { const used = c.acts || 0, extra = c.extra || 0; if (used >= 1 + extra) return false; }                // CR 5.2.3
     if (ab.cost.tap && c.tapped) return false;                                                                         // CR 8.5.55a
     if (ab.cond && !FAB.cond({ s: s, ctrl: who, iid: iid, link: activeLink(s), flags: {} }, ab.cond)) return false;
@@ -700,6 +702,7 @@
   EXEC.act = function (x) {
     const s = x.s, who = x.inv.who, iid = x.inv.iid, c = I(s, iid), d = FAB.cards[c.id], ab = d.ab[x.inv.ab], p = P(s, who);
     const L = { lid: s.lid++, kind: 'act', ctrl: who, iid: iid, ab: x.inv.ab, isAttack: !!ab.attack, mods: [], cid: d.id };
+    if (ab.tgt) { const link = activeLink(s); L.tgt = ask(x, { who: who, kind: 'target', src: iid, opts: [{ id: link.n, iid: link.iid }], cancel: true }); }   // [warriors] CR 5.1.4: an activated ability declares its target before paying
     if (ab.type === 'action') p.ap -= 1;
     if (ab.cost.tap) {                                                                      // CR 8.5.55: tapping is a cost
       if (c.tapped) throw new Illegal('already tapped');
@@ -756,6 +759,7 @@
           if (from === 'hand') link.handDef = true;
           log(s, 'defend', { who: L.ctrl, cs: [d.id], link: link.n });
           emit(s, { t: 'defend', iids: [L.iid], anyHand: from === 'hand', who: L.ctrl });
+          emit(s, { t: 'wa_defended', iid: link.iid, ctrl: link.ctrl, iids: [L.iid], weapon: link.weapon });   // [warriors] "when this attack is defended" (Decimator Great Axe)
         } else move(s, L.iid, 'grave');
       } else {
         const res = d.ab.find(a => a.k === 'res');
@@ -804,6 +808,7 @@
     if (anyHand) link.handDef = true;
     log(s, 'defend', { who: who, cs: chosen.map(i => I(s, i).id), link: link.n });
     if (chosen.length) emit(s, { t: 'defend', iids: chosen, anyHand: anyHand, who: who });
+    if (chosen.length) emit(s, { t: 'wa_defended', iid: link.iid, ctrl: link.ctrl, iids: chosen, weapon: link.weapon });   // [warriors] "when this attack is defended" (Decimator Great Axe)
     s.chain.step = 'defend';
     setPriority(s, s.tp);                                                                   // CR 7.3.3
   };

@@ -1,1 +1,12 @@
-{}
+{
+  "dorinthea-calling-london": {
+    "rule": "Dorinthea's list from the 2nd Calling: London, 46 non-arena cards cut to the 40 a Silver Age deck needs (TRP 7.4). The sideboard holds Lay Low (it needs the marked condition, which is not implemented), both Arcane Polarity, and one Chest Puff and one Look Tuff.",
+    "loadout": ["decimator-great-axe", "helm-of-unity", "plating-of-unity", "gauntlets-of-unity", "refraction-bolters"],
+    "cut": [["lay-low-yel", 2], ["arcane-polarity-red", 2], ["chest-puff-red", 1], ["look-tuff-red", 1]]
+  },
+  "olympia-calling-london": {
+    "rule": "Olympia's list from the 3rd Calling: London, 47 non-arena cards cut to the 40 a Silver Age deck needs (TRP 7.4). The sideboard holds the lone Arcane Polarity, both Oasis Respite, and both red Fyendal's Fighting Spirit and red Sirens of Safe Harbor, the least synergistic cards.",
+    "loadout": ["decimator-great-axe", "prized-galea", "plating-of-unity", "gauntlets-of-unity", "pillar-of-unity"],
+    "cut": [["arcane-polarity-red", 1], ["oasis-respite-red", 2], ["fyendals-fighting-spirit-red", 2], ["sirens-of-safe-harbor-red", 2]]
+  }
+}
