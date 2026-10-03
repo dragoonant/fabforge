@@ -229,7 +229,7 @@
     counter(x, op) { const c = I(x.s, x.iid); c.counters[op.k] = (c.counters[op.k] || 0) + op.n; FAB.log(x.s, 'counter', { who: x.ctrl, c: c.id, k: op.k, n: op.n, plus: true }); },
     clearCounters(x, op) { const c = I(x.s, x.iid); if (c.counters[op.k]) { FAB.log(x.s, 'counterClear', { who: x.ctrl, c: c.id, k: op.k, n: c.counters[op.k] }); delete c.counters[op.k]; } },
     destroySelf(x) { FAB.destroy(x.s, x.iid); },
-    selfToBottom(x) { if (I(x.s, x.iid).zone === 'grave') { FAB.move(x.s, x.iid, 'deck'); FAB.log(x.s, 'toBottom', { who: x.ctrl, c: I(x.s, x.iid).id }); } },
+    selfToBottom(x) { if (I(x.s, x.iid).zone === 'grave' || I(x.s, x.iid).zone === 'chain') { FAB.move(x.s, x.iid, 'deck'); FAB.log(x.s, 'toBottom', { who: x.ctrl, c: I(x.s, x.iid).id }); } },
     damage(x, op) { FAB.dealDamage(x.s, { to: 1 - x.ctrl, n: op.n, src: x.iid, kind: 'gen' }); },
     discardUnlessReveal(x) {            // Strongest Survive
       const s = x.s, who = 1 - x.ctrl, p = P(s, who), n = x.ev.n;

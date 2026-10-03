@@ -128,6 +128,8 @@
   const createToken = FAB.createToken = function (s, who, name) {
     const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     if (!FAB.cards[id] || FAB.cards[id].un) throw new Error('token not in the pack: ' + name);
+    // [elemguard] Renounce Grandeur: "they can't create aura tokens during their next turn."
+    if (FAB.cards[id].types.includes('Aura') && s.effects.some(e => e.k === 'eg_noAura' && e.who === who && e.turn === s.turn)) { log(s, 'eg_barred', { who: who, c: id }); return null; }
     const iid = s.nid++;
     s.cards[iid] = { iid: iid, id: id, owner: who, zone: 'arena', counters: {}, mods: [], faceUp: true };
     P(s, who).arena.push(iid);
@@ -197,6 +199,8 @@
     const x = { s: s, ctrl: c.owner, iid: iid, link: link, flags: {} };
     for (const ab of d.ab) if (ab.k === 'static' && ab.d && FAB.cond(x, ab.cond)) v += ab.d;
     for (const f of FAB.defenseMods) v += f(s, iid, link);                                      // [mech] effects of other cards on this one's {d}
+    // [elemguard] Embodiment of Earth: "Non-attack action cards you control get +1{d} while defending." A link means a defending context.
+    if (link && d.kind === 'action' && !isAttackDef(d)) for (const t of P(s, c.owner).arena) for (const a of FAB.cards[I(s, t).id].ab) if (a.k === 'defStatic' && a.nonAttackAction) v += a.d;
     return Math.max(0, v);
   };
   FAB.linkDefense = (s, link) => link.defs.reduce((a, e) => a + FAB.defenseOf(s, e.iid, link), 0);
@@ -258,6 +262,8 @@
     for (const e of s.effects) {
       if (e.k !== 'prevent' || e.who !== o.to || e.n <= 0 || n <= 0) continue;
       if (e.srcIid != null && e.srcIid !== o.src) continue;
+      // [elemguard] Brush Off: "The next time you would be dealt N or less damage this turn, prevent it." Only an event of that size uses it up (CR 6.6.3).
+      if (e.upTo != null) { if (n > e.upTo) continue; e.n = 0; log(s, 'prevent', { who: o.to, n: n, c: I(s, e.by).id }); n = 0; continue; }
       const k = Math.min(n, e.n); n -= k; e.n -= k;
       log(s, 'prevent', { who: o.to, n: k, c: I(s, e.by).id });
     }
@@ -367,6 +373,7 @@
       switch (s.sub) {
         case 0:                                                                            // CR 4.4.2
           emit(s, { t: 'endPhase', tp: tp });
+          emit(s, { t: 'eg_endAny', tp: tp });                                             // [elemguard] "At the beginning of each end phase" (Terra)
           for (const e of s.effects) if (e.k === 'intim') {                                // CR 8.5.10
             for (const iid of e.iids) if (I(s, iid).zone === 'banish') move(s, iid, 'hand');
             log(s, 'return', { who: e.who, n: e.iids.length });
@@ -438,6 +445,7 @@
     setPriority(s, s.tp);
   }
   function finishClose(s) {                                                                // CR 7.7.5-7.7.7
+    emit(s, { t: 'eg_chainClose' });                                                       // [elemguard] "When the combat chain closes" (Evergreen): cards are still on the chain
     for (const link of s.chain.links) {
       if (!link.weapon && I(s, link.iid).zone === 'chain') move(s, link.iid, 'grave');
       for (const e of link.defs) {
@@ -497,6 +505,7 @@
     const c = I(s, iid), d = FAB.cards[c.id], ab = abIdx == null ? null : d.ab[abIdx];
     const n = ab ? (ab.cost.r || 0) : (d.cost || 0);
     let tax = 0, red = 0;
+    for (const t of P(s, c.owner).arena) for (const a of FAB.cards[I(s, t).id].ab) if (a.k === 'costUp') tax += a.n;   // [elemguard] Frostbite: cards and abilities cost an additional {r}
     for (const e of s.effects) {
       if (e.who !== c.owner) continue;
       if (e.k === 'actTax' && e.turn === s.turn && isActionSrc(d, ab)) tax += e.n;                 // Cartilage Crush
@@ -683,6 +692,7 @@
       }
     }
     if (d.kw.boost) FAB.me_boost(x, L, c, d);                                               // [mech] CR 8.3.9: boost is an optional additional cost
+    for (const ab of d.ab) if (ab.k === 'fusion') FAB.fuse(x, who, iid, ab);                // [elemguard] CR 8.3.17: the optional reveal is declared with the other additional costs
     const res = d.ab.find(a => a.k === 'res');
     let tgt = res ? res.tgt : null;
     if (res && res.modes) {                                                                 // CR 5.1.4a, 1.7.5a: modes are declared as the card is played
@@ -707,6 +717,7 @@
     s.stack.push(L);
     p.h.played++;
     log(s, 'play', { who: who, c: d.id, from: fromArsenal ? 'arsenal' : 'hand' });
+    emit(s, { t: 'eg_use', ctrl: who });                                                    // [elemguard] "When you play a card or activate an ability" (Frostbite)
     if (L.isAttack) { applyNext(s, L, false); applyCardBuffs(s, L, c); openChain(s); emit(s, { t: 'playAttack', iid: iid, ctrl: who, weapon: false }); }
     emit(s, { t: 'played', iid: iid, ctrl: who });
     if (d.types.includes('Aura')) emit(s, { t: 'playAura', ctrl: who });
@@ -723,7 +734,9 @@
       c.tapped = true; log(s, 'tap', { who: who, c: d.id });
     }
     FAB.me_payExtra(s, iid, ab.cost);                                                       // [mech] counter costs ("remove a steam counter from this")
+    const pitched0 = p.pitch.length;
     payRes(x, who, FAB.costOf(s, iid, x.inv.ab), iid, 'ability');
+    L.pitched = p.pitch.slice(pitched0);                                                    // [elemguard] "If an Earth card is pitched this way" (Oldhim): the cards pitched to pay this ability
     spendCostFx(s, who, d, ab);
     if (ab.cost.discard) {
       const opts = p.hand.filter(i => i !== iid).map(i => ({ id: i, iid: i }));
@@ -732,6 +745,7 @@
     }
     if (ab.opt) c.acts = (c.acts || 0) + 1;                                                 // [mech] CR 5.2.3: only a once-per-turn ability counts toward its limit (another ability on the same card does not use it up)
     log(s, 'activate', { who: who, c: d.id, attack: !!ab.attack });
+    emit(s, { t: 'eg_use', ctrl: who });                                                    // [elemguard] "When you play a card or activate an ability" (Frostbite)
     if (ab.cost.discardSelf) discard(s, iid, false);
     if (ab.cost.destroySelf) destroy(s, iid);
     s.stack.push(L);
@@ -768,6 +782,7 @@
       if (d.kind === 'dr') {                                                                // CR 7.4.2d, 8.1.3b
         const link = activeLink(s);
         if (link && s.chain.step === 'reaction' && canDefendWith(s, link, L.iid, !c.fromArsenal, false)) {
+          { const res = d.ab.find(a => a.k === 'res'); if (res) FAB.runOps(X, res.ops); }   // [elemguard] CR 5.3.4: a defense reaction's text generates its effects before it leaves the stack (5.3.6b)
           const from = c.fromArsenal ? 'arsenal' : 'hand';
           move(s, L.iid, 'chain'); c.fromArsenal = from === 'arsenal';
           link.defs.push({ iid: L.iid, from: from });

@@ -1,1 +1,12 @@
-{}
+{
+  "oldhim-pt-yokohama": {
+    "rule": "Oldhim's 5th-place list from Pro Tour: Yokohama. This default leaves two cards in the sideboard: Lay Low (it needs the marked condition, which this game does not have yet) and Arcane Polarity (a narrow arcane-damage card).",
+    "loadout": ["sledge-of-anvilheim", "blade-beckoner-helm", "civic-duty", "blade-beckoner-gauntlets", "civic-steps"],
+    "cut": [["lay-low-yel", 1], ["arcane-polarity-red", 1]]
+  },
+  "terra-calling-shanghai": {
+    "rule": "Terra's 5th-place list from Calling: Shanghai. This default leaves six cards in the sideboard: both Sit! (only good against Brute attacks), both Renounce Grandeur (aura-token hate), one Concuss and the Battlefront Bastion.",
+    "loadout": ["sledge-of-anvilheim", "civic-peak", "civic-duty", "blade-beckoner-gauntlets", "civic-steps"],
+    "cut": [["sit-red", 2], ["renounce-grandeur-red", 2], ["concuss-red", 1], ["battlefront-bastion-blu", 1]]
+  }
+}
