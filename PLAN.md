@@ -1,0 +1,90 @@
+# PLAN
+
+**This file owns every project decision.** No other file states one; they point here. Rewrite the
+Status every session.
+
+---
+
+## Status — 2026-10-02 (first session)
+
+**It is playable.** `node tools/serve.mjs` then <http://localhost:8181>, or open `index.html`.
+
+**Done**
+- `.gitignore` committed alone; `tokens.txt` / `tokens.txt.txt` ignored from commit zero.
+- Rights read and recorded (`docs/rights.md`): LSS's terms permit rules-enforcement apps. The
+  required disclaimer is in `NOTICE.md` and on the menu screen.
+- Comprehensive Rules v2.15.0 in gitignored `scratch/rules/`; `docs/rules.md` is the citation index.
+- Engine: `legalActions` / `apply` (immutable) / `isTerminal` / `whoActs`; the stack and priority;
+  the combat chain with its steps; pitching through one cost door; one damage door with
+  prevention; triggers as layers; the end-of-turn pitch order asked.
+- `tools/build-cards.mjs` compiles printed text to ops with anchored patterns and builds decks from
+  LSS's published lists. See its output for current coverage.
+- Two registered decks: **Dorinthea** and **Kayo** (LSS Silver Age precons). A third, Bravo, is
+  being added.
+- AI opponent: turn planner, block chooser, pitch and arsenal policy.
+- Interface: board, chain and stack viewers, prompts, full log, hover zoom, zone viewers, menu with
+  deck provenance, how-to-play, bug report.
+- Art: generated illustrations for every card in the registered decks (`tools/gen-art.mjs`), with a
+  procedural fallback. Sound: ElevenLabs effects (`tools/gen-sfx.mjs`) with a synthesised fallback
+  voice for each, and six ElevenLabs music tracks (`tools/gen-music.mjs`).
+- Gates: `tools/test.mjs` (per-card behaviour tests), `tools/sim.mjs` (headless games with
+  invariants), `tools/check-art.mjs`, `tools/check-pages.mjs`.
+
+**Not done** — `TODO.md` is the queue, `DEVIATIONS.md` the standing rules gaps. The largest:
+only Silver Age precons are in; arcane damage does not exist yet, so no Wizard or Runeblade;
+equipment loadout and sideboard are fixed per deck rather than chosen; no animation layer; not
+deployed.
+
+**The three things to form an opinion on first**
+1. **Does priority feel right?** The game skips any window in which you have nothing legal, and
+   shows a Pass button otherwise. Is that too many clicks, or too few stops?
+2. **Is the art direction right?** Same anime trading-card direction as GRAND LINE (D3). Kayo is
+   drawn with two arms: the image model would not draw a one-armed figure.
+3. **Is the AI a fair opponent?** It blocks by weighing damage against cards given up, and plans
+   its own turn by search. It does not yet model your blocks when planning.
+
+---
+
+## Decisions
+
+### D1 — Regime, names and text · 2026-10-02 · owner (carried from GRAND LINE D1)
+Reproduction. Real names and LSS's printed text verbatim. The app is named GO AGAIN and uses no
+FAB logo (`docs/rights.md`).
+
+### D2 — Format and first decks · 2026-10-02 · agent, from the handoff defaults
+**Silver Age first**, starting from LSS's published precon lists. First pair: Dorinthea
+(Chapter 2) and Kayo (Chapter 1), chosen because their mechanics are the most direct. Classic
+Constructed later.
+
+### D3 — Art direction · 2026-10-02 · owner (carried from GRAND LINE D3)
+**Anime trading-card illustration**: polished cel shading, thick ink outlines, energetic effects.
+One byte-identical `STYLE` constant in `tools/build-art-prompts.mjs`; one clause per character and
+one subject-and-setting per card in `tools/art-identity.mjs`; a card with no entry fails the build.
+Three constants: no text in an image; no reproduction of an official illustration; no artist,
+studio, franchise or game named in a prompt.
+
+### D4 — Priority windows · 2026-10-02 · agent (GRAND LINE D4)
+Ask always, but a window with nothing legal in it is passed automatically, including the pass that
+ends the turn. The end-of-turn arsenal and pitch-order questions are still asked.
+
+### D5 — Never assume a choice · 2026-10-02 · owner (GRAND LINE D8)
+`FAB.ask` has no auto-take path. A single legal target is confirmed; the player chooses every card
+pitched and the order pitched cards return. Not asked: indistinguishable cards (pitched copies of
+one card), and declaring defenders when nothing could defend.
+
+### D6 — The 40 from the 55 · 2026-10-02 · agent
+An LSS Silver Age precon is a 55-card pool; a deck is exactly 40 (TRP 7.4). `tools/deck-picks.json`
+holds this project's default 40 and starting equipment for each deck, with the rule it used, and
+the menu shows that sentence and the sideboard. A deck editor is in `TODO.md`.
+
+### D7 — Sound and music · 2026-10-02 · owner
+ElevenLabs for both effects and music; the synthesised score was rejected ("the music sucks").
+Keys are read only from `tokens.txt.txt` in the project folder (`HF=` and `EL=` lines), never from
+another project.
+
+### D8 — Agents · 2026-10-02 · owner
+The lead session directs; additional agents run on Sonnet, not Haiku. Each agent owns an explicit
+file list and does not commit.
+
+### D9 — Repository location · 2026-10-02 · owner
+The repo is this OneDrive folder. `scratch/` and `art/masters/` are gitignored.

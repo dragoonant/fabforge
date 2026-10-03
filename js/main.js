@@ -41,6 +41,7 @@
 
   function menu() {
     FAB.ui.stop();
+    FAB.audio.music('menu');
     const decks = reg();
     if (!pick.me) { pick.me = decks[0].id; pick.opp = decks[1 % decks.length].id; }
     const miss = FAB.art.missing();
@@ -62,6 +63,7 @@
   function start(setup, again) {
     if (again) setup = Object.assign({}, setup, { seed: (setup.seed * 1664525 + 1013904223) | 0 });
     FAB.audio.unlock();
+    FAB.audio.music(setup.decks[1 - setup.human] === 'kayo' ? 'battle2' : 'battle1');
     FAB.ui.begin(setup, FAB.newGame(setup));
   }
 

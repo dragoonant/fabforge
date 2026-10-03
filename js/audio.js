@@ -1,14 +1,14 @@
 // Sound. One module owns every decision and it rides the structured log: the engine tags events,
 // and a tag with no voice here is simply silent, so adding a sound is one line. A recorded sample
-// in the manifest replaces the synthesised voice of the same name. The score is written by the
-// program as it runs, on the audio clock; there is no third-party audio in this project.
+// in the manifest replaces the synthesised voice of the same name. The score is a set of tracks
+// generated for this project; there is no third-party audio in it.
 (function () {
   'use strict';
   const FAB = window.FAB;
   const samples = FAB.audioManifest;
   if (typeof samples !== 'object' || samples === null) throw new Error('data/audio-manifest.js did not load');
 
-  let ctx = null, master = null, sfx = null, mus = null, muted = false, buffers = {}, lastAt = {};
+  let ctx = null, master = null, sfx = null, muted = false, buffers = {}, lastAt = {};
   try { muted = localStorage.getItem('goagain.muted') === '1'; } catch (e) { muted = false; }
 
   function ensure() {
@@ -18,9 +18,7 @@
     ctx = new AC();
     master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ctx.destination);
     sfx = ctx.createGain(); sfx.gain.value = 0.8; sfx.connect(master);
-    mus = ctx.createGain(); mus.gain.value = 0.16; mus.connect(master);
     for (const k in samples) fetch(samples[k]).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { buffers[k] = buf; }).catch(() => { console.warn('audio sample failed to load: ' + k); });
-    startMusic();
     return true;
   }
 
@@ -78,42 +76,43 @@
   }
 
   // --- the score ------------------------------------------------------------------------------
-  // A lookahead scheduler on the audio clock: a pad that changes chord every two bars and a pulse
-  // on a minor pentatonic, so a derived line cannot land on a wrong note. `tension` (0..1) rises as
-  // the lower life total falls and brings in the pulse and the higher octave.
-  const PENTA = [0, 3, 5, 7, 10], ROOTS = [0, -4, -2, -5];
-  let nextBeat = 0, beat = 0, tension = 0, musicOn = false, seedM = 7;
-  const mr = () => { seedM = (seedM * 1103515245 + 12345) >>> 0; return seedM / 4294967296; };
-  const hz = semi => 110 * Math.pow(2, semi / 12);
-  function mtone(freq, t, dur, type, peak, dest) {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + Math.min(0.4, dur * 0.3)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+  // Recorded tracks made for this project (tools/gen-music.mjs). One plays at a time and they
+  // cross-fade. A track that fails to load says so in the console; it is never silently skipped.
+  const TRACKS = { menu: 'audio/music/menu.mp3', battle1: 'audio/music/battle1.mp3', battle2: 'audio/music/battle2.mp3', tense: 'audio/music/tense.mp3', victory: 'audio/music/victory.mp3', defeat: 'audio/music/defeat.mp3' };
+  const MUSIC_VOL = 0.32;
+  let wanted = null, current = null, els = {}, unlocked = false;
+  function el(name) {
+    if (els[name]) return els[name];
+    const a = new Audio(TRACKS[name]);
+    a.loop = name !== 'victory' && name !== 'defeat'; a.volume = 0; a.preload = 'auto';
+    a.addEventListener('error', () => console.error('music track failed to load: ' + TRACKS[name]));
+    return (els[name] = a);
   }
-  function schedule() {
-    if (!musicOn) return;
-    const tempo = 84 + tension * 26, spb = 60 / tempo;
-    while (nextBeat < ctx.currentTime + 0.35) {
-      const bar = Math.floor(beat / 4), root = ROOTS[Math.floor(bar / 2) % ROOTS.length];
-      if (beat % 8 === 0) for (const iv of [0, 7, 15]) mtone(hz(root + iv), nextBeat, spb * 8.2, 'sine', 0.22, mus);
-      if (beat % 4 === 0) mtone(hz(root - 12), nextBeat, spb * 3.5, 'triangle', 0.3, mus);
-      if (tension > 0.25 || beat % 2 === 0) {
-        if (mr() < 0.45 + tension * 0.4) mtone(hz(root + 12 + PENTA[Math.floor(mr() * PENTA.length)] + (tension > 0.6 && mr() < 0.4 ? 12 : 0)), nextBeat + (mr() < 0.3 ? spb / 2 : 0), spb * (0.6 + mr()), 'triangle', 0.14 + tension * 0.08, mus);
-      }
-      if (tension > 0.5) mtone(hz(root - 12), nextBeat + spb / 2, spb * 0.25, 'square', 0.05, mus);
-      nextBeat += spb; beat++;
-    }
+  function fade(a, to, done) {
+    const from = a.volume, t0 = performance.now();
+    const tick = () => { const k = Math.min(1, (performance.now() - t0) / 900); a.volume = Math.max(0, Math.min(1, from + (to - from) * k)); if (k < 1) setTimeout(tick, 50); else if (done) done(); };
+    tick();
   }
-  function startMusic() { if (musicOn) return; musicOn = true; nextBeat = ctx.currentTime + 0.1; setInterval(schedule, 100); }
+  function syncMusic() {
+    if (!unlocked || wanted === current) return;
+    if (current) { const old = el(current); fade(old, 0, () => old.pause()); }
+    current = wanted;
+    if (!current) return;
+    const a = el(current);
+    if (!a.loop) a.currentTime = 0;
+    a.play().then(() => fade(a, muted ? 0 : MUSIC_VOL), () => { current = null; });
+  }
+  function setMusic(name) { if (name && !TRACKS[name]) throw new Error('no such music track: ' + name); wanted = name; syncMusic(); }
 
   FAB.audio = {
-    unlock: function () { if (ensure() && ctx.state === 'suspended') ctx.resume(); },
+    unlock: function () { if (ensure() && ctx.state === 'suspended') ctx.resume(); unlocked = true; syncMusic(); },
+    music: setMusic,
     muted: () => muted,
     toggle: function () {
       muted = !muted;
       try { localStorage.setItem('goagain.muted', muted ? '1' : '0'); } catch (e) { /* private window: the setting lasts for this page only */ }
       if (ensure()) { master.gain.value = muted ? 0 : 0.9; if (ctx.state === 'suspended') ctx.resume(); }
+      if (current) el(current).volume = muted ? 0 : MUSIC_VOL;
     },
     voices: Object.keys(VOICES),
     map: MAP,
@@ -122,14 +121,14 @@
       if (!ctx) return;
       let d = 0;
       for (const e of entries) {
-        if (e.t === 'win') { voice(e.who === viewer ? 'win' : 'lose', 0, d + 0.3); continue; }
+        if (e.t === 'win') { setMusic(e.who === viewer ? 'victory' : 'defeat'); continue; }
         const v = MAP[e.t];
         if (!v) continue;
         if (e.t === 'defend' && !e.cs.length) continue;
         voice(v, e.n, d); d += 0.07;
       }
       const low = Math.min(s.players[0].life, s.players[1].life);
-      tension = Math.max(0, Math.min(1, (20 - low) / 17));
+      if (s.winner == null && low <= 6 && wanted !== 'tense') setMusic('tense');             // the clock escalates
     },
   };
   document.addEventListener('pointerdown', () => FAB.audio.unlock(), { once: false, passive: true });
