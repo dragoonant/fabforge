@@ -5,6 +5,30 @@ Status every session.
 
 ---
 
+## Status — 2026-10-03
+
+**22 decks are registered and live**: the three LSS precons and **19 event decks**, each a
+different hero's best finish (D11): Kano 1st, Briar 2nd, Ira and Dash 3rd, Iyslander, Oldhim and
+Florian 5th at Pro Tour: Yokohama; Valda, Dorinthea 2nd, Olympia, Kayo, Bravo 3rd, Rhinar, Terra
+5th at Callings; Chane 1st at Battle Hardened: Hong Kong; Oscilio, Blaze, Fai 1st and Benji 2nd at
+Sunday Showdowns. Enigma, Prism and Nuu are still being implemented.
+
+- Gates: 389/389 card tests, check-pages clean, 44 AI games and 60 random games with 0 violations,
+  replay selftest passing. In the browser every registered deck was driven for 120 actions on the
+  real page (board, log and prompts rendering each step) with no error.
+- 448 illustrations cover every card in all 22 fetched event pools.
+- Work was done by Sonnet agents in worktrees, one per hero class, then merged one group at a time;
+  duplicated implementations of the same printed sentence were reduced to one after each merge.
+
+**Left out of otherwise-playable decks** (in the sideboard, shown on the menu): Lay Low, Frost
+Spike, Flourish and Blinding of the Old Ones are not implemented; Promising Terrain depends on
+ordering simultaneous triggers (DEVIATIONS D-1). Fai's starting Phoenix Flame is fixed on rather
+than asked.
+
+**Known weak spots**: the AI wastes free activations and rarely uses some signature mechanics
+(heave, Plasma Barrel Shot); the default 40 and starting equipment of each deck are this project's
+choice from the registered pool, not the player's.
+
 ## Status — 2026-10-02 (first session)
 
 **It is playable and deployed**: <https://dragoonant.github.io/fabforge/> (D10). Locally: `node tools/serve.mjs` then <http://localhost:8181>, or open `index.html`.
