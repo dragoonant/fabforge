@@ -1,0 +1,207 @@
+// tools/art/agile.mjs — Ira, Fai, Benji, Enigma, Prism, Nuu, Dash decks.
+export const WHO = {
+  'ira-crimson-haze':
+    'a lithe young ninja woman with a sleek black ponytail and sharp amber eyes, in a crimson wrapped tunic and dark arm guards, ' +
+    'a red scarf trailing behind her, gripping twin short curved blades, fierce and playful',
+  fai:
+    'a young draconic ninja with spiky ash-black hair and glowing orange eyes, small horns curling from his brow, ' +
+    'dark scaled armour edged with gold, wreathed in swirling phoenix fire, wielding a blade trailing flames, proud and burning',
+  'benji-the-piercing-wind':
+    'a swift wiry young ninja boy with messy pale-blue hair tied by a cord and a cheeky grin, in a short teal-and-white tunic with loose sleeves, ' +
+    'wind swirling around his limbs, gripping a slender long blade',
+  enigma:
+    'a graceful mystic illusionist woman with long silver-white hair and calm violet eyes, in layered indigo-and-pearl robes, ' +
+    'surrounded by floating translucent spectral wards of pale light, serene and mysterious',
+  prism:
+    'a radiant young illusionist woman of living light with flowing golden-white hair, a glowing prismatic crown and a shimmering white-and-gold gown, ' +
+    'rainbow light refracting around her, calling luminous winged angelic heralds, gentle and resolute',
+  nuu:
+    'a mystic assassin woman with a long dark braid, one sharp teal eye visible above a veil, in flowing layered black-and-plum robes with trailing sleeves, ' +
+    'a slim dagger held low, quiet and deadly',
+  dash:
+    'a young mechanologist inventor woman with a messy auburn bob, brass goggles pushed up on her forehead and an oil-smudged grin, ' +
+    'in a patched leather work vest and utility belt of tools, carrying a brass steam pistol, hissing steam around her'
+};
+
+const I = 'ira-crimson-haze', F = 'fai', B = 'benji-the-piercing-wind', E = 'enigma', P = 'prism', N = 'nuu', D = 'dash';
+const c = (who, subject, setting) => (who ? { who, subject, setting } : { subject, setting });
+
+export const CARDS = {
+  // ---- tokens ----
+  fealty: c(0, 'an abstract emblem of fealty, a kneeling flame-wreathed crest of crimson and gold glowing above a clasped oath', 'floating in a dark red haze of drifting embers'),
+  'spectral-shield': c(0, 'an abstract emblem of a spectral shield, a translucent glowing pale-blue ward shaped like a shield with ripples of light', 'hovering in a deep violet void of drifting stars'),
+  ponder: c(0, 'an abstract emblem of pondering, a glowing thought-bubble of soft light with a spiralling idea inside', 'drifting in a calm twilight sky of pale blue mist'),
+  gold: c(0, 'an abstract emblem of wealth, a single large shining gold coin spinning and throwing sparkles', 'against a rich dark-green velvet glow with golden dust'),
+  silver: c(0, 'a small heap of plain smooth silver ingots and blank polished silver discs gleaming with cool sparkles', 'against a deep midnight-blue glow with silver dust'),
+  inertia: c(0, 'an abstract emblem of inertia, heavy iron chains and a leaden weight dragging down a faint glowing hourglass of grey light', 'sinking in a murky grey-purple fog with slow drifting ash'),
+
+  // ---- Ira ----
+  'ira-crimson-haze': c(I, 'crouched mid-spin, both short blades crossed before her and a crimson mist swirling off her scarf', 'on a moonlit tiled rooftop above a sleeping pagoda town'),
+  'blood-scent': c(0, 'a battered crimson leather chest guard with claw-scratch marks and a faint red mist rising from it, the armour itself is the focus', 'hung on a wooden stand in a dim ninja dojo lit by lanterns'),
+  'double-cross-strap': c(0, 'two crossed dark leather chest straps studded with steel plates, the armour itself is the focus', 'resting on a stone ledge in a cave hideout with cold blue light'),
+  'harmonized-kodachi': c(0, 'a short elegant ninja sword with a ringing silver blade and a crimson silk-wrapped hilt, the weapon itself is the focus', 'laid on a mossy stone beneath falling cherry petals'),
+  'mask-of-many-faces': c(0, 'a pale ninja mask with changing shifting expressions blurring across its face, the mask itself is the focus', 'floating before a hall of dim paper screens with soft candle glow'),
+  'mask-of-the-swarming-claw': c(0, 'a fearsome dark ninja helm with clawed ridges swarming across the brow like talons, the helm itself is the focus', 'on a rock in a stormy bamboo forest at dusk'),
+  'pouncing-paws': c(0, 'a pair of light agile ninja leg wraps with tiger-paw pads and glowing orange stripes, the boots themselves are the focus', 'on a mossy log in a misty jungle at dawn'),
+  'tearing-shuko': c(0, 'spiked iron climbing claws strapped to a forearm guard, glinting with sharp tips, the item itself is the focus', 'stuck deep into a cracked old wooden pillar in a ruined temple'),
+  'arcane-polarity': c(0, 'a swirling yin-yang vortex of cool blue and warm red arcane energy mending a glowing wound of light', 'in a dark open void of floating sparks'),
+  'aspect-of-tiger-body': c(I, 'leaping with a mighty spectral tiger of red light roaring behind her, both blades slashing forward', 'across a moonlit bamboo grove with scattered leaves'),
+  'aspect-of-tiger-mind': c(I, 'leaping with a mighty spectral tiger of blue light behind her, both blades flashing in a precise arc', 'above a dark misty ravine with silver mist'),
+  'bittering-thorns': c(I, 'slashing a spray of dark thorny vines of crimson energy off her blades as she dashes forward', 'in a thorn-choked ruined garden at dusk'),
+  'blessing-of-qi': c(I, 'kneeling serene as a swirling aura of golden qi gathers around her and forms a glowing tiger shape', 'on a quiet mountain temple terrace at sunrise'),
+  'bluster-buff': c(0, 'a puffed-up brawler in plain armour flexing and stomping forward with swinging fists and wind-puffs', 'in a dusty market square with startled onlookers blurred behind'),
+  'cut-through': c(I, 'driving her blade straight through an opponent defence in a single flash, sparks bursting from the edge', 'in a narrow lamplit alley with rain streaks'),
+  'flex-claws': c(I, 'slashing with curled finger-claw gestures as a glowing tiger claw tears the air', 'in a smoky training hall with swirling dust'),
+  'flying-kick': c(I, 'launching a mighty flying kick in the air, her scarf streaming, a shockwave ring behind her foot', 'over a rainy city street with neon lantern glow'),
+  growl: c(I, 'baring teeth in a feral growl, red energy rippling off her shoulders in the shape of a tiger snarl', 'on a cliff edge under a blood-red sunset'),
+  'life-of-the-party': c(0, 'a rowdy festival brawl with confetti, tankards flying and a laughing fighter swinging a chair', 'inside a boisterous lantern-lit tavern with rowdy blurred merrymakers'),
+  'pouncing-qi': c(I, 'pouncing forward in a low crouch as a golden-orange tiger spirit of qi surges with her', 'across a rooftop ridge at golden hour'),
+  'razor-reflex': c(0, 'a hand snapping a dagger around in a lightning counter-flick, a razor arc of light trailing the blade', 'in a darkened corridor with sparks flying'),
+  'reinforce-the-line': c(0, 'a line of armoured shields braced together and glowing steel-blue with a surge of defensive energy', 'on a windswept battlement before a stormy horizon'),
+  'torrent-of-tempo': c(I, 'unleashing a flurry of blade slashes in a rolling torrent of crimson streaks', 'on a wooden bridge over a rushing river'),
+  untamed: c(I, 'shouting in a wild tumbling charge with both blades low and red energy flaring like a mane', 'across a grassy field of tall swaying reeds at dusk'),
+  'up-sticks-and-run': c(I, 'snatching a fallen dagger from the ground mid-sprint and charging onward with a trail of dust', 'through a ruined village at night with distant fires'),
+  'salt-the-wound': c(I, 'driving a blade into an old gash as red energy flares brighter with each strike', 'in a torn-up battlefield trench lit by orange fire'),
+  'tiger-eye-reflex': c(I, 'whirling to guard, her narrowed eyes glowing tiger-gold as a spectral tiger head shields her back', 'in a twilit forest clearing with fireflies'),
+  'feign-vengeance': c(I, 'faking a stagger with a sly smile then spinning, the real blade flashing out behind a false afterimage', 'in the mist of a lantern-hung courtyard'),
+  'legacy-of-ikaru': c(I, 'holding a gleaming blade aloft as faint spirits of ancestral ninjas stand behind her in pale light', 'on a mountain shrine terrace at dawn'),
+  'rushing-river': c(I, 'streaking forward as a river of blue water surges along her blades in a rolling wave', 'along a gorge with a rushing waterfall'),
+  'seek-vengeance': c(I, 'stalking forward with narrowed eyes, red energy streaming from her twin blades toward a distant foe', 'on a battlefield of dim crimson haze and ash'),
+  'soulbead-strike': c(I, 'striking with a blade as glowing prayer beads of soul-light circle her arm', 'in a quiet candlelit shrine hall'),
+
+  // ---- Fai ----
+  fai: c(F, 'standing in a heroic pose, a great phoenix of flame spreading its wings behind him and fire trailing his blade', 'on a volcanic ridge with glowing lava rivers below'),
+  'kunai-of-retribution': c(0, 'a single fiery throwing dagger with a ring pommel, glowing orange along its edge, the weapon itself is the focus', 'stuck in a scorched wooden beam with embers drifting'),
+  'ornate-tessen': c(0, 'a beautifully gilded iron war fan, half opened with blades of light along each rib, the fan itself is the focus', 'laid on a lacquered table beside incense smoke'),
+  'searing-emberblade': c(0, 'a long two-handed sword with a white-hot glowing blade dripping molten embers, the sword itself is the focus', 'planted in black volcanic rock with lava glow behind'),
+  'blaze-headlong': c(F, 'charging forward in a headlong rush with his body engulfed in blazing red fire', 'across a burning rope bridge over a fiery chasm'),
+  'brand-with-cinderclaw': c(F, 'pressing a claw-shaped glowing brand of fire onto the air, leaving a fiery mark behind', 'in a cinder-filled forge hall with sparks'),
+  'burning-blade-dance': c(F, 'spinning in a graceful dance of burning blades, wheels of flame ringing him', 'on a stone platform ringed with torch fires at night'),
+  'display-loyalty': c(F, 'driving a flaming blade upward in a salute of devotion, a phoenix crest glowing in the flames', 'before a grand red-lacquered gate at dawn'),
+  'enflame-the-firebrand': c(F, 'raising a blade as a roaring pillar of flame erupts from it, igniting his aura', 'on a cliff at dusk with churning smoke'),
+  'fire-tenet-strike-first': c(F, 'lunging first with a lightning-fast fire-wreathed thrust before the foe has moved', 'in a sunlit dojo yard with scattered petals'),
+  'fire-that-burns-within': c(F, 'clenching a fist over his chest as a phoenix flame blazes inside and bursts out through his arms', 'on a dark rocky ledge with ash drifting'),
+  'hot-on-their-heels': c(F, 'sprinting after a fleeing target with fire trailing his feet and a hunter grin', 'through a narrow burning alley at night'),
+  'lava-burst': c(F, 'slamming a fiery blade down so a fountain of lava bursts up from the ground', 'in a cracked volcano crater with glowing magma'),
+  'lava-vein-loyalty': c(F, 'driving his glowing blade down, veins of lava racing across the earth around him', 'in a dark cavern lit with orange cracks'),
+  'march-of-loyalty': c(F, 'marching forward with a flaming spear-bladed weapon, red flame trailing in a long streaming wave', 'on a red-stone processional avenue at sunset'),
+  'phoenix-flame': c(F, 'hurling a bright soaring phoenix of fire from his hand in a spiralling blaze', 'in a stormy night sky lit orange'),
+  'ravenous-rabble': c(0, 'a snarling pair of raggedy brawlers leaping into a brawl with fists and clubs, a swirl of dust', 'in a muddy alley behind a tavern at night'),
+  'rise-from-the-ashes': c(F, 'rising from a pile of cooling embers as a reborn phoenix of flame unfolds from his back', 'in a ruined burned shrine under a smoky dawn'),
+  'rising-resentment': c(F, 'glaring with gritted teeth as dark red flame rises around his fists in an angry swirl', 'in a ruined courtyard with smouldering rubble'),
+  'ronin-renegade': c(F, 'sprinting out with a lone blade drawn and a ragged cloak flapping, a swath of flame behind', 'across a windy dry plain at sunset'),
+  snatch: c(0, 'a quick-fingered fighter grabbing a glowing treasure from a surprised opponent with a swift swipe', 'in a bustling lantern-lit market street'),
+
+  // ---- Benji ----
+  'benji-the-piercing-wind': c(B, 'in a daring pose with his blade out, a cyclone of wind and leaves spiralling around him', 'on a windswept hilltop over green rolling fields'),
+  'arcane-lantern': c(0, 'a small paper lantern glowing with swirling arcane blue light, tiny motes circling it, the lantern itself is the focus', 'hanging on a branch of a dark night forest'),
+  'edge-of-autumn': c(0, 'a long slender ninja sword with a bronze-and-orange blade shedding falling autumn leaves, the weapon itself is the focus', 'planted in a bed of red and gold leaves under falling foliage'),
+  'chest-puff': c(0, 'a proud strutting fighter puffing out his armoured chest, a gust of bluster rippling out', 'on a dusty arena floor with a cheering blur behind'),
+  'smash-up': c(0, 'a hulking fighter smashing his fists down through a wooden crate, splinters flying', 'inside a cluttered warehouse with sunbeams'),
+  'wax-on': c(B, 'bracing in a calm wind-ready stance, a smooth swirl of wind forming a circular guard before him', 'on a polished wooden dojo floor at morning'),
+  'biting-breeze': c(B, 'slashing his blade so a sharp sliver of wind in the shape of a tiger claw tears forward', 'across a bamboo grove in a gale of leaves'),
+
+  // ---- Enigma ----
+  enigma: c(E, 'standing in a calm pose, her hands lifted as spectral wards of pale light orbit her in a slow ring', 'in a moonlit temple of drifting mist and floating lanterns'),
+  'blade-beckoner-plating': c(0, 'a sleek steel breastplate set with blade-shaped grooves ringing faintly, the armour itself is the focus', 'on a rack in an armoury with warm torch light'),
+  'cosmo-scroll-of-ancestral-tapestry': c(E, 'holding aloft a glowing star-woven tapestry rod, auras of light unfurling from it as living weapons', 'in a vaulted chamber of drifting constellations'),
+  'nullrune-hood': c(0, 'a plain pale-grey hood glowing faintly with a silent field of cancelling light, the hood itself is the focus', 'on a stand in a quiet stone chamber'),
+  'silent-stilettos': c(0, 'a pair of slim midnight-violet slippers with feather-light soles, ripples of silence around them, the footwear itself is the focus', 'on polished dark marble with mist curling'),
+  'skycrest-keikoi': c(0, 'a mystic hooded cap in sky-blue and white with a crest of cloud-like feathers, half hidden behind a veil of fog, the headgear itself is the focus', 'on a stone pedestal above floating clouds'),
+  'unflinching-foothold': c(0, 'a pair of sturdy iron-shod boots rooted into a stone path with cracks spreading, the boots themselves are the focus', 'on a rocky mountain trail in wind'),
+  'unyielding-grip': c(0, 'a pair of heavy steel gauntlets clenched tight on a rod, knuckles gleaming, the armour itself is the focus', 'on a forge anvil with sparks'),
+  'uphold-tradition': c(0, 'a pair of elegant white-and-gold arm guards shrouded in a hooded cloth, a soft light glimmering beneath, the armour itself is the focus', 'on a low shrine altar with incense smoke'),
+  'astral-etchings': c(E, 'sweeping her hand to scatter glowing star patterns that settle onto spectral wards, brightening them', 'in a night sky filled with swirling galaxies'),
+  'clear-conscience': c(E, 'extending a calm open hand as a clear pale wave of light washes across a foe, clearing worry from their face', 'on a tranquil lake shore at dawn'),
+  'essence-of-ancestry-body': c(E, 'cupping a glowing red spirit-ward of an ancestor, a faint ghostly figure standing behind her', 'in a quiet ancestral shrine hall at dusk'),
+  'essence-of-ancestry-mind': c(E, 'cupping a glowing blue spirit-ward of an ancestor, a faint ghostly figure standing behind her', 'in an ancient moonlit grove with floating petals'),
+  'moon-chakra': c(E, 'meditating in the air before a huge shining moon whose rings of light form a protective wheel around her', 'on an open mountaintop under a giant full moon'),
+  'on-the-horizon': c(0, 'a lone watchful guard shielding his face and peering at a glowing sunrise on the far horizon', 'on a high watchtower overlooking a vast plain'),
+  'solitary-companion': c(E, 'sitting alone with a single glowing ghostly companion creature curled beside her, a ward of light around them both', 'under a cherry tree in a misty courtyard'),
+  'spectral-manifestations': c(E, 'conjuring a glowing shield of pale light from her fingers, small wisps spiralling out of it', 'in a circle of floating paper lanterns'),
+  'test-of-strength': c(0, 'two strong fighters locked in a straining arm wrestle over a stone table, golden coin sparks flying', 'in a rowdy lantern-lit tavern'),
+  'waning-vengeance': c(E, 'a fading crescent moon spirit-ward draining out of her as a new shield of light forms in her palm', 'in a dim shrine garden at night'),
+  'waxing-specter': c(E, 'a growing crescent moon spectre rising behind her, getting brighter as she raises her hand', 'beside a mirror-still pond under starlight'),
+  'big-blue-sky': c(E, 'standing calm with arms spread as a brilliant azure sky floods the scene and shield-like clouds gather around her', 'on a high grassy cliff under a vast blue sky'),
+  'enigma-chimera': c(E, 'sending forth a glowing hybrid beast of blended spectral beasts that shimmers like a mirage, charging ahead', 'across a ghostly plain of drifting fog'),
+  'fluid-motion': c(E, 'flowing through a graceful water-like martial move, ribbons of silver light trailing her limbs', 'on a smooth pond of ripples at moonrise'),
+  'homage-to-ancestors': c(E, 'bowing in respect as faint ancestral spirits rise behind her, a warm healing glow in her hands', 'in a sacred temple courtyard with falling petals'),
+  'manifest-muscle': c(E, 'summoning a huge glowing spectral fist from her hand and punching forward', 'inside a hall of floating pale lanterns'),
+  'pass-over': c(E, 'sweeping her hand over a graveyard as pale ghostly cards of light drift away into the sky', 'in a misty moonlit graveyard with drifting wisps'),
+  'preserve-tradition': c(E, 'carefully setting a glowing memory-light into a ghostly stack at the bottom of an old chest', 'in a lantern-lit archive of dark wooden shelves'),
+  'second-tenet-of-chi-tide': c(E, 'surging with a great tidal wave of silver-blue chi that rolls over her arms as she thrusts forward', 'on a rocky shoreline at night with crashing waves'),
+  'second-tenet-of-chi-wind': c(E, 'twirling with swirling ribbons of wind chi that lift her robes in a great gust', 'on a hilltop with scattered leaves and clouds'),
+  'spears-of-surreality': c(E, 'flinging glowing translucent spears of impossible geometry from around her, shimmering like mirages', 'across a dreamlike checkered plain under a surreal sky'),
+
+  // ---- Prism ----
+  prism: c(P, 'standing with arms spread as shafts of rainbow light refract around her and a glowing herald of light rises behind', 'in a vast white cathedral of drifting prismatic light'),
+  'dream-weavers': c(0, 'a pair of delicate shimmering arm wraps woven from silver dreamlight threads, soft colours drifting off them, the item itself is the focus', 'floating in a night sky of soft clouds'),
+  'iris-of-reality': c(0, 'a large crystal orb with a swirling rainbow iris at its centre, floating on a golden stand, the orb itself is the focus', 'in a dark chamber with beams of rainbow light'),
+  'silken-shroud': c(0, 'a flowing silk hood and veil of pearly white fabric, gently glowing, the headgear itself is the focus', 'draped over a marble bust in a moonlit hall'),
+  'silken-slippers': c(0, 'a pair of elegant white silk slippers with trailing ribbon wisps, glowing softly, the shoes themselves are the focus', 'on a petal-strewn marble floor in morning light'),
+  'wave-of-reality': c(0, 'a pair of flowing translucent sleeves rippling like waves of rainbow light, the item itself is the focus', 'floating among prism shards in a bright void'),
+  'fyendals-fighting-spirit': c(0, 'a fierce spirit of a fighter in glowing green light rising from a warrior and healing his wounds', 'on a rugged hillside battlefield at dawn'),
+  'herald-of-protection': c(P, 'calling down a glowing winged angelic herald with a large shielding aura, wings spread over her', 'in a golden-lit sky with rays breaking through clouds'),
+  'herald-of-ravages': c(P, 'calling a fierce angelic herald with a blazing red-gold halo, hurling a bolt of searing light', 'in a stormy sky split by shafts of crimson light'),
+  'shimmering-specter': c(P, 'sending a shimmering ghostly figure of light that flickers like a mirage as it charges forward', 'across a heat-hazed glass plain'),
+  unmovable: c(0, 'a steadfast guardian planted on one spot with a huge shield, a ring of cracked earth around him', 'on a stormy mountain pass in rain'),
+  'wartune-herald': c(P, 'summoning a regal angelic herald blowing a long golden trumpet of light as streamers of rays flow', 'above a luminous battlefield of dawn mist'),
+  'merciful-retribution': c(P, 'hands lifted in a prayer as blades of gentle white light rain down from above', 'in a cloud-ringed temple with rays of dawn'),
+  'celestial-resolve': c(P, 'raising her hand as a glowing herald spreads its wings to cover her in a radiant protective dome', 'high above the clouds at sunrise'),
+  'herald-of-rebirth': c(P, 'a luminous herald rising from a swirl of ashes, trailing a phoenix of rainbow light', 'in a ruined cathedral open to the sunrise'),
+  'herald-of-triumph': c(P, 'summoning a triumphant herald that lifts a blazing prismatic spear overhead, a victorious radiance spreading', 'on a gleaming marble stair into the sky'),
+  'passing-mirage': c(P, 'making a shimmering illusion of herself drift to the side as the real figure steps out of sight', 'in a hazy desert at noon with distorted heat waves'),
+  'pierce-reality': c(P, 'driving a beam of pure white-and-rainbow light that tears a bright crack in the air before her', 'in an endless mirror-like hall of crystal'),
+
+  // ---- Nuu ----
+  nuu: c(N, 'crouched low at the edge of shadow with her dagger held back, her robes trailing like smoke', 'on a moonlit pagoda roof in drifting night mist'),
+  'arousing-wave': c(0, 'a pair of dark purple arm guards with fang-shaped spikes, a tiny wave of mist off them, the armour itself is the focus', 'on a lacquered shelf in a candlelit chamber'),
+  'beckoning-mistblade': c(0, 'a slender curved dagger whose pale blade trails beckoning wisps of mist, the weapon itself is the focus', 'stuck in a mossy log in a fog-choked forest'),
+  'mark-of-the-huntsman': c(0, 'a hunter dagger with a red crescent-marked blade glowing faintly, the weapon itself is the focus', 'resting on a worn leather glove at a campfire'),
+  'prey-spotters': c(0, 'a sleek dark hooded visor with a glowing red targeting lens, the headgear itself is the focus', 'on a stone ledge above a moonlit valley'),
+  'spiders-bite': c(0, 'a dagger with a fang-shaped black blade dripping a drop of venom, spider-web threads glittering from the hilt, the weapon itself is the focus', 'hanging from a silvery web in a dark cave'),
+  'stalkers-steps': c(0, 'a pair of soft-soled shadowy boots leaving faint glowing footprints, the boots themselves are the focus', 'on a moonlit stone path with creeping fog'),
+  'undertow-stilettos': c(0, 'sleek dark slippers with sharp heels, a rippling undertow of water swirling around them, the footwear itself is the focus', 'on a wet dock at night'),
+  'art-of-desire-body': c(N, 'stepping from the shadows with a hand outstretched, a rose-red mist of temptation curling from her fingers', 'in a candlelit hall of silk curtains'),
+  'art-of-desire-mind': c(N, 'whispering with a hand outstretched, a blue-violet mist of temptation curling from her fingers', 'in a moonlit garden of sleeping flowers'),
+  'double-trouble': c(N, 'appearing in two places at once, a pair of blades striking from front and behind in a double-flash', 'in a dark narrow alley under a single lantern'),
+  'excessive-bloodloss': c(N, 'slicing with a fine silver dagger so drops of red mist float away from her prey', 'in a rainy dusk courtyard'),
+  hiss: c(N, 'hissing through her veil as a serpent of dark mist coils around her dagger, boosting it', 'in a cave of dripping stone lit by green glow'),
+  'inertia-trap': c(0, 'a cleverly hidden trap of heavy chains and a stone weight springing from the ground, sluggish rings of grey energy', 'on a dusty forest trail with scattered leaves'),
+  'intimate-inducement': c(N, 'leaning close with a calm gaze, glowing pink-violet threads of persuasion linking her hand to a dagger', 'in a shadowed tearoom of paper screens'),
+  'mark-of-the-black-widow': c(N, 'leaping down from above with a red hourglass mark glowing on the back of her hand and a thin dagger', 'in the rafters of a dark hall draped with webs'),
+  'plunder-the-poor': c(N, 'swiftly lifting a heavy glittering coin pouch from a target and vanishing, coins flying in a glittering arc', 'on a narrow stone bridge at dusk'),
+  'venomous-bite': c(N, 'driving a venom-tipped fang blade in a snake-quick strike, green venom swirling', 'in a damp jungle ruin at dusk'),
+  'bonds-of-attraction': c(N, 'drawing a glowing thread that binds a foe toward her blade, a heart-shaped shimmer in the air', 'in a drifting-petal garden at twilight'),
+  'path-well-traveled': c(N, 'striding down a glowing path of footprints with a trail of faint blue light lifting her speed', 'on a winding mountain road at dawn'),
+  'pick-to-pieces': c(N, 'delivering rapid, cunning dagger jabs that carve a foe up piece by piece, sparks scattering', 'in a dim abandoned armoury'),
+  'serpents-kiss': c(N, 'striking with a dagger as a spectral cobra of violet energy lunges from her sleeve', 'in a moonlit temple courtyard with coiling mist'),
+
+  // ---- Dash ----
+  dash: c(D, 'grinning and aiming her steam pistol skyward, a whirl of cogs and steam bursting around her', 'in a cluttered inventor workshop with brass pipes and glowing lamps'),
+  'achilles-accelerator': c(0, 'a pair of brass leg braces with whirring pistons and a little steam-turbine at each ankle, the equipment itself is the focus', 'on a workbench among loose gears and oil cans'),
+  'blade-beckoner-boots': c(0, 'a pair of sturdy steel boots with blade-shaped fins, ringing faintly, the boots themselves are the focus', 'on a rack in an armoury with warm torch light'),
+  'mbrio-base-cortex': c(0, 'a brass chest plate with a glowing glass dome of whirring cogs and a steam valve, the equipment itself is the focus', 'bolted to a stand in a clattering workshop'),
+  'mbrio-base-vizier': c(0, 'a brass helmet with a flip-down lens, a small valve and a glowing blue crystal, the equipment itself is the focus', 'on a workbench under a hanging lamp'),
+  'plasma-barrel-shot': c(0, 'a long brass steam cannon with a barrel coil crackling with plasma and a small pressure gauge, the weapon itself is the focus', 'resting on sandbags in a smoky testing yard'),
+  'punching-gloves': c(0, 'a pair of heavy padded boxing gloves studded with brass knuckle plates, the equipment itself is the focus', 'hanging on a rusty hook in a gritty boxing gym'),
+  'talishar-the-lost-prince': c(0, 'a rust-pitted ancient great sword with a faded royal crest on the hilt, flakes of rust drifting from the blade, the weapon itself is the focus', 'stuck in a crumbling stone floor in a ruined throne room'),
+  'boom-grenade': c(D, 'tossing a round brass grenade with a sputtering fuse, grinning as steam hisses off it', 'in a dusty quarry with rocks and a safe overhang'),
+  'dive-through-data': c(D, 'diving forward in a flying leap, a cascade of glowing blue data lines streaming around her goggles', 'in a neon-lit tunnel of cables and wires'),
+  'fender-bender': c(D, 'slamming a huge wrench into a dented armour piece, the metal crumpling with a burst of sparks', 'in a junkyard heap of rusty plates'),
+  'hyper-driver': c(0, 'a glowing steam-powered engine core with spinning gears, a pressure gauge and white steam bursting out, the machine itself is the focus', 'bolted to a rolling cart in a workshop'),
+  'jump-start': c(D, 'cranking a handle on a rumbling engine so it roars to life, sparks leaping from the coils', 'in a greasy garage lit by a single lamp'),
+  'out-pace': c(D, 'dashing along on a steam-boosted skid, leaving a trail of speed lines and cogs far behind', 'on a long wooden dock at sunrise'),
+  overblast: c(D, 'firing her steam pistol again and again, bigger and bigger blasts bursting from it', 'on a cliff top with a flurry of rubble'),
+  're-charge': c(D, 'twisting a valve to top up a glowing steam core, wreathed in a cloud of white vapor', 'in a cramped boiler room of pipes and dials'),
+  'rev-up': c(D, 'revving a growling engine strapped to her back, flames and steam pouring from the exhaust', 'on a rocky desert track at midday'),
+  'scramble-pulse': c(D, 'triggering a handheld device that sends an electric pulse rippling through a foe armour, plates jittering', 'in a dim metal-walled lab'),
+  throttle: c(D, 'yanking a big throttle lever so her contraption lurches forward with a roar of steam', 'on a winding rail track over a canyon'),
+  'under-loop': c(D, 'spinning in a loop under a swinging mechanical arm, a trail of sparks curling behind her', 'beneath a factory gantry of hanging chains'),
+  'zero-to-sixty': c(D, 'bolting from a standing start into full speed, a shockwave of dust and steam blasting out behind her', 'on a flat salt flat with a clear horizon'),
+  'zipper-hit': c(D, 'zipping past with a quick spinning wrench strike, a zip-line of sparks trailing her', 'in a busy gear-filled factory floor'),
+  'penetration-script': c(D, 'plugging a glowing brass device into a lock, blue lines of code-light flooding through the metal', 'in a vault door workshop with dim lamps'),
+  'big-bertha': c(D, 'wheeling out a gigantic brass cannon with a huge barrel, grinning as steam gushes from the vents', 'in a rugged proving ground with smoke'),
+  crankshaft: c(D, 'cranking an enormous engine crankshaft by hand, gears whirring and steam spewing', 'inside a roaring engine house with pistons'),
+  'teklo-trebuchet-2000': c(D, 'launching a flaming cogwheel from a huge brass trebuchet, the arm swinging with steam and sparks', 'in a stone-walled courtyard with morning light')
+};
