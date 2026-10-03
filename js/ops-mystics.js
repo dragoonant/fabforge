@@ -27,6 +27,8 @@
     for (const a of D(s, link.iid).ab) if (a.k === 'my_defPowerMod') v += a.n;
     return v;
   };
+  // Is any of these cards a non-Illusionist attack action card defending this link with 6 or more {p}?
+  const phantasmMet = (s, link, iids) => iids.some(i => { const c = I(s, i), d = FAB.cards[c.id]; return c.zone === 'chain' && isAttackAction(d) && !isIll(d) && defPower(s, i, link) >= 6; });
   // Passing Mirage: "Your first Illusionist attack each turn loses and can't gain phantasm."
   const noPhantasm = (s, link) => link.my_ill === 1 && hasStatic(s, link.ctrl, 'my_noPhantasm');
 
@@ -42,6 +44,7 @@
     my_oppGrave: x => P(x.s, 1 - x.ctrl).grave.length > 0,
     my_ownGraveAction: x => P(x.s, x.ctrl).grave.some(i => D(x.s, i).kind === 'action'),
     my_heraldTarget: x => chainCards(x.s).some(i => isAttackAction(D(x.s, i)) && D(x.s, i).name.includes('Herald')),
+    my_mirageHolds: x => { const l = FAB.activeLink(x.s); return !!l && !l.resolved && !isIll(D(x.s, l.iid)) && FAB.attackPower(x.s, l) >= 6; },   // Mirage: defending a non-Illusionist attack with 6 or more {p}
     my_firstIllAA: x => !!I(x.s, x.iid).my_firstIll && isAttackAction(D(x.s, x.iid)),               // "The first Illusionist attack action card you play each turn"
   });
   Object.assign(FAB.vars, {
@@ -211,8 +214,7 @@
       const s = x.s, link = x.link;
       if (!link || link.resolved || link.iid !== x.iid || I(s, x.iid).zone !== 'chain') return;
       if (!D(s, x.iid).kw.phantasm || noPhantasm(s, link)) return;
-      const hit = link.defs.some(e => { const c = I(s, e.iid), d = FAB.cards[c.id]; return c.zone === 'chain' && isAttackAction(d) && !isIll(d) && defPower(s, e.iid, link) >= 6; });
-      if (!hit) return;                                                                              // CR 5.3.2a: the state is no longer met
+      if (!phantasmMet(s, link, link.defs.map(e => e.iid))) return;                                                                            // CR 5.3.2a: the state is no longer met
       FAB.log(s, 'my_phantasm', { who: x.ctrl, c: I(s, x.iid).id });
       FAB.destroy(s, x.iid);
       FAB.attackCeased(s, link);                                                                     // CR 8.3.13b
@@ -228,7 +230,14 @@
   Object.assign(FAB.trigMatchers, {
     enterArena: (s, ab, iid, ev) => ev.iid === iid,
     leaveChain: (s, ab, iid, ev) => ev.iid === iid,
-    defended: (s, ab, iid, ev) => ev.iid === iid,
+    defended: (s, ab, iid, ev) => {                                                                // Phantasm and Fragment trigger only when their condition is met by the defenders (CR 8.3.13a, 8.3.43)
+      if (ev.iid !== iid) return false;
+      const link = FAB.activeLink(s), o = ab.ops[0].o;
+      if (!link) return false;
+      if (o === 'my_phantasm') return phantasmMet(s, link, ev.iids) && D(s, iid).kw.phantasm && !noPhantasm(s, link);
+      if (o === 'my_fragment') return ev.iids.some(i => FAB.defenseOf(s, i, link) >= 2);
+      return true;
+    },
     my_targeted: (s, ab, iid, ev) => ev.iid === iid,
     destroyed: (s, ab, iid, ev) => {
       if (!ab.mine) return ev.iid === iid;
