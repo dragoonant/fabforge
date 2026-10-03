@@ -953,7 +953,125 @@ window.FAB.decks = {
   "rank": "2nd",
   "player": "Enki Dupaquier",
   "date": "04 Apr 2026",
-  "poolCompiled": 23
+  "poolCompiled": 35,
+  "deck": [
+   {
+    "id": "boulder-drop-red",
+    "n": 2
+   },
+   {
+    "id": "crash-and-bash-red",
+    "n": 2
+   },
+   {
+    "id": "crash-down-red",
+    "n": 1
+   },
+   {
+    "id": "disable-red",
+    "n": 1
+   },
+   {
+    "id": "disenchantment-of-the-old-ones-red",
+    "n": 2
+   },
+   {
+    "id": "fault-line-red",
+    "n": 2
+   },
+   {
+    "id": "pummel-red",
+    "n": 2
+   },
+   {
+    "id": "rites-of-earthlore-red",
+    "n": 2
+   },
+   {
+    "id": "smack-of-reality-red",
+    "n": 2
+   },
+   {
+    "id": "smelting-of-the-old-ones-red",
+    "n": 2
+   },
+   {
+    "id": "crash-and-bash-yel",
+    "n": 2
+   },
+   {
+    "id": "pummel-yel",
+    "n": 1
+   },
+   {
+    "id": "boulder-drop-blu",
+    "n": 2
+   },
+   {
+    "id": "chokeslam-blu",
+    "n": 1
+   },
+   {
+    "id": "debilitate-blu",
+    "n": 2
+   },
+   {
+    "id": "disable-blu",
+    "n": 2
+   },
+   {
+    "id": "draw-a-crowd-blu",
+    "n": 2
+   },
+   {
+    "id": "edge-of-their-seats-blu",
+    "n": 2
+   },
+   {
+    "id": "macho-grande-blu",
+    "n": 2
+   },
+   {
+    "id": "tectonic-instability-blu",
+    "n": 2
+   },
+   {
+    "id": "tension-in-the-air-blu",
+    "n": 2
+   },
+   {
+    "id": "thunder-quake-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "blinding-of-the-old-ones-red",
+    "n": 2
+   },
+   {
+    "id": "promising-terrain-blu",
+    "n": 2
+   },
+   {
+    "id": "arcane-polarity-red",
+    "n": 1
+   },
+   {
+    "id": "tension-in-the-air-red",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "millers-grindstone",
+   "steelbraid-buckler",
+   "civic-peak",
+   "magmatic-carapace",
+   "gauntlet-of-boulderhold",
+   "basalt-boots"
+  ],
+  "rule": "Valda's list from the Calling: Shanghai (2026), 46 non-arena cards cut to 40 (TRP 7.4). Both Blinding of the Old Ones are sideboarded because the engine cannot yet make every card a player owns lose all abilities, and both Promising Terrain because its second sentence races the Seismic Surge tokens' own start-of-action-phase triggers and the engine does not let a player order simultaneous triggers (DEVIATIONS D-1); the rest of the sideboard is one Arcane Polarity and one red Tension in the Air. The loadout is Miller's Grindstone with Steelbraid Buckler, Civic Peak, Magmatic Carapace, Gauntlet of Boulderhold and Basalt Boots.",
+  "registered": true
  },
  "dash-pt-yokohama": {
   "id": "dash-pt-yokohama",
@@ -1486,7 +1604,133 @@ window.FAB.decks = {
   "rank": "5th",
   "player": "Eugene C",
   "date": "08 Aug 2026",
-  "poolCompiled": 25
+  "poolCompiled": 40,
+  "deck": [
+   {
+    "id": "aggressive-pounce-red",
+    "n": 1
+   },
+   {
+    "id": "bare-fangs-red",
+    "n": 2
+   },
+   {
+    "id": "barraging-beatdown-red",
+    "n": 2
+   },
+   {
+    "id": "buckwild-red",
+    "n": 1
+   },
+   {
+    "id": "clash-of-might-red",
+    "n": 2
+   },
+   {
+    "id": "high-pitched-howl-red",
+    "n": 1
+   },
+   {
+    "id": "pulping-red",
+    "n": 2
+   },
+   {
+    "id": "rough-up-red",
+    "n": 1
+   },
+   {
+    "id": "savage-feast-red",
+    "n": 2
+   },
+   {
+    "id": "vigorous-smashup-red",
+    "n": 1
+   },
+   {
+    "id": "wild-ride-red",
+    "n": 2
+   },
+   {
+    "id": "agile-windup-yel",
+    "n": 2
+   },
+   {
+    "id": "barraging-beatdown-yel",
+    "n": 2
+   },
+   {
+    "id": "buckwild-yel",
+    "n": 2
+   },
+   {
+    "id": "give-em-a-piece-of-your-mind-yel",
+    "n": 2
+   },
+   {
+    "id": "mighty-windup-yel",
+    "n": 2
+   },
+   {
+    "id": "unexpected-backhand-yel",
+    "n": 2
+   },
+   {
+    "id": "vigorous-smashup-yel",
+    "n": 2
+   },
+   {
+    "id": "barraging-beatdown-blu",
+    "n": 1
+   },
+   {
+    "id": "clash-of-agility-blu",
+    "n": 2
+   },
+   {
+    "id": "clash-of-might-blu",
+    "n": 1
+   },
+   {
+    "id": "smell-fear-blu",
+    "n": 1
+   },
+   {
+    "id": "vigorous-smashup-blu",
+    "n": 2
+   },
+   {
+    "id": "wrecker-romp-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "bear-hug-yel",
+    "n": 1
+   },
+   {
+    "id": "strongest-survive-yel",
+    "n": 1
+   },
+   {
+    "id": "smash-with-big-tree-yel",
+    "n": 1
+   },
+   {
+    "id": "agile-windup-blu",
+    "n": 1
+   }
+  ],
+  "loadout": [
+   "ball-breaker",
+   "mandible-claw",
+   "buzzard-helm",
+   "predatory-plating",
+   "skera-strapping",
+   "beaten-trackers"
+  ],
+  "rule": "Rhinar's list from the 5th Calling: Bangkok (2026), 44 non-arena cards cut to the 40 Silver Age needs (TRP 7.4). The sideboard keeps four narrow cards: Bear Hug (play only after pitching a 6+ card), Strongest Survive, Smash with Big Tree and one Agile Windup. The loadout is the two 1H weapons Ball Breaker and Mandible Claw with Buzzard Helm; Ravenous Meataxe (2H), Monstrous Veil, the Nullrune pieces and Blade Beckoner Gauntlets stay out.",
+  "registered": true
  },
  "kano-pt-yokohama": {
   "id": "kano-pt-yokohama",
@@ -2714,7 +2958,113 @@ window.FAB.decks = {
   "rank": "3rd",
   "player": "Mark Tay",
   "date": "08 Aug 2026",
-  "poolCompiled": 30
+  "poolCompiled": 33,
+  "deck": [
+   {
+    "id": "boulder-drop-red",
+    "n": 2
+   },
+   {
+    "id": "cartilage-crush-red",
+    "n": 2
+   },
+   {
+    "id": "chokeslam-red",
+    "n": 2
+   },
+   {
+    "id": "crash-and-bash-red",
+    "n": 2
+   },
+   {
+    "id": "debilitate-red",
+    "n": 2
+   },
+   {
+    "id": "fault-line-red",
+    "n": 2
+   },
+   {
+    "id": "pummel-red",
+    "n": 2
+   },
+   {
+    "id": "staunch-response-red",
+    "n": 2
+   },
+   {
+    "id": "test-of-vigor-red",
+    "n": 2
+   },
+   {
+    "id": "boulder-drop-blu",
+    "n": 2
+   },
+   {
+    "id": "buckling-blow-blu",
+    "n": 2
+   },
+   {
+    "id": "chokeslam-blu",
+    "n": 2
+   },
+   {
+    "id": "clash-of-might-blu",
+    "n": 2
+   },
+   {
+    "id": "clash-of-vigor-blu",
+    "n": 2
+   },
+   {
+    "id": "debilitate-blu",
+    "n": 2
+   },
+   {
+    "id": "disable-blu",
+    "n": 2
+   },
+   {
+    "id": "macho-grande-blu",
+    "n": 2
+   },
+   {
+    "id": "staunch-response-blu",
+    "n": 2
+   },
+   {
+    "id": "thunder-quake-blu",
+    "n": 2
+   },
+   {
+    "id": "thunk-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "arcane-polarity-red",
+    "n": 2
+   },
+   {
+    "id": "oasis-respite-red",
+    "n": 2
+   },
+   {
+    "id": "flatten-the-field-blu",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "millers-grindstone",
+   "steelbraid-buckler",
+   "blade-beckoner-helm",
+   "richter-scale",
+   "gauntlet-of-boulderhold",
+   "civic-steps"
+  ],
+  "rule": "Bravo's list from the 5th Calling: Bangkok (2026), 46 non-arena cards cut to 40 (TRP 7.4). The sideboard is the narrow cards: both Arcane Polarity, both Oasis Respite and both Flatten the Field. The loadout is Miller's Grindstone with Steelbraid Buckler in the off-hand, Blade Beckoner Helm, Richter Scale, Gauntlet of Boulderhold and Civic Steps.",
+  "registered": true
  },
  "terra-calling-shanghai": {
   "id": "terra-calling-shanghai",
@@ -3372,7 +3722,116 @@ window.FAB.decks = {
   "rank": "3rd",
   "player": "Niels Debosschere",
   "date": "07 Feb 2026",
-  "poolCompiled": 29
+  "poolCompiled": 32,
+  "deck": [
+   {
+    "id": "bare-fangs-red",
+    "n": 2
+   },
+   {
+    "id": "buckwild-red",
+    "n": 2
+   },
+   {
+    "id": "clash-of-might-red",
+    "n": 2
+   },
+   {
+    "id": "high-pitched-howl-red",
+    "n": 2
+   },
+   {
+    "id": "pulping-red",
+    "n": 2
+   },
+   {
+    "id": "rough-up-red",
+    "n": 2
+   },
+   {
+    "id": "savage-feast-red",
+    "n": 2
+   },
+   {
+    "id": "test-of-might-red",
+    "n": 2
+   },
+   {
+    "id": "wild-ride-red",
+    "n": 2
+   },
+   {
+    "id": "agile-windup-yel",
+    "n": 2
+   },
+   {
+    "id": "bare-fangs-yel",
+    "n": 2
+   },
+   {
+    "id": "clash-of-might-yel",
+    "n": 2
+   },
+   {
+    "id": "wild-ride-yel",
+    "n": 2
+   },
+   {
+    "id": "agile-windup-blu",
+    "n": 2
+   },
+   {
+    "id": "assault-and-battery-blu",
+    "n": 2
+   },
+   {
+    "id": "buckwild-blu",
+    "n": 2
+   },
+   {
+    "id": "give-em-a-piece-of-your-mind-blu",
+    "n": 2
+   },
+   {
+    "id": "run-roughshod-blu",
+    "n": 2
+   },
+   {
+    "id": "smash-instinct-blu",
+    "n": 2
+   },
+   {
+    "id": "unexpected-backhand-blu",
+    "n": 2
+   }
+  ],
+  "side": [
+   {
+    "id": "sirens-of-safe-harbor-red",
+    "n": 2
+   },
+   {
+    "id": "sirens-of-safe-harbor-yel",
+    "n": 2
+   },
+   {
+    "id": "strongest-survive-red",
+    "n": 2
+   },
+   {
+    "id": "bear-hug-blu",
+    "n": 2
+   }
+  ],
+  "loadout": [
+   "mandible-claw",
+   "knucklehead",
+   "predatory-plating",
+   "skera-strapping",
+   "beaten-trackers"
+  ],
+  "rule": "Kayo's list from the Calling: London (2026), 48 non-arena cards cut to 40 (TRP 7.4). The sideboard is both Sirens of Safe Harbor colours, Strongest Survive (red) and Bear Hug. Kayo has one weapon zone: Mandible Claw, with Knucklehead, Predatory Plating, Skera Strapping and Beaten Trackers.",
+  "registered": true
  },
  "blaze-firemind-showdown-shinjuku": {
   "id": "blaze-firemind-showdown-shinjuku",
@@ -7242,7 +7701,7 @@ window.FAB.decks = {
     "arena": false
    }
   ],
-  "poolCompiled": 13
+  "poolCompiled": 14
  },
  "prism-advent-of-thrones": {
   "id": "prism-advent-of-thrones",

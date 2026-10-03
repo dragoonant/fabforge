@@ -13,7 +13,6 @@ export const CONDS = [
 export const EFFECTS = [
   [/^they discard a card$/, () => ({ o: 'discardChoice' })],                                                  // Concuss: the damaged hero chooses
   [/^target hero gains (\d+)\{h\}$/, m => ({ o: 'eg_heroGain', n: +m[1] })],                                   // Blessing of Patience
-  [/^another target hero draws a card$/, () => ({ o: 'eg_otherDraw' })],                                      // Civic Peak
   [/^[Pp]revent the next (\d+) damage that would be dealt to you this turn$/, m => ({ o: 'eg_preventSelf', n: +m[1] })],   // Oldhim, Battlefront Bastion
   [/^Prevent the next (\d+) damage that would be dealt to you this turn by a source of your choice$/, m => ({ o: 'eg_preventSource', n: +m[1] })],   // Steadfast
   [/^The next time you would be dealt (\d+)(?: or less)? damage this turn, prevent it$/, m => ({ o: 'eg_preventUpTo', n: +m[1] })],   // Brush Off

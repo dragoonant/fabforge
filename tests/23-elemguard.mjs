@@ -220,7 +220,7 @@ test('Civic Peak: whenever it defends, another target hero draws a card (the tar
   let s = game('dorinthea', TE); give(s, 0, ['hit-and-run-blu']); give(s, 1, []);
   s = act(s, 'dawnblade'); s = answerCard(s, 'hit-and-run-blu');
   s = passUntil(s, x => asked(x, 'defend')); s = answerCard(s, 'civic-peak'); s = answer(s, 'done');
-  s = passUntil(s, x => asked(x, 'eg_targetOther')); eq(s.pending.q.who, 1); eq(s.pending.q.opts.length, 1);
+  s = passUntil(s, x => asked(x, 'br_anotherHero')); eq(s.pending.q.who, 1); eq(s.pending.q.opts.length, 1);
   const d0 = s.players[0].deck[0];
   s = answer(s, 0); eq(s.players[0].hand[s.players[0].hand.length - 1], d0, 'the top card of THEIR deck');
 });
