@@ -95,6 +95,7 @@
     const to = zoneArr(s, c);
     if (to) { if (o.top) to.unshift(iid); else to.push(iid); }
     if (prev === 'arena' && zone !== 'arena') emit(s, { t: 'leaveArena', iid: iid, ctrl: c.owner });
+    if (zone === 'arena' && prev !== 'arena') emit(s, { t: 'br_enterArena', iid: iid, ctrl: c.owner });   // [brutes] "When this enters the arena" (Rites of Earthlore, Draw a Crowd)
     if (zone === 'grave' && prev !== 'grave') emit(s, { t: 'toGrave', iid: iid, from: prev });                // "put into your graveyard from anywhere"   // "When this leaves the arena" (CR 6.6)
     return prev;
   };
@@ -122,13 +123,18 @@
     }
     return pw;
   };
-  const createToken = FAB.createToken = function (s, who, name) {
+  const createToken = FAB.createToken = function (s, who, name, n) {
     const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     if (!FAB.cards[id] || FAB.cards[id].un) throw new Error('token not in the pack: ' + name);
-    const iid = s.nid++;
-    s.cards[iid] = { iid: iid, id: id, owner: who, zone: 'arena', counters: {}, mods: [], faceUp: true };
-    P(s, who).arena.push(iid);
-    log(s, 'token', { who: who, c: id });
+    n = n == null ? 1 : n;                                  // [brutes] n tokens are one creation event, so a replacement applies once per event
+    if (n >= 1 && id === 'seismic-surge') for (const i of P(s, who).arena) if (FAB.cards[I(s, i).id].ab.some(a => a.k === 'rule' && a.rule === 'br_surgePlus1')) n++;   // [brutes] Promising Terrain: "instead create that many plus 1"
+    let iid = null;
+    for (let k = 0; k < n; k++) {
+      iid = s.nid++;
+      s.cards[iid] = { iid: iid, id: id, owner: who, zone: 'arena', counters: {}, mods: [], faceUp: true };
+      P(s, who).arena.push(iid);
+      log(s, 'token', { who: who, c: id });
+    }
     return iid;
   };
 
@@ -172,7 +178,8 @@
     const me = P(s, link.ctrl);                                                        // "Your first attack each turn gets +1{p}": a continuous effect of a permanent
     for (const src of [me.hero].concat(me.weapons, me.equip, me.arena)) for (const ab of D(s, src).ab) if (ab.k === 'attackStatic' && (!ab.first || link.seq === 1)) p += gain(ab.p);
     let pierce = 0;
-    for (const m of link.mods) { if (m.p) p += gain(m.p); if (m.piercing) pierce += m.piercing; }
+    for (const m of link.mods) { if (m.p) p += gain(m.p); if (m.piercing) pierce += m.piercing; if (m.cp && FAB.cond(x, m.cp.cond)) p += gain(m.cp.p); }   // [brutes] cp: a granted "if <cond>, this gets +N{p}"
+    for (const m of c.mods) if (m.ap) p += gain(m.ap);                                  // [brutes] "this gets +N{p} until end of turn" is carried by the card (Ravenous Meataxe)
     if (d.kw.piercing) pierce += d.kw.piercing;
     if (pierce && link.defs.some(e => FAB.cards[I(s, e.iid).id].kind === 'equipment')) p += gain(pierce);   // CR 8.3.23
     return Math.max(0, p);
@@ -208,6 +215,7 @@
     if (f.baseMax != null && !(d.power <= f.baseMax)) return false;
     if (f.aa && (weapon || !isAttackDef(d))) return false;
     if (f.costMin != null && !(d.cost != null && d.cost >= f.costMin)) return false;
+    if (f.fromArsenal && !I(s, iid).fromArsenal) return false;                          // [brutes] "you play from arsenal" (Craterhoof)
     return true;
   };
 
@@ -272,6 +280,7 @@
   function trigMatch(s, ab, iid, ev) {
     if (ab.on !== ev.t) return false;
     const c = I(s, iid), own = c.owner, p = P(s, own);
+    if (ab.tcond && !FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, link: activeLink(s), flags: {} }, ab.tcond)) return false;   // [brutes] a condition on the trigger itself (an intervening "if", or "to a Guardian hero")
     switch (ev.t) {
       case 'attack': case 'played': case 'selfRandDisc': case 'clashWin': return ev.iid === iid;
       case 'defend': return ev.iids.includes(iid) && (!ab.cond || FAB.cond({ s: s, ctrl: own, iid: iid, ev: ev, flags: {} }, ab.cond));
@@ -331,7 +340,7 @@
         case 'defend': s.chain.step = 'reaction'; setPriority(s, s.tp); return;           // CR 7.3.4
         case 'reaction': damageStep(s); return;                                            // CR 7.4.3
         case 'damage': resolutionStep(s); return;                                          // CR 7.5.4
-        case 'resolution': s.closing = true; log(s, 'chainClose', {}); return;             // CR 7.6.4
+        case 'resolution': s.closing = true; log(s, 'chainClose', {}); emit(s, { t: 'br_chainClose' }); return;   // CR 7.6.4; [brutes] CR 7.7.3: "the combat chain closes" triggers
         default: throw new Error('both passed in step ' + s.chain.step);
       }
     }
@@ -635,7 +644,7 @@
     const keep = [];
     for (const e of s.effects) {
       if (e.k === 'next' && e.ctrl === L.ctrl && (e.turn == null || e.turn === s.turn) && FAB.matchAttack(s, L.iid, weapon, e.f)) {
-        L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src });
+        L.mods.push({ p: e.p || 0, grant: e.grant || null, hitGoAgain: !!e.hitGoAgain, src: e.src, ...(e.cp ? { cp: e.cp } : {}) });   // [brutes] cp: a conditional bonus the attack carries
         log(s, 'nextApplied', { who: L.ctrl, c: I(s, e.src).id, to: I(s, L.iid).id });
       } else keep.push(e);
     }
@@ -667,6 +676,7 @@
         log(s, 'optCost', { who: who, c: d.id, n: ab.cost.r });
       }
     }
+    for (const ab of d.ab) if (ab.k === 'addCost' && ab.opt && ab.cost.discard6) FAB.br_beatChest(x, who, iid);   // [brutes] CR 8.3.33 Beat Chest: an optional additional cost, declared with the others
     const res = d.ab.find(a => a.k === 'res');
     let tgt = res ? res.tgt : null;
     if (res && res.modes) {                                                                 // CR 5.1.4a, 1.7.5a: modes are declared as the card is played

@@ -163,7 +163,7 @@
       FAB.payRes(x, x.ctrl, op.n, x.iid, 'heave', { cancel: false, excl: x.iid });
       FAB.move(s, x.iid, 'arsenal');                                                        // face-up: it was heaved
       FAB.log(s, 'heave', { who: x.ctrl, c: c.id, n: op.n });
-      for (let i = 0; i < op.n; i++) FAB.createToken(s, x.ctrl, 'Seismic Surge');
+      FAB.createToken(s, x.ctrl, 'Seismic Surge', op.n);                                    // [brutes] one creation event of op.n tokens
     },
     suspenseTick(x) {                   // CR 8.3.42: at the start of your turn remove a suspense counter; with none left, destroy it
       const s = x.s, c = I(s, x.iid);

@@ -1,1 +1,22 @@
-{}
+{
+  "rhinar-calling-bangkok": {
+    "rule": "Rhinar's list from the 5th Calling: Bangkok (2026), 44 non-arena cards cut to the 40 Silver Age needs (TRP 7.4). The sideboard keeps four narrow cards: Bear Hug (play only after pitching a 6+ card), Strongest Survive, Smash with Big Tree and one Agile Windup. The loadout is the two 1H weapons Ball Breaker and Mandible Claw with Buzzard Helm; Ravenous Meataxe (2H), Monstrous Veil, the Nullrune pieces and Blade Beckoner Gauntlets stay out.",
+    "loadout": ["ball-breaker", "mandible-claw", "buzzard-helm", "predatory-plating", "skera-strapping", "beaten-trackers"],
+    "cut": [["bear-hug-yel", 1], ["strongest-survive-yel", 1], ["smash-with-big-tree-yel", 1], ["agile-windup-blu", 1]]
+  },
+  "kayo-calling-london": {
+    "rule": "Kayo's list from the Calling: London (2026), 48 non-arena cards cut to 40 (TRP 7.4). The sideboard is both Sirens of Safe Harbor colours, Strongest Survive (red) and Bear Hug. Kayo has one weapon zone: Mandible Claw, with Knucklehead, Predatory Plating, Skera Strapping and Beaten Trackers.",
+    "loadout": ["mandible-claw", "knucklehead", "predatory-plating", "skera-strapping", "beaten-trackers"],
+    "cut": [["sirens-of-safe-harbor-red", 2], ["sirens-of-safe-harbor-yel", 2], ["strongest-survive-red", 2], ["bear-hug-blu", 2]]
+  },
+  "bravo-flattering-showman-calling-bangkok": {
+    "rule": "Bravo's list from the 5th Calling: Bangkok (2026), 46 non-arena cards cut to 40 (TRP 7.4). The sideboard is the narrow cards: both Arcane Polarity, both Oasis Respite and both Flatten the Field. The loadout is Miller's Grindstone with Steelbraid Buckler in the off-hand, Blade Beckoner Helm, Richter Scale, Gauntlet of Boulderhold and Civic Steps.",
+    "loadout": ["millers-grindstone", "steelbraid-buckler", "blade-beckoner-helm", "richter-scale", "gauntlet-of-boulderhold", "civic-steps"],
+    "cut": [["arcane-polarity-red", 2], ["oasis-respite-red", 2], ["flatten-the-field-blu", 2]]
+  },
+  "valda-brightaxe-calling-shanghai": {
+    "rule": "Valda's list from the Calling: Shanghai (2026), 46 non-arena cards cut to 40 (TRP 7.4). Both Blinding of the Old Ones are sideboarded because the engine cannot yet make every card a player owns lose all abilities, and both Promising Terrain because its second sentence races the Seismic Surge tokens' own start-of-action-phase triggers and the engine does not let a player order simultaneous triggers (DEVIATIONS D-1); the rest of the sideboard is one Arcane Polarity and one red Tension in the Air. The loadout is Miller's Grindstone with Steelbraid Buckler, Civic Peak, Magmatic Carapace, Gauntlet of Boulderhold and Basalt Boots.",
+    "loadout": ["millers-grindstone", "steelbraid-buckler", "civic-peak", "magmatic-carapace", "gauntlet-of-boulderhold", "basalt-boots"],
+    "cut": [["blinding-of-the-old-ones-red", 2], ["promising-terrain-blu", 2], ["arcane-polarity-red", 1], ["tension-in-the-air-red", 1]]
+  }
+}
