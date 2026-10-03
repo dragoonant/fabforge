@@ -1,0 +1,12 @@
+{
+  "dorinthea": {
+    "rule": "LSS's Silver Age precon is a 55-card pool; a registered deck is exactly 40 (TRP 7.4). This default leaves seven cards in the sideboard: the two defense reactions that cannot block an attack with more than 3 base power, the two prevention instants, the potion, and the two +1 reactions.",
+    "loadout": ["dawnblade", "helm-of-unity", "blossom-of-spring", "gauntlets-of-unity", "refraction-bolters"],
+    "cut": [["put-in-context-blu", 2], ["oasis-respite-red", 2], ["energy-potion-blu", 1], ["nip-at-the-heels-blu", 2]]
+  },
+  "kayo": {
+    "rule": "LSS's Silver Age precon is a 55-card pool; a registered deck is exactly 40 (TRP 7.4). This default leaves seven cards in the sideboard: Unexpected Backhand, Rally the Coast Guard, Agile Windup and the yellow Clash of Might.",
+    "loadout": ["mandible-claw", "knucklehead", "predatory-plating", "blade-beckoner-gauntlets", "beaten-trackers"],
+    "cut": [["unexpected-backhand-blu", 2], ["rally-the-coast-guard-blu", 2], ["agile-windup-blu", 2], ["clash-of-might-yel", 1]]
+  }
+}
